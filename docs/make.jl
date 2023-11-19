@@ -80,13 +80,6 @@ makedocs(;
             "example/linear_elasticity.md",
             "example/linear_thermoelasticity.md",
         ],
-        "Manual" => Any[
-            "manual/geometry.md",
-            "manual/integration.md",
-            "manual/cellfunction.md",
-            "manual/function_space.md",
-            "manual/operator.md",
-        ],
         "How to..." => "howto/howto.md",
     ],
 )
