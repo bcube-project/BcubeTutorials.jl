@@ -1,4 +1,4 @@
 [deps]
-Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
+BcubeTutorials = "96b9ee7b-4a19-4ce3-a39f-9fbf54b5b072"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"

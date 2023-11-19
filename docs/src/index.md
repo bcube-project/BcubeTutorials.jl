@@ -1,5 +1,5 @@
 ```@meta
-CurrentModule = Bcube
+CurrentModule = BcubeTutorials
 ```
 
 # Bcube

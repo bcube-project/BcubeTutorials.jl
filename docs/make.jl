@@ -1,6 +1,6 @@
 push!(LOAD_PATH, "../src/")
 
-using Bcube
+using BcubeTutorials
 using Documenter
 using Literate
 
@@ -28,14 +28,14 @@ end
 # `documenter = false` to avoid Documenter to execute cells
 tutorial_names =
     ["helmholtz", "heat_equation", "linear_transport", "phase_field_supercooled"]
-tutorial_src = joinpath(@__DIR__, "..", "tutorial")
+tutorial_src = joinpath(@__DIR__, "..", "src", "tutorial")
 tutorial_dir = joinpath(@__DIR__, "src", "tutorial")
 Sys.rm(tutorial_dir; recursive = true, force = true)
 map(filename -> gen_markdown(tutorial_src, "$(filename).jl", tutorial_dir), tutorial_names)
 
 # Generate "commented" examples
 # `documenter = false` to avoid Documenter to execute cells
-example_src = joinpath(@__DIR__, "..", "example")
+example_src = joinpath(@__DIR__, "..", "src", "example")
 example_dir = joinpath(@__DIR__, "src", "example")
 Sys.rm(example_dir; recursive = true, force = true)
 mkdir(example_dir)
@@ -60,14 +60,14 @@ julia_to_markdown(
 )
 
 makedocs(;
-    modules = [Bcube],
+    modules = [BcubeTutorials],
     authors = "Ghislain Blanchard, Lokman Bennani and Maxime Bouyges",
-    sitename = "Bcube",
+    sitename = "BcubeTutorials",
     clean = true,
     doctest = false,
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://bcube-project.github.io/Bcube.jl",
+        canonical = "https://bcube-project.github.io/BcubeTutorials.jl",
         assets = String[],
     ),
     checkdocs = :none,
@@ -88,21 +88,7 @@ makedocs(;
             "manual/operator.md",
         ],
         "How to..." => "howto/howto.md",
-        "API Reference" => Any[
-            "api/mesh/mesh.md",
-            "api/mesh/gmsh_utils.md",
-            "api/mesh/mesh_generator.md",
-            "api/interpolation/shape.md",
-            "api/interpolation/function_space.md",
-            "api/interpolation/spaces.md",
-            "api/interpolation/fespace.md",
-            "api/mapping/mapping.md",
-            "api/integration/integration.md",
-            # "api/operator/operator.md",
-            "api/dof/dof.md",
-            "api/output/vtk.md",
-        ],
     ],
 )
 
-deploydocs(; repo = "github.com/bcube-project/Bcube.jl.git", push_preview = true)
+deploydocs(; repo = "github.com/bcube-project/BcubeTutorials.jl.git", push_preview = true)
