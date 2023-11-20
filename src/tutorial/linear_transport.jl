@@ -193,7 +193,7 @@ end
 
 # And here is an animation of the result:
 # ```@raw html
-# <img src="../assets/linear_transport.gif" alt="drawing" width="700"/>
+# <img src="../../assets/linear_transport.gif" alt="drawing" width="700"/>
 # ```
 
 end #hide
