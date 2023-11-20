@@ -1,0 +1,4 @@
+name = "BcubeTutorials"
+uuid = "96b9ee7b-4a19-4ce3-a39f-9fbf54b5b072"
+authors = ["Ghislain Blanchard, Lokman Bennani and Maxime Bouyges"]
+version = "0.1.0"
