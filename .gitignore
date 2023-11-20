@@ -4,3 +4,4 @@
 /docs/src/example/
 /docs/src/tutorial/
 .vscode
+**/Manifest.toml
