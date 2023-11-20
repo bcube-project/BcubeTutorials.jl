@@ -80,7 +80,6 @@ makedocs(;
             "example/linear_elasticity.md",
             "example/linear_thermoelasticity.md",
         ],
-        "How to..." => "howto/howto.md",
     ],
 )
 
