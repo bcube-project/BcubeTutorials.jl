@@ -7,6 +7,7 @@ on:
     tags: "*"
   pull_request:
     types: [unlabeled, opened, synchronize, reopened]
+  workflow_dispatch:
 
 # Only trigger the job when `draft` label is not assigned to the PR
 jobs:
