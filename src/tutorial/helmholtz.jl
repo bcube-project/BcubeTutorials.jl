@@ -132,7 +132,7 @@ end
 # To write a VTK file, we need to build a dictionnary linking the variable name with its
 # values and type
 using WriteVTK
-out_dir = joinpath(@__DIR__, "../myout") # output directory
+out_dir = joinpath(@__DIR__, "../../myout") # output directory
 isdir(out_dir) || mkdir(out_dir) #hide
 dict_vars = Dict("u_$i" => (values[:, i], VTKPointData()) for i in 1:nvecs)
 write_vtk(joinpath(out_dir, "helmholtz_rectangle_mesh"), 0, 0.0, mesh, dict_vars)

@@ -88,7 +88,7 @@ mesh = read_msh(tmp_path)
 rm(tmp_path)
 
 # We can now init our `VtkHandler`
-out_dir = joinpath(@__DIR__, "../myout")
+out_dir = joinpath(@__DIR__, "../../myout")
 isdir(out_dir) || mkdir(out_dir) #hide
 vtk = VtkHandler(joinpath(out_dir, "linear_transport"), mesh)
 
