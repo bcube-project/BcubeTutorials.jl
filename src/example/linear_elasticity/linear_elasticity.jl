@@ -15,8 +15,8 @@ const degree = 1 # FunctionSpace degree
 const degquad = 2 * degree + 1
 
 # Input and output paths
-const outputpath = dir * "../myout/elasticity/"
-const meshpath = dir * "../input/mesh/domainElast_tri.msh"
+const outputpath = dir * "../../myout/elasticity/"
+const meshpath = dir * "../../../input/mesh/domainElast_tri.msh"
 
 # Time stepping scheme params
 const α = 0.05
