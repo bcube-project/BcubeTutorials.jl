@@ -13,7 +13,8 @@ end
 Build a markdown file with just the content of the julia file in it.
 """
 function julia_to_markdown(src_dir, target_dir, filename, title)
-    open(joinpath(target_dir, split(filename, ".")[1] * ".md"), "w") do io
+    filename_noext = splitext(filename)[1]
+    open(joinpath(target_dir, "$(filename_noext).md"), "w") do io
         println(io, "# " * title)
         println(io, "```julia")
         f = open(joinpath(src_dir, filename), "r")
