@@ -44,20 +44,19 @@ mkdir(example_dir)
 # gen_markdown(example_src, "linear_elasticity.jl", example_dir)
 
 # Generate "uncommented" examples
-julia_to_markdown(
-    example_src,
-    example_dir,
-    "euler_naca_steady.jl",
-    "Euler equations on a NACA0012",
+for (script_name, name) in (
+    ("linear_elasticity.jl", "Linear elasticity"),
+    ("linear_thermoelasticity.jl", "Linear thermo-elasticity"),
+    ("covo.jl", "Euler equations - covo"),
+    ("euler_naca_steady.jl", "Euler equations on a NACA0012"),
 )
-julia_to_markdown(example_src, example_dir, "covo.jl", "Euler equations - covo")
-julia_to_markdown(example_src, example_dir, "linear_elasticity.jl", "Linear elasticity")
-julia_to_markdown(
-    example_src,
-    example_dir,
-    "linear_thermoelasticity.jl",
-    "Linear thermo-elasticity",
-)
+    julia_to_markdown(
+        joinpath(example_src, splitext(script_name)[1]),
+        example_dir,
+        script_name,
+        name,
+    )
+end
 
 makedocs(;
     modules = [BcubeTutorials],
