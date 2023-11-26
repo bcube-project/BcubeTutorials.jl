@@ -88,8 +88,8 @@ mesh = read_msh(tmp_path)
 rm(tmp_path)
 
 # We can now init our `VtkHandler`
-out_dir = joinpath(@__DIR__, "../../myout")
-isdir(out_dir) || mkdir(out_dir) #hide
+out_dir = joinpath(@__DIR__, "../../myout/linear_transport")
+mkpath(out_dir) #hide
 vtk = VtkHandler(joinpath(out_dir, "linear_transport"), mesh)
 
 # As seen in the previous tutorial, the definition of trial and test spaces needs a mesh and

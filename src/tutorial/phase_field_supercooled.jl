@@ -48,8 +48,8 @@ const lx = 3.0
 const ly = 1.0
 const nx = 100
 const ny = 20
-const out_dir = joinpath(@__DIR__, "../../myout") # output directory
-isdir(out_dir) || mkdir(out_dir) #hide
+const out_dir = joinpath(@__DIR__, "../../myout/phase_field_supercooled") # output directory
+mkpath(out_dir) #hide
 
 g(T) = (α / π) * atan(γ * (Te - T))
 

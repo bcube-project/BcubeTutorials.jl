@@ -31,10 +31,8 @@ const λ = 100.0
 const η = λ
 const ρCp = 100.0 * 200.0
 const degree = 2
-const outdir = joinpath(@__DIR__, "../../myout/")
-const outputpath = joinpath(outdir, "heat_equation/")
-isdir(outdir) || mkdir(outdir) #hide
-isdir(outputpath) || mkdir(outputpath) #hide
+const outputpath = joinpath(@__DIR__, "../../myout/heat_equation/")
+mkpath(outputpath) #hide
 
 # Read 2D mesh
 mesh_path = joinpath(@__DIR__, "../../input/mesh/domainSquare_tri.msh")
