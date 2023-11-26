@@ -1,6 +1,5 @@
 push!(LOAD_PATH, "../src/")
 
-using BcubeTutorials
 using Documenter
 using Literate
 
