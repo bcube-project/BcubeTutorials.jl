@@ -9,7 +9,7 @@ using LinearAlgebra
 using WriteVTK
 using StaticArrays
 
-# function space (here we shall use Lagrange P1 elements) and quadrature degree.
+# Function space (here we shall use Lagrange P1 elements) and quadrature degree.
 const fspace = :Lagrange
 const degree = 1 # FunctionSpace degree
 const degquad = 2 * degree + 1
@@ -86,7 +86,7 @@ function run_unsteady()
     )
     V_vec = TestFESpace(U_vec)
 
-    # Initialize solution
+    ## Initialize solution
     U = FEFunction(U_vec, 0.0)
     U0 = zeros(Bcube.get_ndofs(U_vec))
     V0 = zeros(Bcube.get_ndofs(U_vec))
@@ -94,31 +94,31 @@ function run_unsteady()
 
     T = FEFunction(U_scal, T₀)
 
-    # Define measures for cell
+    ## Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
 
-    # no volume force term
+    ## no volume force term
     f = PhysicalFunction(x -> SA[0.0, 0.0])
 
     q = PhysicalFunction(
         x -> x[1] .* (1.0 .- x[1]) .* x[2] .* (0.2 .- x[2]) .* 1500000000.0,
     )
 
-    # Definition of bilinear and linear forms for the elasticity problem
+    ## Definition of bilinear and linear forms for the elasticity problem
     a(u, v) = ∫(π(u, v))dΩ
     m(u, v) = ∫(ρ * u ⋅ v)dΩ
     l(v) = ∫(πₜ(T, v))dΩ
 
-    # An alternative way to define this linear form is to use operator composition:
-    # l(v) = ∫( πₜ ∘ (T, v, ∇(v)) )dΩ
-    # where πₜ(T, v, ∇v) = σₜ(T) ⊡ ϵ(v, ∇v) and ϵ(v, ∇v) = 0.5*( ∇v + transpose(∇v) )
+    ## An alternative way to define this linear form is to use operator composition:
+    ## l(v) = ∫( πₜ ∘ (T, v, ∇(v)) )dΩ
+    ## where πₜ(T, v, ∇v) = σₜ(T) ⊡ ϵ(v, ∇v) and ϵ(v, ∇v) = 0.5*( ∇v + transpose(∇v) )
 
-    # Definition of bilinear and linear forms for the heat conduction problem
+    ## Definition of bilinear and linear forms for the heat conduction problem
     aₜ(u, v) = ∫(k * ∇(u) ⋅ ∇(v))dΩ
     mₜ(u, v) = ∫(ρ * cₚ * u ⋅ v)dΩ
     lₜ(v) = ∫(q * v)dΩ
 
-    # Assemble matrices and vector
+    ## Assemble matrices and vector
     M = assemble_bilinear(m, U_vec, V_vec)
     A = assemble_bilinear(a, U_vec, V_vec)
     L = assemble_linear(l, V_vec)
@@ -126,30 +126,30 @@ function run_unsteady()
     MT = assemble_bilinear(mₜ, U_scal, V_scal)
     LT = assemble_linear(lₜ, V_scal)
 
-    # Apply homogeneous dirichlet on A and b
+    ## Apply homogeneous dirichlet on A and b
     Bcube.apply_homogeneous_dirichlet_to_vector!(L, U_vec, V_vec, mesh)
     Bcube.apply_dirichlet_to_matrix!((A, M), U_vec, V_vec, mesh)
 
-    # Compute a vector of dofs whose values are zeros everywhere
-    # except on dofs lying on a Dirichlet boundary, where they
-    # take the Dirichlet value
+    ## Compute a vector of dofs whose values are zeros everywhere
+    ## except on dofs lying on a Dirichlet boundary, where they
+    ## take the Dirichlet value
     Td = Bcube.assemble_dirichlet_vector(U_scal, V_scal, mesh)
 
-    # Apply lift
+    ## Apply lift
     LT = LT - AT * Td
 
-    # Apply homogeneous dirichlet condition
+    ## Apply homogeneous dirichlet condition
     Bcube.apply_homogeneous_dirichlet_to_vector!(LT, U_scal, V_scal, mesh)
     Bcube.apply_dirichlet_to_matrix!((AT, MT), U_scal, V_scal, mesh)
 
-    # Write initial solution
+    ## Write initial solution
     Un = var_on_vertices(U, mesh)
     Un = transpose(Un)
     Tn = var_on_vertices(T, mesh)
     mkpath(outputpath)
     dict_vars =
         Dict("Displacement" => (Un, VTKPointData()), "Temperature" => (Tn, VTKPointData()))
-    # Write the obtained FE solution
+    ## Write the obtained FE solution
     write_vtk(
         outputpath * "result_thermoelasticity",
         0,
@@ -159,11 +159,11 @@ function run_unsteady()
         append = false,
     )
 
-    # Time loop
+    ## Time loop
     itime = 0
     t = 0.0
 
-    # Matrix for time stepping
+    ## Matrix for time stepping
     Mat = factorize(M + (1.0 - α) * (β * Δt * Δt * A))
     Miter = factorize(MT + Δt * AT)
 
@@ -172,14 +172,14 @@ function run_unsteady()
         itime = itime + 1
         @show t, itime
 
-        # solve time step heat equation
+        ## solve time step heat equation
         rhs = Δt * LT + MT * (get_dof_values(T) .- Td)
         set_dof_values!(T, Miter \ rhs .+ Td)
 
-        # solve time step elasticity
+        ## solve time step elasticity
         U1, V1, G1 = Newmark_α_HHT(Δt, L, A, Mat, U0, V0, G0)
 
-        # Update solution
+        ## Update solution
         U0 .= U1
         V0 .= V1
         G0 .= G1
@@ -188,7 +188,7 @@ function run_unsteady()
         L = assemble_linear(l, V_vec)
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U_vec, V_vec, mesh)
 
-        # Write solution
+        ## Write solution
         if itime % 10 == 0
             Un = var_on_vertices(U, mesh)
             Un = transpose(Un)
@@ -198,7 +198,7 @@ function run_unsteady()
                 "Displacement" => (Un, VTKPointData()),
                 "Temperature" => (Tn, VTKPointData()),
             )
-            # Write the obtained FE solution
+            ## Write the obtained FE solution
             write_vtk(
                 outputpath * "result_thermoelasticity",
                 itime,
@@ -207,9 +207,9 @@ function run_unsteady()
                 dict_vars;
                 append = true,
             )
-            # In order to use the warp function in paraview (solid is deformed using the displacement field)
-            # the calculator filter has to be used with the following formula to reconstruct a 3D displacement field
-            # with 0 z-component: Displacement_X*iHat+Displacement_Y*jHat+0.0*kHat
+            ## In order to use the warp function in paraview (solid is deformed using the displacement field)
+            ## the calculator filter has to be used with the following formula to reconstruct a 3D displacement field
+            ## with 0 z-component: Displacement_X*iHat+Displacement_Y*jHat+0.0*kHat
         end
     end
 end

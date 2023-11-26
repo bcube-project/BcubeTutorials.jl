@@ -5,7 +5,7 @@ using Documenter
 using Literate
 
 # Alias for `Literate.markdown`
-function gen_markdown(src, name, dir)
+function gen_markdown_with_literate(src, name, dir)
     Literate.markdown(joinpath(src, name), dir; documenter = false, execute = false)
 end
 
@@ -32,7 +32,7 @@ tutorial_names =
 tutorial_src = joinpath(@__DIR__, "..", "src", "tutorial")
 tutorial_dir = joinpath(@__DIR__, "src", "tutorial")
 Sys.rm(tutorial_dir; recursive = true, force = true)
-map(filename -> gen_markdown(tutorial_src, "$(filename).jl", tutorial_dir), tutorial_names)
+map(filename -> gen_markdown_with_literate(tutorial_src, "$(filename).jl", tutorial_dir), tutorial_names)
 
 # Generate "commented" examples
 # `documenter = false` to avoid Documenter to execute cells
@@ -44,7 +44,7 @@ mkdir(example_dir)
 # gen_markdown(example_src, "covo.jl", example_dir)
 # gen_markdown(example_src, "linear_elasticity.jl", example_dir)
 
-# Generate "uncommented" examples
+# Generate "uncommented" examples (= without `LIterate`)
 for (script_name, name) in (
     ("linear_elasticity.jl", "Linear elasticity"),
     ("linear_thermoelasticity.jl", "Linear thermo-elasticity"),
@@ -58,6 +58,9 @@ for (script_name, name) in (
         name,
     )
 end
+
+# Generator markdown with `Literate`
+gen_markdown_with_literate(joinpath(example_src, "linear_thermoelasticity"), "linear_thermoelasticity.jl", example_dir)
 
 makedocs(;
     modules = [BcubeTutorials],
@@ -81,6 +84,7 @@ makedocs(;
             "example/linear_thermoelasticity.md",
         ],
     ],
+    #remotes = nothing
 )
 
 deploydocs(; repo = "github.com/bcube-project/BcubeTutorials.jl.git", push_preview = true)
