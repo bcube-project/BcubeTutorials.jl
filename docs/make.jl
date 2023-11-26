@@ -50,6 +50,7 @@ for (script_name, name) in (
     ("linear_thermoelasticity.jl", "Linear thermo-elasticity"),
     ("covo.jl", "Euler equations - covo"),
     ("euler_naca_steady.jl", "Euler equations on a NACA0012"),
+    ("shallow_water.jl", "Shallow water"),
 )
     julia_to_markdown(
         joinpath(example_src, splitext(script_name)[1]),
