@@ -1,34 +1,17 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Linear thermo-elasticity · BcubeTutorials</title><meta name="title" content="Linear thermo-elasticity · BcubeTutorials"/><meta property="og:title" content="Linear thermo-elasticity · BcubeTutorials"/><meta property="twitter:title" content="Linear thermo-elasticity · BcubeTutorials"/><meta name="description" content="Documentation for BcubeTutorials."/><meta property="og:description" content="Documentation for BcubeTutorials."/><meta property="twitter:description" content="Documentation for BcubeTutorials."/><meta property="og:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/linear_thermoelasticity/"/><meta property="twitter:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/linear_thermoelasticity/"/><link rel="canonical" href="https://bcube-project.github.io/BcubeTutorials.jl/example/linear_thermoelasticity/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.jpg" alt="BcubeTutorials logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">BcubeTutorials</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorial/helmholtz/">Helmholtz equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/heat_equation/">Heat equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/linear_transport/">Linear transport (DG)</a></li><li><a class="tocitem" href="../../tutorial/phase_field_supercooled/">Phase field model - solidification of a liquid in supercooled state</a></li></ul></li><li><span class="tocitem">Advanced examples</span><ul><li><a class="tocitem" href="../covo/">Euler equations - covo</a></li><li><a class="tocitem" href="../euler_naca_steady/">Euler equations on a NACA0012</a></li><li><a class="tocitem" href="../linear_elasticity/">Linear elasticity</a></li><li class="is-active"><a class="tocitem" href>Linear thermo-elasticity</a></li></ul></li><li><a class="tocitem" href="../../howto/howto/">How to...</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced examples</a></li><li class="is-active"><a href>Linear thermo-elasticity</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Linear thermo-elasticity</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl/blob/main/docs/src/example/linear_thermoelasticity.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Linear-thermo-elasticity"><a class="docs-heading-anchor" href="#Linear-thermo-elasticity">Linear thermo-elasticity</a><a id="Linear-thermo-elasticity-1"></a><a class="docs-heading-anchor-permalink" href="#Linear-thermo-elasticity" title="Permalink"></a></h1><pre><code class="language-julia hljs">module linear_thermo_elasticity #hide
-println(&quot;Running linear thermo-elasticity API example...&quot;) #hide
-
-# # Thermo-elasticity
-
-const dir = string(@__DIR__, &quot;/&quot;) # Bcube dir
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Thermo-elasticity · BcubeTutorials</title><meta name="title" content="Thermo-elasticity · BcubeTutorials"/><meta property="og:title" content="Thermo-elasticity · BcubeTutorials"/><meta property="twitter:title" content="Thermo-elasticity · BcubeTutorials"/><meta name="description" content="Documentation for BcubeTutorials."/><meta property="og:description" content="Documentation for BcubeTutorials."/><meta property="twitter:description" content="Documentation for BcubeTutorials."/><meta property="og:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/linear_thermoelasticity/"/><meta property="twitter:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/linear_thermoelasticity/"/><link rel="canonical" href="https://bcube-project.github.io/BcubeTutorials.jl/example/linear_thermoelasticity/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.jpg" alt="BcubeTutorials logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">BcubeTutorials</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorial/helmholtz/">Helmholtz equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/heat_equation/">Heat equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/linear_transport/">Linear transport (DG)</a></li><li><a class="tocitem" href="../../tutorial/phase_field_supercooled/">Phase field model - solidification of a liquid in supercooled state</a></li></ul></li><li><span class="tocitem">Advanced examples</span><ul><li><a class="tocitem" href="../covo/">Euler equations - covo</a></li><li><a class="tocitem" href="../euler_naca_steady/">Euler equations on a NACA0012</a></li><li><a class="tocitem" href="../linear_elasticity/">Linear elasticity</a></li><li class="is-active"><a class="tocitem" href>Thermo-elasticity</a></li><li><a class="tocitem" href="../constrained_poisson/">Constrained Poisson equation (FE)</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced examples</a></li><li class="is-active"><a href>Thermo-elasticity</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Thermo-elasticity</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl/blob/main/docs/src/example/linear_thermoelasticity.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Thermo-elasticity"><a class="docs-heading-anchor" href="#Thermo-elasticity">Thermo-elasticity</a><a id="Thermo-elasticity-1"></a><a class="docs-heading-anchor-permalink" href="#Thermo-elasticity" title="Permalink"></a></h1><pre><code class="language-julia hljs">const dir = string(@__DIR__, &quot;/&quot;) # Bcube dir
 using Bcube
 using LinearAlgebra
 using WriteVTK
-using StaticArrays
-
-# function space (here we shall use Lagrange P1 elements) and quadrature degree.
-const fspace = :Lagrange
+using StaticArrays</code></pre><p>Function space (here we shall use Lagrange P1 elements) and quadrature degree.</p><pre><code class="language-julia hljs">const fspace = :Lagrange
 const degree = 1 # FunctionSpace degree
-const degquad = 2 * degree + 1
-
-# Input and output paths
-const outputpath = joinpath(dir, &quot;../myout/elasticity/&quot;)
-const meshpath = joinpath(dir, &quot;../input/mesh/domainThermoElast_tri.msh&quot;)
-
-# Time stepping scheme params
-const α = 0.05
+const degquad = 2 * degree + 1</code></pre><p>Input and output paths</p><pre><code class="language-julia hljs">const outputpath = joinpath(dir, &quot;../../../myout/elasticity/&quot;)
+const meshpath = joinpath(dir, &quot;../../../input/mesh/domainThermoElast_tri.msh&quot;)</code></pre><p>Time stepping scheme params</p><pre><code class="language-julia hljs">const α = 0.05
 const γ = 0.5 + α
 const β = 0.25 * (1.0 + α)^2
 
 const totalTime = 10.0
-const Δt = 1.0e-2
-
-# Material parameters (Young&#39;s modulus, Poisson coefficient and deduced Lamé coefficients)
-const E = 200.0e9
+const Δt = 1.0e-2</code></pre><p>Material parameters (Young&#39;s modulus, Poisson coefficient and deduced Lamé coefficients)</p><pre><code class="language-julia hljs">const E = 200.0e9
 const ν = 0.3
 const λ = E * ν / ((1.0 + ν) * (1.0 - 2.0 * ν))
 const μ = E / (2.0 * (1.0 + ν))
@@ -36,31 +19,16 @@ const Kₜ = 1.0e-6
 const ρ = 2500.0
 const cₚ = 1000.0
 const k = 250.0
-const T₀ = 280.0
-
-# Strain tensor and stress tensor (Hooke&#39;s law)
-ϵ(u) = 0.5 * (∇(u) + transpose(∇(u)))
+const T₀ = 280.0</code></pre><p>Strain tensor and stress tensor (Hooke&#39;s law)</p><pre><code class="language-julia hljs">ϵ(u) = 0.5 * (∇(u) + transpose(∇(u)))
 σ(u) = λ * tr(ϵ(u)) * I + 2 * μ * (ϵ(u)) # Elastic stress
 σₜ(T) = (3 * λ + 2 * μ) * Kₜ * (T - T₀) * I # Thermal stress
 
 π(u, v) = σ(u) ⊡ ϵ(v) # with the chosen contraction convention ϵ should be transposed, but as it is symmetric the expression remains correct
-πₜ(T, v) = σₜ(T) ⊡ ϵ(v)
-
-# materialize for identity operator
-Bcube.materialize(A::LinearAlgebra.UniformScaling, B) = A
-
-# Function that performs a time step using a Newmark α-HHT scheme
-# The scheme updates the acceleration G, the velocity V and the displacement U using the following formulas:
-# ```math
-# \begin{cases}
-#   M G^{n+1} +(1-\alpha)A U^{n+1} + \alpha A U^{n} = (1-\alpha) L^{n+1} + \alpha L^n = L \textrm{(because here $L$ is time independent)} \\
-#   V^{n+1} = V^{n} + (1-\gamma) \Delta t G^n + \gamma \Delta t G^{n+1} \\
-#   U^{n+1} = U^{n} + \Delta t V^{n} + (\frac{1}{2} - \beta)*\Delta t^2 G^{n} + \beta \Delta t^2 G^{n+1}
-# \end{cases}
-# ```
-# where $$M$$ is the mass matrix, $$A$$ is the stiffness matrix and $$L$$ is the RHS
-# G is then computed by solving the linear system obtained by inserting the expressions for U and V in the equation for G.
-function Newmark_α_HHT(dt, L, A, Mat, U0, V0, G0)
+πₜ(T, v) = σₜ(T) ⊡ ϵ(v)</code></pre><p>materialize for identity operator</p><pre><code class="language-julia hljs">Bcube.materialize(A::LinearAlgebra.UniformScaling, B) = A</code></pre><p>Function that performs a time step using a Newmark α-HHT scheme The scheme updates the acceleration G, the velocity V and the displacement U using the following formulas:</p><p class="math-container">\[\begin{cases}
+  M G^{n+1} +(1-\alpha)A U^{n+1} + \alpha A U^{n} = (1-\alpha) L^{n+1} + \alpha L^n = L \textrm{(because here $L$ is time independent)} \\
+  V^{n+1} = V^{n} + (1-\gamma) \Delta t G^n + \gamma \Delta t G^{n+1} \\
+  U^{n+1} = U^{n} + \Delta t V^{n} + (\frac{1}{2} - \beta)*\Delta t^2 G^{n} + \beta \Delta t^2 G^{n+1}
+\end{cases}\]</p><p>where <span>$M$</span> is the mass matrix, <span>$A$</span> is the stiffness matrix and <span>$L$</span> is the RHS G is then computed by solving the linear system obtained by inserting the expressions for U and V in the equation for G.</p><pre><code class="language-julia hljs">function Newmark_α_HHT(dt, L, A, Mat, U0, V0, G0)
     L1 = L - α * A * U0
     L2 = -(1.0 - α) * (A * U0 + dt * A * V0 + (0.5 - β) * dt * dt * A * G0)
     RHS = L1 .+ L2
@@ -70,10 +38,7 @@ function Newmark_α_HHT(dt, L, A, Mat, U0, V0, G0)
     V = V0 + (1.0 - γ) * dt * G0 + γ * dt * G
 
     return U, V, G
-end
-
-# Function that runs the unsteady case:
-function run_unsteady()
+end</code></pre><p>Function that runs the unsteady case:</p><pre><code class="language-julia hljs">function run_unsteady()
     mesh = read_msh(meshpath, 2)
 
     fs = FunctionSpace(fspace, degree)
@@ -215,11 +180,4 @@ function run_unsteady()
     end
 end
 
-run_unsteady()
-
-# Here is an animation of the obtained result:
-# ```@raw html
-# &lt;img src=&quot;../assets/thermo_elasticity.gif&quot; alt=&quot;drawing&quot; width=&quot;500&quot;/&gt;
-# ```
-
-end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../../howto/howto/">How to... »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Monday 20 November 2023 10:21">Monday 20 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+run_unsteady()</code></pre><p>Here is an animation of the obtained result:</p><img src="../assets/thermo_elasticity.gif" alt="drawing" width="500"/><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../constrained_poisson/">Constrained Poisson equation (FE) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.1.2 on <span class="colophon-date" title="Sunday 26 November 2023 17:03">Sunday 26 November 2023</span>. Using Julia version 1.9.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
