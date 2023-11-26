@@ -32,7 +32,10 @@ tutorial_names =
 tutorial_src = joinpath(@__DIR__, "..", "src", "tutorial")
 tutorial_dir = joinpath(@__DIR__, "src", "tutorial")
 Sys.rm(tutorial_dir; recursive = true, force = true)
-map(filename -> gen_markdown_with_literate(tutorial_src, "$(filename).jl", tutorial_dir), tutorial_names)
+map(
+    filename -> gen_markdown_with_literate(tutorial_src, "$(filename).jl", tutorial_dir),
+    tutorial_names,
+)
 
 # Generate "commented" examples
 # `documenter = false` to avoid Documenter to execute cells
@@ -61,8 +64,16 @@ for (script_name, name) in (
 end
 
 # Generator markdown with `Literate`
-gen_markdown_with_literate(joinpath(example_src, "linear_thermoelasticity"), "linear_thermoelasticity.jl", example_dir)
-gen_markdown_with_literate(joinpath(example_src, "constrained_poisson"), "constrained_poisson.jl", example_dir)
+gen_markdown_with_literate(
+    joinpath(example_src, "linear_thermoelasticity"),
+    "linear_thermoelasticity.jl",
+    example_dir,
+)
+gen_markdown_with_literate(
+    joinpath(example_src, "constrained_poisson"),
+    "constrained_poisson.jl",
+    example_dir,
+)
 
 makedocs(;
     modules = [BcubeTutorials],
