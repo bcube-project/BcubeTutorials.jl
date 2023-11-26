@@ -1,6 +1,6 @@
 # BcubeTutorials.jl
 
-[![](https://img.shields.io/badge/docs-release-blue.svg)](https://bcube-project.github.io/BcubeTutorials.jl)
+[![](https://img.shields.io/badge/docs-release-blue.svg)](https://bcube-project.github.io/BcubeTutorials.jl) [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://bcube-project.github.io/BcubeTutorials.jl/dev)
 
 Documented tutorials and various examples for the [Bcube.jl](https://github.com/bcube-project/Bcube.jl) project. Browse the [online documentation](https://bcube-project.github.io/BcubeTutorials.jl).
 
