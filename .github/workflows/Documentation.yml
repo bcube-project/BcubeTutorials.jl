@@ -19,7 +19,9 @@ jobs:
       - uses: julia-actions/setup-julia@latest
         with:
           version: "1.9"
-      - name: Install dependencies
+      - name: Add Bcube as a global dependency
+        run: julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/bcube-project/Bcube.jl"))'
+      - name: Set up env
         run: julia --project=docs/ -e 'using Pkg; Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate()'
       - name: Build and deploy
         env:
