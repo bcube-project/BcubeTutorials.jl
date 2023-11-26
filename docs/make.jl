@@ -62,6 +62,7 @@ end
 
 # Generator markdown with `Literate`
 gen_markdown_with_literate(joinpath(example_src, "linear_thermoelasticity"), "linear_thermoelasticity.jl", example_dir)
+gen_markdown_with_literate(joinpath(example_src, "constrained_poisson"), "constrained_poisson.jl", example_dir)
 
 makedocs(;
     modules = [BcubeTutorials],
@@ -83,9 +84,10 @@ makedocs(;
             "example/euler_naca_steady.md",
             "example/linear_elasticity.md",
             "example/linear_thermoelasticity.md",
+            "example/constrained_poisson.md",
         ],
     ],
-    #remotes = nothing
+    # remotes = nothing, # tmp fix for bmxam windows
 )
 
 deploydocs(; repo = "github.com/bcube-project/BcubeTutorials.jl.git", push_preview = true)

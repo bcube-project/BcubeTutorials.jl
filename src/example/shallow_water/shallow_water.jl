@@ -1,6 +1,122 @@
 module ShallowWater #hide
 println("Running shallow_water example...") #hide
-# # Solve Shallow Water equation
+# # Shallow water equations
+#
+# WARNING : the below explanations are not up to date, the text has been copied from the old-api example.
+#
+# Following "A conservative Saint-Venant type model to describe the dynamics of thien partially wetting films with
+# regularized forces at the contact line".
+# The gravity is noted ``g = g_n \vec{e_n} + \vec{g_t}`` (note that ``g_n`` is a scalar while ``g_t`` is a vector). The goal is to solve:
+# ```math
+# \begin{cases}
+#   \partial_t \rho h + \nabla \cdot \rho h u = 0 \\
+#   \partial_t \rho h u + \nabla \cdot \mathcal{F}_{\rho h u} = h \left( \rho g_t - \nabla P_{gaz} \right) - \tilde{\tau}_{wall} + \tilde{\tau}_{air}
+# \end{cases}
+# ```
+#
+# To simplify a little bit, we assume a constant density. The systems becomes:
+# ```math
+# \begin{cases}
+#   \partial_t h + \nabla \cdot h u = 0 \\
+#   \partial_t h u + \nabla \cdot \mathcal{F}_{hu} = h \left( g_t - \nabla P_{gaz} \right) - \tau_{wall} + \tau_{air}
+# \end{cases}
+# ```
+# where
+# ```math
+# \tau_{wall} = \frac{3 \nu u}{h + b} - \frac{\tau_{air}h}{2(h+b)}
+# ```
+# ``b`` being a slip length and
+# ```math
+# \mathcal{F}_{h u} = h u \otimes u + g_n \frac{h^2}{2} \mathcal{I} + \frac{1}{\rho}\left[h \partial_h e_d(h) - e_d(h) \right]
+# - \frac{\gamma_{lg}}{\rho \sqrt{1 + ||\nabla h||^2}} + \frac{1}{\rho} \gamma_{lg} h \kappa
+# ```
+#
+# ## Explicit time integration
+# ```math
+# \begin{cases}
+#   h^{n+1} = h^n - \Delta t \nabla \cdot h u^n \\
+#   h u^{n+1} =  hu^n - \Delta t \left[
+#     \nabla \cdot \mathcal{F}_{hu}(h^n,hu^n)
+#     - h^n \left( g_t - \nabla P_{gaz} \right) + \tau_{wall}(h^n, hu^n) - \tau_{air}
+#   \right]
+# \end{cases}
+# ```
+#
+# ## Implicit time integration
+# ```math
+# \begin{cases}
+#   h^{n+1} = h^n - \Delta t \nabla \cdot h u^{n+1} \\
+#   h u^{n+1} =  hu^n - \Delta t \left[
+#     \nabla \cdot \mathcal{F}_{hu}(h^{n+1},hu^{n+1})
+#     - h^{n+1} \left( g_t - \nabla P_{gaz} \right) + \tau_{wall}(h^{n+1}, hu^{n+1}) - \tau_{air}
+#   \right]
+# \end{cases}
+# ```
+#
+# ## IMEX time integration (not finished / not relevant)
+# The wall friction term, ``\tau_w`` is singular when ``h \rightarrow 0``. To overcome this difficulty, an implicit-explicit (IMEX)
+# scheme is used : all terms are integrated explicitely except the wall friction. More precisely, the system is first written:
+# ```math
+# \begin{cases}
+#   h^{n+1} = h^n - \Delta t \nabla \cdot h u^n \\
+#   h u^{n+1} =  hu^n - \Delta t \left[
+#     \nabla \cdot \mathcal{F}_{hu}(h^n,hu^n)
+#     - h^n \left( g_t - \nabla P_{gaz} \right) + \tau_{wall}(h^{n+1}, hu^{n+1}) - \tau_{air}
+#   \right]
+# \end{cases}
+# ```
+# At each time step, the mass equation can be solved explicitely independantly from the momentum equation. Besides, the wall
+# friction can be expressed as:
+# ```math
+# \tau_{wall} = \frac{3 \nu hu^{n+1}}{{h^{n+1}}^2} - \frac{\tau_{air}}{2}
+# ```
+# where the slipping length, ``b``, is neglected (which is fine when working with an implicit formulation). The momentum
+# equation can then be rearranged to obtain:
+# ```math
+#   h u^{n+1}\left( 1 + \frac{3  \nu \Delta t }{{h^{n+1}}^2} \right) =  hu^n - \Delta t \left[
+#     \nabla \cdot \mathcal{F}_{hu}(h^n,hu^n)
+#     - h^n \left( g_t - \nabla P_{gaz} \right) - \frac{3}{2}\tau_{air}
+#   \right]
+# ```
+# Moving the multiplying factor to the right-hand-side, we finally obtain:
+# ```math
+#   h u^{n+1} = \frac{{h^{n+1}}^2}{{h^{n+1}}^2 + 3 \nu \Delta t} \left[
+#     hu^n - \Delta t \left[
+#       \nabla \cdot \mathcal{F}_{hu}(h^n,hu^n)
+#       - h^n \left( g_t - \nabla P_{gaz} \right) - \frac{3}{2}\tau_{air}
+#     \right]
+#  \right]
+# ```
+#
+#
+# ## Weak form
+# First we write the different equation with a full explicit scheme to improve clarity.
+#
+# ### Mass conservation equation
+# We multiply the equation by a test function ``\phi_{h}`` and integrate on a control volume ``\Omega``. After an integration by parts,
+# we obtain (for an explicit integration time scheme):
+# ```math
+# \int_{\Omega} h^{n+1} \phi_{h} \mathrm{\,d}\Omega = \int_{\Omega} h^n \phi_{h} \mathrm{\,d}\Omega
+# + \Delta t \left[ \int_{\Omega} h u^n \cdot \nabla \phi_{h} \mathrm{\,d}\Omega
+# - \oint_{\Gamma} F_{h}^*(h^n, h u^n) \phi_{h} \mathrm{\,d} \Gamma \right]
+# ```
+# where ``F^*_{h}`` is the numerical flux corresponding to ``hu``.
+#
+# ### Momentum conservation equation
+# We first consider the case without contact line forces nor curvature. Multiplying by a test function ``\phi_{h u}`` and integrating
+# by parts leads to:
+# ```math
+#   \int_{\Omega} h u^{n+1} \phi_{h u} \mathrm{\,d}\Omega = \int_{\Omega} h u^n \phi_{h u} \mathrm{\,d}\Omega
+#   + \Delta t \left[
+#     \int_{\Omega} \left[
+#         \mathcal{F}^n \cdot \nabla \phi_{h u}
+#         + \left( h^n(g_t - \nabla P_g) - \tau_w + \tau_a \right) \phi_{h u}
+#     \right] \mathrm{\,d}\Omega
+#     - \oint_{\Gamma} F_{h u}^*(h^n, h u^n) \phi_{h u} \mathrm{\,d} \Gamma
+#   \right]
+# ```
+# where ``F^*_{h u}`` is the numerical flux corresponding to ``h u \otimes u + g_n h^2 /2 \mathcal{I}``.
+#
 
 const dir = string(@__DIR__, "/")
 using Bcube
