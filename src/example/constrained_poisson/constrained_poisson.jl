@@ -49,8 +49,8 @@ using LinearAlgebra
 using SparseArrays
 using WriteVTK
 
-const outputpath = joinpath(@__DIR__, "../myout/constrained_poisson/")
-isdir(outputpath) || mkpath(outputpath)
+const outputpath = joinpath(@__DIR__, "../../../myout/constrained_poisson/")
+mkpath(outputpath)
 
 # Read 2D mesh
 mesh_path = joinpath(outputpath, "mesh.msh")

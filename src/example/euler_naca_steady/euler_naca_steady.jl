@@ -198,7 +198,7 @@ end
 
 function sparse2vtk(
     a::AbstractSparseMatrix,
-    name::String = string(@__DIR__, "/../myout/sparse"),
+    name::String = string(@__DIR__, "../../../myout/sparse"),
 )
     vtk_write_array(name, Array(a), "my_property_name")
 end
@@ -315,7 +315,8 @@ end
 function main(stateInit, stateBcFarfield, degree)
     @show degree, degquad
 
-    mesh = read_msh(dir * "../input/mesh/naca0012_o" * string(mesh_degree) * ".msh", 2)
+    mesh =
+        read_msh(dir * "../../../input/mesh/naca0012_o" * string(mesh_degree) * ".msh", 2)
     scale!(mesh, 1.0 / 0.5334)
 
     dimcar = compute_dimcar(mesh)
@@ -702,7 +703,7 @@ const nite_max = 300 #300000 # Number of time iteration(s)
 const nout = 1 # number of step between two vtk outputs
 const mass_matrix_in_solve = true
 const degquad = 6
-const outputpath = string(@__DIR__, "/../myout/euler_naca_steady/")
+const outputpath = joinpath(@__DIR__, "../../../myout/euler_naca_steady/")
 
 const stateBcFarfield = (
     AoA = stateInit.AoA,

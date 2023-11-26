@@ -31,10 +31,11 @@ const λ = 100.0
 const η = λ
 const ρCp = 100.0 * 200.0
 const degree = 2
-const outputpath = joinpath(@__DIR__, "../myout/heat_equation/")
+const outputpath = joinpath(@__DIR__, "../../myout/heat_equation/")
+mkpath(outputpath) #hide
 
 # Read 2D mesh
-mesh_path = joinpath(@__DIR__, "../input/mesh/domainSquare_tri.msh")
+mesh_path = joinpath(@__DIR__, "../../input/mesh/domainSquare_tri.msh")
 mesh = read_msh(mesh_path)
 
 # Build function space and associated Trial and Test FE spaces.
@@ -81,7 +82,7 @@ totalTime = 100.0
 Δt = 0.1
 
 # Read a slightly different mesh
-mesh_path = joinpath(@__DIR__, "../input/mesh/domainSquare_tri_2.msh")
+mesh_path = joinpath(@__DIR__, "../../input/mesh/domainSquare_tri_2.msh")
 mesh = read_msh(mesh_path)
 
 # The rest is similar to the steady case

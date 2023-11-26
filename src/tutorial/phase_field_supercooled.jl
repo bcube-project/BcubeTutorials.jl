@@ -33,7 +33,6 @@ Random.seed!(1234) # to obtain reproductible results
 
 # Define some physical and numerical constants, as well as the `g` function
 # appearing in the problem definition.
-const dir = string(@__DIR__, "/../") # Bcube dir
 const ε = 0.01
 const τ = 0.0003
 const α = 0.9
@@ -49,11 +48,13 @@ const lx = 3.0
 const ly = 1.0
 const nx = 100
 const ny = 20
+const out_dir = joinpath(@__DIR__, "../../myout/phase_field_supercooled") # output directory
+mkpath(out_dir) #hide
 
 g(T) = (α / π) * atan(γ * (Te - T))
 
 # Read the mesh using `gmsh`
-const mesh_path = dir * "input/mesh/domainPhaseField_tri.msh"
+const mesh_path = joinpath(@__DIR__, "../../input/mesh/domainPhaseField_tri.msh")
 const mesh = read_msh(mesh_path)
 
 # Noise function : random between [-1/2,1/2]
@@ -100,7 +101,7 @@ dict_vars = Dict(
     "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
     "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
 )
-write_vtk(dir * "myout/result_phaseField_imex_1space", 0, 0.0, mesh, dict_vars)
+write_vtk(joinpath(out_dir, "result_phaseField_imex_1space"), 0, 0.0, mesh, dict_vars)
 
 # Factorize and allocate some vectors to increase performance
 C_ϕ = factorize(C_ϕ)
@@ -140,7 +141,7 @@ while t <= totalTime
             "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
         )
         write_vtk(
-            dir * "myout/result_phaseField_imex_1space",
+            joinpath(out_dir, "result_phaseField_imex_1space"),
             itime,
             t,
             mesh,
