@@ -217,8 +217,6 @@ end
 run_unsteady()
 
 # Here is an animation of the obtained result:
-# ```@raw html
-# <img src="../assets/thermo_elasticity.gif" alt="drawing" width="500"/>
-# ```
+# ![](../assets/thermo_elasticity.gif)
 
 end #hide
