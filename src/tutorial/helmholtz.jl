@@ -138,8 +138,6 @@ dict_vars = Dict("u_$i" => (values[:, i], VTKPointData()) for i in 1:nvecs)
 write_vtk(joinpath(out_dir, "rectangle_mesh"), 0, 0.0, mesh, dict_vars)
 
 # And here is the eigenvector corresponding to the 4th eigenvalue:
-# ```@raw html
-# <img src="../assets/helmholtz_x21_y21_vp6.png" alt="drawing" width="500"/>
-# ```
+# ![](../assets/helmholtz_x21_y21_vp6.png)
 
 end #hide
