@@ -38,9 +38,10 @@ const outputpath = joinpath(@__DIR__, "../../myout/non_api_heat_equation/")
 mkpath(outputpath) #hide
 
 # Read 2D mesh
-mesh_path = joinpath(mktempdir(), "mesh.msh")
-gen_rectangle_mesh(mesh_path, :tri; nx = 50, ny = 50)
-mesh = read_msh(mesh_path)
+# mesh_path = joinpath(mktempdir(), "mesh.msh")
+# gen_rectangle_mesh(mesh_path, :tri; nx = 50, ny = 50)
+# mesh = read_msh(mesh_path)
+mesh = line_mesh(10; names = ("West", "East"))
 
 # Build function space and associated Trial and Test FE spaces.
 # We impose a Dirichlet condition with a temperature of 260K
@@ -67,8 +68,8 @@ b = zeros(get_ndofs(U))
 
 # The loop over the mesh cells is performed using a `DomainIterator`. The item obtained by this iterator
 # is a `CellInfo`. This type contains the cell type, its nodes indices and coordinates.
-for cellinfo in DomainIterator(domain)
-    ctype = celltype(cellinfo) # cell entity type
+for cellinfo in Bcube.DomainIterator(Ω)
+    ctype = Bcube.celltype(cellinfo) # cell entity type
     cshape = shape(ctype) # cell `Shape`
     cnodes = nodes(cellinfo) # cell nodes
 
@@ -77,12 +78,12 @@ for cellinfo in DomainIterator(domain)
     J(ξ) = mapping_det_jacobian(nodes, ctype, ξ)
 
     ## Get the quadrature rule (nodes and weights) associated to this cell
-    qrule = QuadratureRule(cshape, get_quadrature(dΩ))
+    qrule = QuadratureRule(cshape, Bcube.get_quadrature(dΩ))
     qnodes = get_nodes(qrule)
-    qweights = get_weights(qrule)
+    qweights = Bcube.get_weights(qrule)
 
     ## Get the global dofs indices of V in the cell (`g` suffix stands for global)
-    idofs_g = get_dofs(V, cellindex(cellinfo))
+    idofs_g = Bcube.get_dofs(V, Bcube.cellindex(cellinfo))
 
     ## Loop over the dofs of V in the cell
     ## (...)
@@ -115,10 +116,13 @@ end
 # Here again, imagine that the code below is included in the previous loop.
 for (jdof_l, jdof_g) in enumerate(jdofs_g)
     λ_U(ξ) = _scalar_shape_functions(fs, cshape, ξ)[jdof_l]
-    ∇λ_U(ξ) = grad_shape_functions(fs, cshape, ξ)[jdof_l, :]
+    ∇λ_U(ξ) = grad_shape_functions(fs, cshape, ξ)[jdof_l, :] # gradient in the reference element
+    Jinv(ξ) = mapping_jacobian_inv(cnodes, ctype, ξ)
 
-    ## This time we directly use the `apply_quadrature` using the `qrule` object
-    error("not implemented yet")
+    ## This time we directly use the `integrate_on_ref` function that apply the quadrature rule
+    ## (and multiply by the Jacobian determinant). To use this function, we must define the integrand
+    g(ξ) = η * (transpose(Jinv(ξ)) * ∇λ_U(ξ)) ⋅ (transpose(Jinv(ξ)) * ∇λ_V(ξ))
+    A[idof_l, jdof_l] = integrate_on_ref(g, cellinfo, quadrature, ComputeQuadratureStyle(g))
 end
 
 # Create an affine FE system and solve it using the `AffineFESystem` structure.
