@@ -21,7 +21,7 @@ const uₐ = PhysicalFunction(x -> 3 * x[1] + x[2]^2 + 2 * x[1]^3)
 const f = PhysicalFunction(x -> -2 - 12 * x[1])
 const g = uₐ
 
-_mean(u) = 0.5 * (side⁺(u) + side⁻(u))
+avg(u) = 0.5 * (side⁺(u) + side⁻(u))
 
 function main()
 
@@ -49,16 +49,16 @@ function main()
 
     function a_Γ(u, v)
         ∫(
-            -jump(v, nΓ) ⋅ _mean(∇(u)) - _mean(∇(v)) ⋅ jump(u, nΓ) +
+            -jump(v, nΓ) ⋅ avg(∇(u)) - avg(∇(v)) ⋅ jump(u, nΓ) +
             γ / h * jump(v, nΓ) ⋅ jump(u, nΓ),
         )dΓ
     end
 
     fa_Γb(u, ∇u, v, ∇v, n) = -v * (∇u ⋅ n) - (∇v ⋅ n) * u + (γ / h) * v * u
-    a_Γb(u, v) = ∫(fa_Γb ∘ (side⁻(u), side⁻(∇(u)), side⁻(v), side⁻(∇(v)), side⁻(nΓb)))dΓb
+    a_Γb(u, v) = ∫(fa_Γb ∘ map(side⁻, (u, ∇(u), v, ∇(v), nΓb)))dΓb
 
     fl_Γb(v, ∇v, n, g) = -(∇v ⋅ n) * g + (γ / h) * v * g
-    l_Γb(v) = ∫(fl_Γb ∘ (side⁻(v), side⁻(∇(v)), side⁻(nΓb), side⁻(g)))dΓb
+    l_Γb(v) = ∫(fl_Γb ∘ map(side⁻, (v, ∇(v), nΓb, g)))dΓb
 
     a(u, v) = a_Ω(u, v) + a_Γ(u, v) + a_Γb(u, v)
     l(v) = l_Ω(v) + l_Γb(v)
