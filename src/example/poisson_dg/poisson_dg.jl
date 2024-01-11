@@ -63,15 +63,8 @@ function main()
     a(u, v) = a_Ω(u, v) + a_Γ(u, v) + a_Γb(u, v)
     l(v) = l_Ω(v) + l_Γb(v)
 
-    A = assemble_bilinear(a, U, V)
-    L = assemble_linear(l, V)
-    _uh = A \ L
-
-    uh = FEFunction(U)
-    set_dof_values!(uh, _uh)
-
-    #sys = Bcube.AffineFESystem(a, l, U, V)  # to be fixed : `get_measure(op)` for `MultiIntegration`
-    #uh = Bcube.solve(sys)
+    sys = Bcube.AffineFESystem(a, l, U, V)
+    uh = Bcube.solve(sys)
 
     l2(u) = sqrt(sum(Bcube.compute(∫(u ⋅ u)dΩ)))
     h1(u) = sqrt(sum(Bcube.compute(∫(u ⋅ u + ∇(u) ⋅ ∇(u))dΩ)))
