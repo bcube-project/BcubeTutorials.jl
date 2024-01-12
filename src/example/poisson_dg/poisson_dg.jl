@@ -70,9 +70,7 @@ function main()
     h1(u) = sqrt(sum(Bcube.compute(∫(u ⋅ u + ∇(u) ⋅ ∇(u))dΩ)))
     e = uₐ - uh
 
-    ua2 = FEFunction(U)
-    projection_l2!(ua2, uₐ, dΩ)
-    vars = Dict("uh" => uh, "ua" => uₐ, "ua2" => ua2, "error" => e)
+    vars = Dict("uh" => uh, "u_ref" => uₐ, "error" => e)
     Bcube.write_vtk_lagrange(joinpath(outputpath, "output"), vars, mesh, U)
 
     el2 = l2(e)
