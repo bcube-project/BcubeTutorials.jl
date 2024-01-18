@@ -37,7 +37,7 @@ map(
     tutorial_names,
 )
 
-# Generate "commented" examples
+# Generate examples
 # `documenter = false` to avoid Documenter to execute cells
 example_src = joinpath(@__DIR__, "..", "src", "example")
 example_dir = joinpath(@__DIR__, "src", "example")
@@ -47,7 +47,7 @@ mkdir(example_dir)
 # gen_markdown(example_src, "covo.jl", example_dir)
 # gen_markdown(example_src, "linear_elasticity.jl", example_dir)
 
-# Generate "uncommented" examples (= without `LIterate`)
+# Generate "uncommented" examples (= without `Literate`)
 for (script_name, name) in (
     ("linear_elasticity.jl", "Linear elasticity"),
     ("linear_thermoelasticity.jl", "Linear thermo-elasticity"),
@@ -74,6 +74,11 @@ gen_markdown_with_literate(
     "constrained_poisson.jl",
     example_dir,
 )
+gen_markdown_with_literate(
+    joinpath(example_src, "transport_supg"),
+    "transport_supg.jl",
+    example_dir,
+)
 
 makedocs(;
     modules = [BcubeTutorials],
@@ -96,6 +101,7 @@ makedocs(;
             "example/linear_elasticity.md",
             "example/linear_thermoelasticity.md",
             "example/constrained_poisson.md",
+            "example/transport_supg.md",
         ],
     ],
     # remotes = nothing, # tmp fix for bmxam windows
