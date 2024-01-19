@@ -1,6 +1,9 @@
 module Poisson_DG #hide
 println("Running poisson DG example...") #hide
 
+# # Poisson equation (DG)
+# This example is based on a [Gridap tutorial](https://gridap.github.io/Tutorials/stable/pages/t006_dg_discretization/)
+
 # import necessary packages
 using Bcube
 using LinearAlgebra
@@ -27,10 +30,9 @@ function main()
 
     # Build mesh
     meshParam = (nx = n + 1, ny = n + 1, lx = Lx, ly = Lx, xc = 0.0, yc = 0.0)
-    tmp_path = "tmp.msh"
+    tmp_path = joinpath(tempdir(), "tmp.msh")
     gen_rectangle_mesh(tmp_path, :quad; meshParam...)
     mesh = read_msh(tmp_path)
-    rm(tmp_path)
 
     # Choose degree and define function space, trial space and test space
     fs = FunctionSpace(:Lagrange, degree)
