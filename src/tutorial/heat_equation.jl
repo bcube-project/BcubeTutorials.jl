@@ -58,7 +58,7 @@ l(v) = ∫(q * v)dΩ
 # The result is a FEFunction (`ϕ`).
 # We can interpolate it on mesh centers : the result is named `Tcn`.
 sys = AffineFESystem(a, l, U, V)
-ϕ = solve(sys)
+ϕ = Bcube.solve(sys)
 Tcn = var_on_centers(ϕ, mesh)
 
 # Compute analytical solution for comparison. Apply the analytical solution
