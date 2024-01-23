@@ -61,8 +61,8 @@ V = TestFESpace(U)
 Λᵥ = TestFESpace(Λᵤ)
 
 # The usual trial FE space and multiplier space are combined into a MultiFESpace
-TrialMultiFESpace = MultiFESpace(U, Λᵤ)
-TestMultiFESpace = MultiFESpace(V, Λᵥ)
+TrialMultiFESpace = MultiFESpace(U, Λᵤ; arrayOfStruct = false)
+TestMultiFESpace = MultiFESpace(V, Λᵥ; arrayOfStruct = false)
 
 # Define volume and boundary measures
 dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
@@ -80,10 +80,11 @@ f = PhysicalFunction(
 )
 
 volume = sum(Bcube.compute(∫(PhysicalFunction(x -> 1.0))dΩ))
+@show volume
 
 # Define bilinear and linear forms
 function a((u, λᵤ), (v, λᵥ))
-    ∫(∇(u) ⋅ ∇(v))dΩ + ∫(λᵤ * v)dΩ + ∫(λᵥ * u)dΩ
+    ∫(∇(u) ⋅ ∇(v))dΩ + ∫(side⁻(λᵤ) * side⁻(v))dΓ + ∫(side⁻(λᵥ) * side⁻(u))dΓ
 end
 
 # For the time being only functionals in the form of integrals can be assembled.
@@ -94,20 +95,71 @@ l((v, λᵥ)) = ∫(f * v + 2.0 * π * λᵥ / volume)dΩ
 A = assemble_bilinear(a, TrialMultiFESpace, TestMultiFESpace)
 L = assemble_linear(l, TestMultiFESpace)
 
+########################### DEBUG ###############################
+
+# Define bilinear and linear forms
+a2(u, v) = ∫(∇(u) ⋅ ∇(v))dΩ
+l2(v) = ∫(f * v)dΩ
+lc(v) = ∫(side⁻(v))dΓ
+
+# Assemble to get matrices and vectors
+A2 = assemble_bilinear(a2, U, V)
+L2 = assemble_linear(l2, V)
+Lc = assemble_linear(lc, V)
+
+# Build augmented problem
+n = size(L2)[1]
+
+M = spzeros(n + 1, n + 1)
+B = zeros(n + 1)
+
+M[1:n, 1:n] .= A2[1:n, 1:n]
+M[n + 1, 1:n] .= Lc[:]
+M[1:n, n + 1] .= Lc[:]
+B[1:n] .= L2[1:n]
+B[n + 1] = 2.0 * π
+
+#################################################################
+
+display(abs.(A[(n + 1), n] .- M[(n + 1), n]))
+
 # Solve problem
 sol = A \ L
 
 ϕ = FEFunction(TrialMultiFESpace)
 
 # Write solution and compare to analytical solution
+for i in 1:n
+    d = abs(2.0 * π - L[i])
+    if d < 1.0e-10
+        println(i, " ", L[i], " ", n, " ", sol[i])
+    end
+end
 set_dof_values!(ϕ, sol)
 u, λ = ϕ
 
 println(" Value of Lagrange multiplier : ", λ.dofValues[1])
 
+ϕₑ = FEFunction(U)
+
+projection_l2!(ϕₑ, PhysicalFunction(x -> cos(4.0 * π * (x[1]^2 + x[2]^2))), mesh)
+
 Un = var_on_vertices(u, mesh)
+Ue = var_on_vertices(ϕₑ, mesh)
 mkpath(outputpath)
-dict_vars = Dict("Numerical Solution" => (Un, VTKPointData()))
-write_vtk(outputpath * "result_constrained_poisson_equation", 0, 0.0, mesh, dict_vars)
+dict_vars = Dict(
+    "Numerical Solution" => (Un, VTKPointData()),
+    "Analytical solution" => (Ue, VTKPointData()),
+)
+write_vtk(
+    outputpath * "result_constrained_poisson_equation_multiplierFESpace",
+    0,
+    0.0,
+    mesh,
+    dict_vars,
+)
+
+error = norm(Un .- Ue, Inf) / norm(Ue, Inf)
+println(" Error : ", error)
 
 end #hide

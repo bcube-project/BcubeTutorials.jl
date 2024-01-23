@@ -99,7 +99,8 @@ M[n + 1, 1:n] .= Lc[:]
 M[1:n, n + 1] .= Lc[:]
 B[1:n] .= L[1:n]
 B[n + 1] = 2.0 * π
-
+@show M[n, n]
+@show B[n]
 # Solve problem
 sol = M \ B
 
