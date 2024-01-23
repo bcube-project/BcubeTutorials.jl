@@ -99,8 +99,7 @@ M[n + 1, 1:n] .= Lc[:]
 M[1:n, n + 1] .= Lc[:]
 B[1:n] .= L[1:n]
 B[n + 1] = 2.0 * π
-@show M[n, n]
-@show B[n]
+
 # Solve problem
 sol = M \ B
 
@@ -124,6 +123,6 @@ dict_vars = Dict(
 write_vtk(outputpath * "result_constrained_poisson_equation", 0, 0.0, mesh, dict_vars)
 
 error = norm(Un .- Ue, Inf) / norm(Ue, Inf)
-println(" Error : ", error)
+println(" Linf Error : ", error)
 
 end #hide

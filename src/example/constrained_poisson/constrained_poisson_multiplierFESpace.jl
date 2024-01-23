@@ -61,8 +61,8 @@ V = TestFESpace(U)
 Λᵥ = TestFESpace(Λᵤ)
 
 # The usual trial FE space and multiplier space are combined into a MultiFESpace
-TrialMultiFESpace = MultiFESpace(U, Λᵤ; arrayOfStruct = false)
-TestMultiFESpace = MultiFESpace(V, Λᵥ; arrayOfStruct = false)
+TrialMultiFESpace = MultiFESpace(U, Λᵤ)
+TestMultiFESpace = MultiFESpace(V, Λᵥ)
 
 # Define volume and boundary measures
 dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
@@ -80,7 +80,6 @@ f = PhysicalFunction(
 )
 
 volume = sum(Bcube.compute(∫(PhysicalFunction(x -> 1.0))dΩ))
-@show volume
 
 # Define bilinear and linear forms
 function a((u, λᵤ), (v, λᵥ))
@@ -95,46 +94,12 @@ l((v, λᵥ)) = ∫(f * v + 2.0 * π * λᵥ / volume)dΩ
 A = assemble_bilinear(a, TrialMultiFESpace, TestMultiFESpace)
 L = assemble_linear(l, TestMultiFESpace)
 
-########################### DEBUG ###############################
-
-# Define bilinear and linear forms
-a2(u, v) = ∫(∇(u) ⋅ ∇(v))dΩ
-l2(v) = ∫(f * v)dΩ
-lc(v) = ∫(side⁻(v))dΓ
-
-# Assemble to get matrices and vectors
-A2 = assemble_bilinear(a2, U, V)
-L2 = assemble_linear(l2, V)
-Lc = assemble_linear(lc, V)
-
-# Build augmented problem
-n = size(L2)[1]
-
-M = spzeros(n + 1, n + 1)
-B = zeros(n + 1)
-
-M[1:n, 1:n] .= A2[1:n, 1:n]
-M[n + 1, 1:n] .= Lc[:]
-M[1:n, n + 1] .= Lc[:]
-B[1:n] .= L2[1:n]
-B[n + 1] = 2.0 * π
-
-#################################################################
-
-display(abs.(A[(n + 1), n] .- M[(n + 1), n]))
-
 # Solve problem
 sol = A \ L
 
 ϕ = FEFunction(TrialMultiFESpace)
 
 # Write solution and compare to analytical solution
-for i in 1:n
-    d = abs(2.0 * π - L[i])
-    if d < 1.0e-10
-        println(i, " ", L[i], " ", n, " ", sol[i])
-    end
-end
 set_dof_values!(ϕ, sol)
 u, λ = ϕ
 
@@ -160,6 +125,6 @@ write_vtk(
 )
 
 error = norm(Un .- Ue, Inf) / norm(Ue, Inf)
-println(" Error : ", error)
+println(" Linf Error : ", error)
 
 end #hide
