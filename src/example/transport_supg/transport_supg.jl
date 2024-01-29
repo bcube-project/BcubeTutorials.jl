@@ -3,12 +3,13 @@ module TransportSUPG #hide
 # This example demonstrates the application of the FEM Streamline Upwind Petrov-Galerkin method to a linear transport equation.
 #
 # ## Maths
-# There are several ways to present the method, here is one adapted from Zienkiwicz etal (The Finite Element Method for Fluid Dynamics).
+# There are several ways to present the method, here is one adapted from the [book](https://doi.org/10.1016/C2009-0-26328-8) of
+# Zienkiwicz _et al._ (The Finite Element Method for Fluid Dynamics).
 #
 # We consider the following transport equation:
 # ```math
 # \begin{aligned}
-#   \partial_t u + c \cdot u = 0 \\
+#   \partial_t u + c \cdot \nabla u = 0 \\
 #   u(0, t) = u_{in}(t)
 # \end{aligned}
 # ```
@@ -56,7 +57,7 @@ const nx = 101 # Number of nodes in the x-direction
 const ny = 41 # Number of nodes in the y-direction
 const lx = 1.0 # Domain width
 const ly = 2.0 # Domain height
-const c = [1.0] # Transport velocity
+const c = SA[1.0] # Transport velocity
 
 @assert degree >= 1 "Cannot apply Dirichlet when degree = 0!"
 
@@ -111,7 +112,7 @@ u_ref = FEFunction(U)
 # we directly extract the mesh coordinates into a vector and the
 # dof values are in the same order.
 anim = Animation()
-x = [node.x[1] for node in mesh.nodes]
+x = [coords(node, 1) for node in get_nodes(mesh)]
 
 # Let's loop
 for i in 1:nite
