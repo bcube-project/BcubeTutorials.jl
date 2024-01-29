@@ -54,6 +54,7 @@ for (script_name, name) in (
     ("covo.jl", "Euler equations - covo"),
     ("euler_naca_steady.jl", "Euler equations on a NACA0012"),
     ("shallow_water.jl", "Shallow water"),
+    ("poisson_dg.jl", "Poisson equation (DG)"),
 )
     julia_to_markdown(
         joinpath(example_src, splitext(script_name)[1]),
@@ -102,6 +103,7 @@ makedocs(;
             "example/linear_thermoelasticity.md",
             "example/constrained_poisson.md",
             "example/transport_supg.md",
+            "example/poisson_dg.md",
         ],
     ],
     # remotes = nothing, # tmp fix for bmxam windows
