@@ -112,7 +112,7 @@ u_ref = FEFunction(U)
 # we directly extract the mesh coordinates into a vector and the
 # dof values are in the same order.
 anim = Animation()
-x = [coords(node, 1) for node in get_nodes(mesh)]
+x = [Bcube.coords(node, 1) for node in get_nodes(mesh)]
 
 # Let's loop
 for i in 1:nite
