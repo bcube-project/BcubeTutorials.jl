@@ -7,7 +7,7 @@ using LinearAlgebra
 
 # Common settings
 const degree = 0
-const nite = 20
+const nite = 25
 const CFL = 1
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
@@ -18,7 +18,7 @@ mynorm(a) = sqrt(a ⋅ a)
 
 function scalar_circle()
     function plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
-        ## Build animation
+        # Build animation
         if degree > 0
             uplot = var_on_vertices(u, mesh)
         else
@@ -51,7 +51,7 @@ function scalar_circle()
     # Transport velocity
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
     P = Bcube.TangentialProjector()
-    c = -C * (P * _c) / mynorm(P * _c)
+    c = C * (P * _c) / mynorm(P * _c)
 
     # FESpace
     fs = FunctionSpace(:Lagrange, degree)
@@ -66,35 +66,19 @@ function scalar_circle()
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
     l_Ω(v) = ∫(u * (c ⋅ ∇(v)))dΩ # Volumic convective term
 
-    function upwind(ui, uj, ci, cj, nij)
+    function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
         if cij > zero(cij)
-            flux = cij * ui
+            fij = cij * ui
         else
-            flux = cij * uj
+            fij = cij * uj
         end
-        flux
+        fij
     end
-    flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁺(c), side⁻(nΓ))
+    flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
     l_Γ(v) = ∫(-flux * jump(v))dΓ
 
-    # l(v) = l_Ω(v) # OK
-    # l(v) = l_Γ(v) # OK
     l(v) = l_Ω(v) + l_Γ(v)
-
-    #--- DBG
-    cInfo = Bcube.CellInfo(mesh, 1)
-    cPoint = Bcube.CellPoint(SA[0.0], cInfo, Bcube.ReferenceDomain())
-    cshape = Bcube.shape(Bcube.celltype(cInfo))
-    λ = Bcube.get_shape_functions(U, cshape)
-    _λ = Bcube.blockmap_shape_functions(V, cInfo)
-
-    a = Bcube.TangentialProjector()
-    a = Bcube.materialize(a, cInfo)
-    Bcube.show_lazy_operator(a)
-    a = Bcube.materialize(a, cPoint)
-    @show a
-    #--- DBG
 
     # Time step
     dl = 2π * radius / nθ # analytic length
@@ -107,6 +91,7 @@ function scalar_circle()
     M = assemble_bilinear(m, U, V)
     invM = inv(Matrix(M)) #WARNING : really expensive !!!
     # display(invM)
+    # display(Δt .* invM)
 
     # Anim
     anim = Animation()
@@ -130,7 +115,7 @@ function scalar_circle()
         assemble_linear!(b, l, V)
         u.dofValues .+= Δt .* invM * b
 
-        ## Build animation
+        # Build animation
         plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
         frame(anim, plt)
     end
@@ -141,12 +126,14 @@ end
 
 function vector_circle()
     function plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
-        ## Build animation
+        # Build animation
         if degree > 0
             uplot = var_on_vertices(u, mesh)
         else
             uplot = var_on_centers(u, mesh)
         end
+        L = maximum(x -> norm(x), eachrow(uplot))
+        println("Max norm of u : $L")
         plt =
             plt = plot(
                 [xnodes..., xnodes[1]],
@@ -173,9 +160,16 @@ function vector_circle()
     dΓ = Measure(Γ, 2 * degree + 1)
     nΓ = get_face_normals(Γ)
 
-    # Transport velocity
-    c = PhysicalFunction(x -> -C * SA[-x[2], x[1]] / radius)
+    # Transport velocity : it must be coplanar to each element, so we use the
+    # tangential projector operator and force the projected velocity to have
+    # the same norm as the "analytical" one
+    _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
     P = Bcube.TangentialProjector()
+    c = -C * (P * _c) / mynorm(P * _c)
+
+    # Operators
+    P = Bcube.TangentialProjector()
+    R = Bcube.CoplanarRotation()
 
     # FESpace
     fs = FunctionSpace(:Lagrange, degree)
@@ -195,43 +189,29 @@ function vector_circle()
         end
     end)
     projection_l2!(u, _u0, mesh)
-    @show u.dofValues
 
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
     l_Ω(v) = ∫((u ⊗ c) ⊡ ∇(v))dΩ # Volumic convective term
 
-    function upwind(ui, uj, ci, cj, Pi, Pj, vi, vj, nij)
-        # "Projection" (norme conservée) de la vitesse de transport analytique
-        # et de la quantité uj dans le plan de la cellule i
-        _ci = normalize(Pi * ci) * norm(ci)
-        _uj = norm(uj) > 0 ? normalize(Pi * uj) * norm(uj) : uj
-        @show _uj
+    function upwind(ui, uj, Ri, Rj, vi, vj, ci, nij)
+        _uj = Ri * uj
 
-        cij = _ci ⋅ nij
+        cij = ci ⋅ nij
         if cij > zero(cij)
             fi = cij * ui
         else
             fi = cij * _uj
         end
 
-        fj = norm(fi) > 0 ? normalize(Pj * fi) * norm(fi) : fi
+        fj = Rj * fi
 
         return fi ⋅ vi - fj ⋅ vj
     end
 
     function flux(v)
-        upwind ∘ (
-            side⁻(u),
-            side⁺(u),
-            side⁻(c),
-            side⁺(c),
-            side⁻(P),
-            side⁺(P),
-            side⁻(v),
-            side⁺(v),
-            side⁻(nΓ),
-        )
+        upwind ∘
+        (side⁻(u), side⁺(u), side⁻(R), side⁺(R), side⁻(v), side⁺(v), side⁻(c), side⁻(nΓ))
     end
     l_Γ(v) = ∫(-flux(v))dΓ
 
@@ -269,13 +249,10 @@ function vector_circle()
     for i in 1:nite
         b .= 0.0
         assemble_linear!(b, l, V)
-        @show b
 
         u.dofValues .+= Δt .* invM * b
 
-        @show u.dofValues
-
-        ## Build animation
+        # Build animation
         plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
         frame(anim, plt)
     end
@@ -284,6 +261,7 @@ function vector_circle()
     display(g)
 end
 
+scalar_circle()
 vector_circle()
 
 end
