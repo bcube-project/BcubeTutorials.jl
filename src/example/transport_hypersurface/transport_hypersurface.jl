@@ -4,10 +4,11 @@ using Plots
 using Bcube
 using StaticArrays
 using LinearAlgebra
+using Printf
 
 # Common settings
 const degree = 0
-const nite = 25
+const nite = 50
 const CFL = 1
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
@@ -17,21 +18,26 @@ mkpath(out_dir)
 mynorm(a) = sqrt(a ⋅ a)
 
 function scalar_circle()
-    function plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
+    function plot_solution(t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         # Build animation
         if degree > 0
             uplot = var_on_vertices(u, mesh)
         else
             uplot = var_on_centers(u, mesh)
         end
+        lmax = 1.2
         plt =
             plt = plot(
                 [xnodes..., xnodes[1]],
                 [ynodes..., ynodes[1]];
                 aspect_ratio = :equal,
                 primary = false,
+                xlim = (-lmax, lmax),
+                ylim = (-lmax, lmax),
             )
-        scatter!(xplot, yplot; marker_z = uplot, label = "u")
+        scatter!(xplot, yplot; marker_z = uplot, label = "u", clims = (-1, 1))
+        annotate!(0, 0, @sprintf "t = %.2e" t)
+        annotate!(0, -0.25, @sprintf "|u|_max = %.2e" maximum(abs.(uplot)))
 
         return plt
     end
@@ -52,6 +58,8 @@ function scalar_circle()
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
+    # c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
+    # println("DEBUG !!!!")
 
     # FESpace
     fs = FunctionSpace(:Lagrange, degree)
@@ -60,11 +68,15 @@ function scalar_circle()
 
     # FEFunction and "boundary / source" condition
     u = FEFunction(U)
-    u.dofValues[1] = 1.0
+    if true
+        u.dofValues[1] = 1.0
+    else
+        projection_l2!(u, PhysicalFunction(x -> cos(atan(x[2], x[1]))), mesh)
+    end
 
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
-    l_Ω(v) = ∫(u * (c ⋅ ∇(v)))dΩ # Volumic convective term
+    a_Ω(u, v) = ∫(u * (c ⋅ ∇(v)))dΩ # Volumic convective term
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -78,18 +90,20 @@ function scalar_circle()
     flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
     l_Γ(v) = ∫(-flux * jump(v))dΓ
 
-    l(v) = l_Ω(v) + l_Γ(v)
+    l(v) = l_Γ(v)
 
     # Time step
     dl = 2π * radius / nθ # analytic length
     dl = 2 * radius * sin(2π / nθ / 2) # discretized length
-    Δt = CFL * dl / C
+    Δt = CFL * dl / C / (2 * degree + 1)
     @show dl
     @show Δt
 
     # Mass
     M = assemble_bilinear(m, U, V)
+    K = assemble_bilinear(a_Ω, U, V)
     invM = inv(Matrix(M)) #WARNING : really expensive !!!
+    invMK = invM * K
     # display(invM)
     # display(Δt .* invM)
 
@@ -106,17 +120,21 @@ function scalar_circle()
     end
 
     # Initial solution
-    plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
+    t = 0.0
+    plt = plot_solution(t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
     frame(anim, plt)
 
     b = Bcube.allocate_dofs(U)
     for i in 1:nite
         b .= 0.0
         assemble_linear!(b, l, V)
-        u.dofValues .+= Δt .* invM * b
+        # u.dofValues .+= Δt .* invM * b
+        u.dofValues .= Δt .* ((I + invMK) * u.dofValues + (invM * b))
+
+        t += Δt
 
         # Build animation
-        plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
+        plt = plot_solution(t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         frame(anim, plt)
     end
 
