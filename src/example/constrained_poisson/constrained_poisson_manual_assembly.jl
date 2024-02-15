@@ -1,5 +1,5 @@
-module constrained_poisson_multiplierFESpace_API #hide
-println("Running constrained poisson with MultiplierFESpace API example...") #hide
+module constrained_poisson_manual_assembly #hide
+println("Running constrained poisson API example...") #hide
 
 # # Constrained Poisson equation (FE)
 # In this example, a Poisson equation with Neumann boundary conditions is solved using a boundary integral constraint.
@@ -14,26 +14,33 @@ println("Running constrained poisson with MultiplierFESpace API example...") #hi
 # ```
 # Poisson's equation can be written in the form of a minimisation problem:
 # ```math
-#    \min_{u} J(u) = \frac{1}{2} \int_{\Omega} \nabla u \cdot \nabla u \, dV - \int_{\Omega} f u \, dV
+#    \min_{u} J(u) = \frac{1}{2} \int_{\Omega} \nabla u . \nabla u \, dV + \int_{\Omega} f u \, dV
 # ```
+# The discrete version of this problem is:
+# ```math
+#    \min_{X} J_d(X) = < \frac{1}{2} A X , X >  - < L , X >
+# ```
+# where $$A$$ is the stiffness matrix corresponding to the bilinear form $$a(u,v) = \int_{\Omega} \nabla u \cdot \nabla v \, dV$$
+# and $$L$$ is the right hand side corresponding to the linear form $$l(v) = \int_{\Omega} f v \, dV$$
 # There is no unique solution to this problem (adding a constant to any solution will also be a solution).
 # Uniqueness can be recovered by adding a constraint to the problem. In this example the following constraint is added:
 # ```math
 #    \int_{\Gamma} u \, d \gamma = 2 \pi
 # ```
+# The discrete version of the constraint is: $$<Lc , X > = 2 \pi$$
+# where $$Lc$$ is the vector corresponding to the linear form $$l_c(v) = \int_{\Gamma} v \, dV$$.
 # To solve this constrained minimisation problem, the following lagragian is introduced:
 # ```math
-#    \mathcal{L}(u, \lambda_u) = \frac{1}{2} \int_{\Omega} \nabla u \cdot \nabla u \, dV - \int_{\Omega} f u \, dV + \lambda_u ( \int_{\Gamma} u \, d \gamma - 2 \pi)
+#    L(X, \lambda) = < \frac{1}{2} A X , X >  - < L , X > + \lambda ( < Lc , X > - 2 \pi)
 # ```
-# where $$\lambda_u$$ is a Lagrange multiplier.
-# The first order optimality conditions translate to the problem: find $$(u, \lambda_u)$$ such that for all $$(v, \lambda_v)$$:
+# where $$\lambda$$ is a Lagrange multiplier.
+# The solution of this problem is given by the first order optimality conditions:
 # ```math
-#    \int_{\Omega} \nabla u \cdot \nabla v \, dV + \lambda_u \int_\Gamma v \, d \gamma = \int_\Omega f v \, dV
+#    AX + \lambda Lc = L
 # ```
 # ```math
-#    \lambda_v \int_\Gamma u \, d\gamma = 2 \pi \lambda_v
+#    Lc^T X = 2 \pi
 # ```
-# This problem can be assembled by introducing a MultiplierFESpace and combining it with the usual FESpace using a MultiFESpace. 
 # In this example, the manufactured solution $$u(x,y)=cos(4\pi(x^2 + y^2))$$ is used to test the method.
 
 # # Commented code
@@ -58,23 +65,13 @@ fs = FunctionSpace(:Lagrange, degree)
 U = TrialFESpace(fs, mesh)
 V = TestFESpace(U)
 
-# Define the multiplier trial space and corresponding test space
-# The second argument of MultiplierFESpace specifies the number of
-# scalar Lagrange multipliers that are to be used for the problem.
-Λᵤ = MultiplierFESpace(mesh, 1)
-Λᵥ = TestFESpace(Λᵤ)
-
-# The usual trial FE space and multiplier space are combined into a MultiFESpace
-P = MultiFESpace(U, Λᵤ)
-Q = MultiFESpace(V, Λᵥ)
-
 # Define volume and boundary measures
 dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 Γ = BoundaryFaceDomain(mesh, ("BORDER",))
 dΓ = Measure(Γ, 2 * degree + 1)
 
 # Define solution FE Function
-ϕ = FEFunction(U)
+u = FEFunction(U)
 
 # Define source term function (deduced from manufactured solution)
 f = PhysicalFunction(
@@ -83,31 +80,36 @@ f = PhysicalFunction(
         16.0 * π * sin(4.0 * π * (x[1]^2 + x[2]^2)),
 )
 
-volume = sum(Bcube.compute(∫(PhysicalFunction(x -> 1.0))dΩ))
-
 # Define bilinear and linear forms
-function a((u, λᵤ), (v, λᵥ))
-    ∫(∇(u) ⋅ ∇(v))dΩ + ∫(side⁻(λᵤ) * side⁻(v))dΓ + ∫(side⁻(λᵥ) * side⁻(u))dΓ
-end
-
-# For the time being only functionals in the form of integrals can be assembled.
-# A temporary workaround is to put the multiplier in the integral and divide by the volume (the multiplier does not vary in space).
-l((v, λᵥ)) = ∫(f * v + 2.0 * π * λᵥ / volume)dΩ
+a(u, v) = ∫(∇(u) ⋅ ∇(v))dΩ
+l(v) = ∫(f * v)dΩ
+lc(v) = ∫(side⁻(v))dΓ
 
 # Assemble to get matrices and vectors
-A = assemble_bilinear(a, P, Q)
-L = assemble_linear(l, Q)
+A  = assemble_bilinear(a, U, V)
+L  = assemble_linear(l, V)
+Lc = assemble_linear(lc, V)
+
+# Build augmented problem
+n = size(L)[1]
+
+M = spzeros(n + 1, n + 1)
+B = zeros(n + 1)
+
+M[1:n, 1:n] .= A[1:n, 1:n]
+M[n + 1, 1:n] .= Lc[:]
+M[1:n, n + 1] .= Lc[:]
+B[1:n] .= L[1:n]
+B[n + 1] = 2.0 * π
 
 # Solve problem
-sol = A \ L
-
-ϕ = FEFunction(Q)
+sol = M \ B
 
 # Write solution and compare to analytical solution
-set_dof_values!(ϕ, sol)
-u, λ = ϕ
+set_dof_values!(u, sol[1:n])
+λ = sol[n + 1]
 
-println("Value of Lagrange multiplier : ", λ.dofValues[1])
+println("Value of Lagrange multiplier : ", λ)
 
 u_ref = PhysicalFunction(x -> cos(4.0 * π * (x[1]^2 + x[2]^2)))
 error = u_ref - u
