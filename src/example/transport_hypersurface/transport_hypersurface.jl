@@ -7,9 +7,9 @@ using LinearAlgebra
 using Printf
 
 # Common settings
-const degree = 0
+const degree = 1
 const nite = 50
-const CFL = 1
+const CFL = 0.05
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
 mkpath(out_dir)
@@ -18,7 +18,7 @@ mkpath(out_dir)
 mynorm(a) = sqrt(a ⋅ a)
 
 function scalar_circle()
-    function plot_solution(t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
+    function plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         # Build animation
         if degree > 0
             uplot = var_on_vertices(u, mesh)
@@ -36,6 +36,7 @@ function scalar_circle()
                 ylim = (-lmax, lmax),
             )
         scatter!(xplot, yplot; marker_z = uplot, label = "u", clims = (-1, 1))
+        annotate!(0, 0.25, "i  = $i")
         annotate!(0, 0, @sprintf "t = %.2e" t)
         annotate!(0, -0.25, @sprintf "|u|_max = %.2e" maximum(abs.(uplot)))
 
@@ -48,10 +49,11 @@ function scalar_circle()
     C = 1.0 # velocity norm
 
     # Mesh
+    qOrder = 2 * degree + 1
     mesh = circle_mesh(nθ; radius = radius, order = 1)
-    dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
+    dΩ = Measure(CellDomain(mesh), qOrder)
     Γ = InteriorFaceDomain(mesh)
-    dΓ = Measure(Γ, 2 * degree + 1)
+    dΓ = Measure(Γ, qOrder)
     nΓ = get_face_normals(Γ)
 
     # Transport velocity
@@ -68,7 +70,7 @@ function scalar_circle()
 
     # FEFunction and "boundary / source" condition
     u = FEFunction(U)
-    if true
+    if false
         u.dofValues[1] = 1.0
     else
         projection_l2!(u, PhysicalFunction(x -> cos(atan(x[2], x[1]))), mesh)
@@ -76,7 +78,8 @@ function scalar_circle()
 
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
-    a_Ω(u, v) = ∫(u * (c ⋅ ∇(v)))dΩ # Volumic convective term
+    a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # bilinear volumic convective term
+    l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -89,8 +92,7 @@ function scalar_circle()
     end
     flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
     l_Γ(v) = ∫(-flux * jump(v))dΓ
-
-    l(v) = l_Γ(v)
+    l(v) = l_Ω(v) + l_Γ(v)
 
     # Time step
     dl = 2π * radius / nθ # analytic length
@@ -104,13 +106,15 @@ function scalar_circle()
     K = assemble_bilinear(a_Ω, U, V)
     invM = inv(Matrix(M)) #WARNING : really expensive !!!
     invMK = invM * K
+    # display(K)
+    # display(invMK)
     # display(invM)
     # display(Δt .* invM)
 
     # Anim
     anim = Animation()
-    xnodes = [Bcube.coords(node, 1) for node in get_nodes(mesh)]
-    ynodes = [Bcube.coords(node, 2) for node in get_nodes(mesh)]
+    xnodes = [Bcube.coords(node, 1) for node in Bcube.get_nodes(mesh)]
+    ynodes = [Bcube.coords(node, 2) for node in Bcube.get_nodes(mesh)]
     if degree > 0
         xplot = xnodes
         yplot = ynodes
@@ -121,24 +125,29 @@ function scalar_circle()
 
     # Initial solution
     t = 0.0
-    plt = plot_solution(t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
+    plt = plot_solution(0, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
     frame(anim, plt)
 
     b = Bcube.allocate_dofs(U)
     for i in 1:nite
         b .= 0.0
-        assemble_linear!(b, l, V)
+
+        # Version linear volumic term
+        # assemble_linear!(b, l, V)
         # u.dofValues .+= Δt .* invM * b
-        u.dofValues .= Δt .* ((I + invMK) * u.dofValues + (invM * b))
+
+        # Version bilinear volumic term
+        assemble_linear!(b, l_Γ, V)
+        u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
 
         t += Δt
 
         # Build animation
-        plt = plot_solution(t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
+        plt = plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         frame(anim, plt)
     end
 
-    g = gif(anim, joinpath(out_dir, "scalar_on_circle.gif"); fps = 2)
+    g = gif(anim, joinpath(out_dir, "scalar_on_circle.gif"); fps = 4)
     display(g)
 end
 
@@ -210,7 +219,7 @@ function vector_circle()
 
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
-    l_Ω(v) = ∫((u ⊗ c) ⊡ ∇(v))dΩ # Volumic convective term
+    l_Ω(v) = ∫((u ⊗ c) ⊡ ∇ₛ(v))dΩ # Volumic convective term
 
     function upwind(ui, uj, Ri, Rj, vi, vj, ci, nij)
         _uj = Ri * uj
@@ -280,6 +289,6 @@ function vector_circle()
 end
 
 scalar_circle()
-vector_circle()
+# vector_circle()
 
 end
