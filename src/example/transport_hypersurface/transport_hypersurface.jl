@@ -5,17 +5,28 @@ using Bcube
 using StaticArrays
 using LinearAlgebra
 using Printf
+using WriteVTK
 
 # Common settings
 const degree = 1
-const nite = 50
-const CFL = 0.05
+const nite = 200
+const CFL = 0.1
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
 mkpath(out_dir)
 
 """ Hack waiting for Ghislain to finish his branch """
 mynorm(a) = sqrt(a ⋅ a)
+
+mutable struct VtkHandler
+    basename::Any
+    ite::Any
+    mesh::Any
+    θ::Any
+    function VtkHandler(basename, mesh)
+        new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
+    end
+end
 
 function scalar_circle()
     function plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
@@ -43,6 +54,35 @@ function scalar_circle()
         return plt
     end
 
+    function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
+        # Build animation
+        if degree > 0
+            values = var_on_vertices(u, mesh)
+        else
+            values = var_on_centers(u, mesh)
+        end
+
+        uref = cos.(vtk.θ .- C * t)
+
+        ## Write
+        Bcube.write_vtk(
+            vtk.basename,
+            vtk.ite,
+            t,
+            vtk.mesh,
+            Dict(
+                "u" => (values, VTKPointData()),
+                "θ" => (vtk.θ, VTKPointData()),
+                "uref" => (uref, VTKPointData()),
+            ),
+            ;
+            append = vtk.ite > 0,
+        )
+
+        ## Update counter
+        vtk.ite += 1
+    end
+
     # Settings
     nθ = 10
     radius = 1.0
@@ -55,6 +95,8 @@ function scalar_circle()
     Γ = InteriorFaceDomain(mesh)
     dΓ = Measure(Γ, qOrder)
     nΓ = get_face_normals(Γ)
+
+    vtk = VtkHandler(joinpath(out_dir, "scalar_on_circle"), mesh)
 
     # Transport velocity
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
@@ -126,6 +168,7 @@ function scalar_circle()
     # Initial solution
     t = 0.0
     plt = plot_solution(0, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
+    append_vtk(vtk, u, t)
     frame(anim, plt)
 
     b = Bcube.allocate_dofs(U)
@@ -145,6 +188,7 @@ function scalar_circle()
         # Build animation
         plt = plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         frame(anim, plt)
+        append_vtk(vtk, u, t)
     end
 
     g = gif(anim, joinpath(out_dir, "scalar_on_circle.gif"); fps = 4)
