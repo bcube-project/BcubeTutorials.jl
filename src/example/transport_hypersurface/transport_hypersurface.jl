@@ -9,10 +9,14 @@ using WriteVTK
 using DelimitedFiles
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
+rm(out_dir; force = true, recursive = true)
 mkpath(out_dir)
 
 """ Hack waiting for Ghislain to finish his branch """
 mynorm(a) = sqrt(a ⋅ a)
+
+""" Tangential divergence operator """
+divₛ(a) = tr(∇ₛ(a))
 
 mutable struct VtkHandler
     basename::Any
@@ -20,7 +24,9 @@ mutable struct VtkHandler
     mesh::Any
     θ::Any
     function VtkHandler(basename, mesh)
-        new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
+        @info "Writing to $basename.vtu"
+        new(basename, 0, mesh, PhysicalFunction(x -> atan(x[2], x[1])))
+        # new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
     end
 end
 
@@ -29,6 +35,7 @@ function scalar_circle(; degree, nite, CFL, nθ)
         # Build animation
         if degree > 0
             uplot = var_on_vertices(u, mesh)
+            # uplot = var_on_centers(u, mesh)
         else
             uplot = var_on_centers(u, mesh)
         end
@@ -50,29 +57,63 @@ function scalar_circle(; degree, nite, CFL, nθ)
         return plt
     end
 
-    function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
+    function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         # Build animation
         if degree > 0
-            values = var_on_vertices(u, mesh)
+            # values = var_on_vertices(u, mesh)
+            # values = var_on_centers(u, mesh)
+            values = var_on_nodes_discontinuous(u, mesh, degree)
         else
             values = var_on_centers(u, mesh)
         end
 
-        uref = cos.(vtk.θ .- C * t)
+        # uref = cos.(vtk.θ .- C * t)
 
         ## Write
-        Bcube.write_vtk(
+        # Bcube.write_vtk(
+        #     vtk.basename,
+        #     vtk.ite,
+        #     t,
+        #     vtk.mesh,
+        #     Dict(
+        #         "u" => (values, VTKPointData()),
+        #         "lim_u" => (get_values(lim_u), VTKCellData()),
+        #         "u_mean" => (get_values(u_mean), VTKCellData()),
+        #         "θ" => (vtk.θ, VTKPointData()),
+        #         "uref" => (uref, VTKPointData()),
+        #     ),
+        #     ;
+        #     append = vtk.ite > 0,
+        # )
+        # Bcube.write_vtk_discontinuous(
+        #     vtk.basename,
+        #     vtk.ite,
+        #     t,
+        #     vtk.mesh,
+        #     Dict(
+        #         "u" => (values, VTKPointData()),
+        #         "lim_u" => (get_values(lim_u), VTKCellData()),
+        #         "u_mean" => (get_values(u_mean), VTKCellData()),
+        #         "θ" => (vtk.θ, VTKPointData()),
+        #         "uref" => (uref, VTKPointData()),
+        #     ),
+        #     degree;
+        #     append = vtk.ite > 0,
+        # )
+        Bcube.write_vtk_lagrange(
             vtk.basename,
-            vtk.ite,
-            t,
-            vtk.mesh,
             Dict(
-                "u" => (values, VTKPointData()),
-                "θ" => (vtk.θ, VTKPointData()),
-                "uref" => (uref, VTKPointData()),
+                "u" => u,
+                "lim_u" => lim_u,
+                "u_mean" => u_mean,
+                "θ" => vtk.θ,
+                # "uref" => uref,
             ),
-            ;
-            append = vtk.ite > 0,
+            vtk.mesh,
+            U,
+            vtk.ite,
+            t;
+            collection_append = true,
         )
 
         ## Update counter
@@ -101,10 +142,21 @@ function scalar_circle(; degree, nite, CFL, nθ)
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
 
+    # Time step
+    dl = 2π * radius / nθ # analytic length
+    dl = 2 * radius * sin(2π / nθ / 2) # discretized length
+    Δt = CFL * dl / C / (2 * degree + 1)
+    @show dl
+    @show Δt
+
+    # Limitation
+    isLimiterActive = true
+    DMPrelax = 0.0 * dl
+
     # Output
     filename = "scalar_on_circle_d$(degree)"
     vtk = VtkHandler(joinpath(out_dir, filename), mesh)
-    dofOverTime = zeros(nite + 1, 2) # t, u
+    dofOverTime = zeros(nite + 1, 4) # t, u, lim_u, u_mean
     i_dof_out = 1
 
     # FEFunction and "boundary / source" condition
@@ -115,13 +167,10 @@ function scalar_circle(; degree, nite, CFL, nθ)
         projection_l2!(u, PhysicalFunction(x -> cos(atan(x[2], x[1]))), mesh)
     end
 
-    div(a) = tr(∇ₛ(a))
-
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
     a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # bilinear volumic convective term
-    # b_Ω(u, v) = ∫(u * v * div(c))dΩ #
-    l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+    # b_Ω(u, v) = ∫(u * v * divₛ(c))dΩ #
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -132,23 +181,13 @@ function scalar_circle(; degree, nite, CFL, nθ)
         end
         fij
     end
-    flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
-    l_Γ(v) = ∫(-flux * jump(v))dΓ
-    l(v) = l_Ω(v) + l_Γ(v)
-
-    # Time step
-    dl = 2π * radius / nθ # analytic length
-    dl = 2 * radius * sin(2π / nθ / 2) # discretized length
-    Δt = CFL * dl / C / (2 * degree + 1)
-    @show dl
-    @show Δt
 
     # Mass
     M = assemble_bilinear(m, U, V)
     K = assemble_bilinear(a_Ω, U, V)
     # C = assemble_bilinear(b_Ω, U, V)
     invM = inv(Matrix(M)) #WARNING : really expensive !!!
-    invMK = invM * K
+    # invMK = invM * K
     # display(K)
     # display(C)
     # display(invMK)
@@ -168,36 +207,57 @@ function scalar_circle(; degree, nite, CFL, nθ)
     end
 
     # Initial solution
+    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax = DMPrelax, mass = M)
+    u_mean = Bcube.cell_mean(u, dΩ)
     t = 0.0
     plt = plot_solution(0, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
-    append_vtk(vtk, u, t)
+    append_vtk(vtk, u, lim_u, u_mean, t)
     frame(anim, plt)
-    dofOverTime[1, :] .= t, u.dofValues[i_dof_out]
+    dofOverTime[1, :] .=
+        t, u.dofValues[i_dof_out], get_values(lim_u)[1], get_values(u_mean)[1]
 
     b = Bcube.allocate_dofs(U)
     for i in 1:nite
         b .= 0.0
 
+        # Apply limitation
+        if isLimiterActive
+            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax = DMPrelax, mass = M)
+        else
+            _u = u
+        end
+
+        # Define linear forms
+        flux = upwind ∘ (side⁻(_u), side⁺(_u), side⁻(c), side⁻(nΓ))
+        l_Γ(v) = ∫(-flux * jump(v))dΓ
+        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+        # l_Ω(v) = ∫(_u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+        l(v) = l_Ω(v) + l_Γ(v)
+
         # Version linear volumic term
-        # assemble_linear!(b, l, V)
-        # u.dofValues .+= Δt .* invM * b
+        assemble_linear!(b, l, V)
+        u.dofValues .+= Δt .* invM * b
 
         # Version bilinear volumic term
-        assemble_linear!(b, l_Γ, V)
-        u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
+        # assemble_linear!(b, l_Γ, V)
+        # u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
 
         t += Δt
 
         # Output results
+        u_mean = Bcube.cell_mean(u, dΩ)
         plt = plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         frame(anim, plt)
-        append_vtk(vtk, u, t)
-        dofOverTime[i + 1, :] .= t, u.dofValues[i_dof_out]
+        append_vtk(vtk, u, lim_u, u_mean, t)
+        dofOverTime[i + 1, :] .=
+            t, u.dofValues[i_dof_out], get_values(lim_u)[1], get_values(u_mean)[1]
     end
 
     g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
     display(g)
-    writedlm(joinpath(out_dir, filename * ".csv"), dofOverTime)
+    path = joinpath(out_dir, filename * ".csv")
+    @info "Writing to $path"
+    writedlm(path, dofOverTime)
 end
 
 function vector_circle(; degree, nite, CFL, nθ)
@@ -355,7 +415,8 @@ function vector_circle(; degree, nite, CFL, nθ)
 end
 
 # Run
-scalar_circle(; degree = 0, nite = 10, CFL = 1, nθ = 10)
+# scalar_circle(; degree = 0, nite = 1000, CFL = 0.1, nθ = 10)
+scalar_circle(; degree = 1, nite = 1000, CFL = 0.1, nθ = 10)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
 
 end
