@@ -6,11 +6,7 @@ using StaticArrays
 using LinearAlgebra
 using Printf
 using WriteVTK
-
-# Common settings
-const degree = 1
-const nite = 200
-const CFL = 0.1
+using DelimitedFiles
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
 mkpath(out_dir)
@@ -28,7 +24,7 @@ mutable struct VtkHandler
     end
 end
 
-function scalar_circle()
+function scalar_circle(; degree, nite, CFL, nθ)
     function plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         # Build animation
         if degree > 0
@@ -84,7 +80,6 @@ function scalar_circle()
     end
 
     # Settings
-    nθ = 10
     radius = 1.0
     C = 1.0 # velocity norm
 
@@ -96,19 +91,21 @@ function scalar_circle()
     dΓ = Measure(Γ, qOrder)
     nΓ = get_face_normals(Γ)
 
-    vtk = VtkHandler(joinpath(out_dir, "scalar_on_circle"), mesh)
+    # FESpace
+    fs = FunctionSpace(:Lagrange, degree)
+    U = TrialFESpace(fs, mesh, :discontinuous)
+    V = TestFESpace(U)
 
     # Transport velocity
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
-    # c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
-    # println("DEBUG !!!!")
 
-    # FESpace
-    fs = FunctionSpace(:Lagrange, degree)
-    U = TrialFESpace(fs, mesh, :discontinuous)
-    V = TestFESpace(U)
+    # Output
+    filename = "scalar_on_circle_d$(degree)"
+    vtk = VtkHandler(joinpath(out_dir, filename), mesh)
+    dofOverTime = zeros(nite + 1, 2) # t, u
+    i_dof_out = 1
 
     # FEFunction and "boundary / source" condition
     u = FEFunction(U)
@@ -118,9 +115,12 @@ function scalar_circle()
         projection_l2!(u, PhysicalFunction(x -> cos(atan(x[2], x[1]))), mesh)
     end
 
+    div(a) = tr(∇ₛ(a))
+
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
     a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # bilinear volumic convective term
+    # b_Ω(u, v) = ∫(u * v * div(c))dΩ #
     l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
 
     function upwind(ui, uj, ci, nij)
@@ -146,9 +146,11 @@ function scalar_circle()
     # Mass
     M = assemble_bilinear(m, U, V)
     K = assemble_bilinear(a_Ω, U, V)
+    # C = assemble_bilinear(b_Ω, U, V)
     invM = inv(Matrix(M)) #WARNING : really expensive !!!
     invMK = invM * K
     # display(K)
+    # display(C)
     # display(invMK)
     # display(invM)
     # display(Δt .* invM)
@@ -170,6 +172,7 @@ function scalar_circle()
     plt = plot_solution(0, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
     append_vtk(vtk, u, t)
     frame(anim, plt)
+    dofOverTime[1, :] .= t, u.dofValues[i_dof_out]
 
     b = Bcube.allocate_dofs(U)
     for i in 1:nite
@@ -185,25 +188,31 @@ function scalar_circle()
 
         t += Δt
 
-        # Build animation
+        # Output results
         plt = plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         frame(anim, plt)
         append_vtk(vtk, u, t)
+        dofOverTime[i + 1, :] .= t, u.dofValues[i_dof_out]
     end
 
-    g = gif(anim, joinpath(out_dir, "scalar_on_circle.gif"); fps = 4)
+    g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
     display(g)
+    writedlm(joinpath(out_dir, filename * ".csv"), dofOverTime)
 end
 
-function vector_circle()
-    function plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
+function vector_circle(; degree, nite, CFL, nθ)
+    function plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes, i, t)
         # Build animation
         if degree > 0
             uplot = var_on_vertices(u, mesh)
         else
             uplot = var_on_centers(u, mesh)
         end
+
         L = maximum(x -> norm(x), eachrow(uplot))
+
+        scale = 0.75
+        uplot .*= scale
         println("Max norm of u : $L")
         plt =
             plt = plot(
@@ -212,15 +221,25 @@ function vector_circle()
                 aspect_ratio = :equal,
                 primary = false,
             )
-        quiver!(xplot, yplot; quiver = (uplot[:, 1], uplot[:, 2]), label = "u")
-        xlims!(-2, 2)
-        ylims!(-2, 2)
+        quiver!(
+            xplot,
+            yplot;
+            quiver = (uplot[:, 1], uplot[:, 2]),
+            label = "u",
+            xlabel = "x",
+            ylabel = "y",
+        )
+        lim = 1.5
+        xlims!(-lim, lim)
+        ylims!(-lim, lim)
+        annotate!(0, 0.25, "i  = $i")
+        annotate!(0, 0.0, @sprintf "t = %.2e" t)
+        annotate!(0, -0.25, @sprintf "|u|_max = %.2e" L)
 
         return plt
     end
 
     # Settings
-    nθ = 10
     radius = 1.0
     C = 1.0 # velocity norm
 
@@ -236,7 +255,7 @@ function vector_circle()
     # the same norm as the "analytical" one
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
     P = Bcube.TangentialProjector()
-    c = -C * (P * _c) / mynorm(P * _c)
+    c = C * (P * _c) / mynorm(P * _c)
 
     # Operators
     P = Bcube.TangentialProjector()
@@ -302,8 +321,8 @@ function vector_circle()
 
     # Anim
     anim = Animation()
-    xnodes = [Bcube.coords(node, 1) for node in get_nodes(mesh)]
-    ynodes = [Bcube.coords(node, 2) for node in get_nodes(mesh)]
+    xnodes = [Bcube.coords(node, 1) for node in Bcube.get_nodes(mesh)]
+    ynodes = [Bcube.coords(node, 2) for node in Bcube.get_nodes(mesh)]
     if degree > 0
         xplot = xnodes
         yplot = ynodes
@@ -313,9 +332,10 @@ function vector_circle()
     end
 
     # Initial solution
-    plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
+    plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes, 0, 0.0)
     frame(anim, plt)
 
+    t = 0.0
     b = Bcube.allocate_dofs(U)
     for i in 1:nite
         b .= 0.0
@@ -323,16 +343,19 @@ function vector_circle()
 
         u.dofValues .+= Δt .* invM * b
 
+        t += Δt
+
         # Build animation
-        plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes)
+        plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes, i, t)
         frame(anim, plt)
     end
 
-    g = gif(anim, joinpath(out_dir, "vector_on_circle.gif"); fps = 2)
+    g = gif(anim, joinpath(out_dir, "vector_on_circle_d$degree.gif"); fps = 2)
     display(g)
 end
 
-scalar_circle()
-# vector_circle()
+# Run
+scalar_circle(; degree = 0, nite = 10, CFL = 1, nθ = 10)
+# vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
 
 end
