@@ -30,7 +30,10 @@ mutable struct VtkHandler
     end
 end
 
-function scalar_circle(; degree, nite, CFL, nθ)
+"""
+nrot = number of "rotations" to run (in time)
+"""
+function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1e9))
     function plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
         # Build animation
         if degree > 0
@@ -60,31 +63,35 @@ function scalar_circle(; degree, nite, CFL, nθ)
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         # Build animation
         if degree > 0
-            # values = var_on_vertices(u, mesh)
-            # values = var_on_centers(u, mesh)
-            values = var_on_nodes_discontinuous(u, mesh, degree)
+            values_vertices = var_on_vertices(u, mesh)
+            values_centers = var_on_centers(u, mesh)
+            values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
         else
             values = var_on_centers(u, mesh)
         end
 
+        θ_centers = var_on_centers(vtk.θ, mesh)
+        θ_vertices = var_on_vertices(vtk.θ, mesh)
+
         # uref = cos.(vtk.θ .- C * t)
 
         ## Write
-        # Bcube.write_vtk(
-        #     vtk.basename,
-        #     vtk.ite,
-        #     t,
-        #     vtk.mesh,
-        #     Dict(
-        #         "u" => (values, VTKPointData()),
-        #         "lim_u" => (get_values(lim_u), VTKCellData()),
-        #         "u_mean" => (get_values(u_mean), VTKCellData()),
-        #         "θ" => (vtk.θ, VTKPointData()),
-        #         "uref" => (uref, VTKPointData()),
-        #     ),
-        #     ;
-        #     append = vtk.ite > 0,
-        # )
+        Bcube.write_vtk(
+            vtk.basename,
+            vtk.ite,
+            t,
+            vtk.mesh,
+            Dict(
+                "u_centers" => (values_centers, VTKCellData()),
+                "u_vertices" => (values_vertices, VTKPointData()),
+                "lim_u" => (get_values(lim_u), VTKCellData()),
+                "u_mean" => (get_values(u_mean), VTKCellData()),
+                "θ_centers" => (θ_centers, VTKCellData()),
+                "θ_vertices" => (θ_vertices, VTKPointData()),
+            ),
+            ;
+            append = vtk.ite > 0,
+        )
         # Bcube.write_vtk_discontinuous(
         #     vtk.basename,
         #     vtk.ite,
@@ -100,21 +107,21 @@ function scalar_circle(; degree, nite, CFL, nθ)
         #     degree;
         #     append = vtk.ite > 0,
         # )
-        Bcube.write_vtk_lagrange(
-            vtk.basename,
-            Dict(
-                "u" => u,
-                "lim_u" => lim_u,
-                "u_mean" => u_mean,
-                "θ" => vtk.θ,
-                # "uref" => uref,
-            ),
-            vtk.mesh,
-            U,
-            vtk.ite,
-            t;
-            collection_append = true,
-        )
+        # Bcube.write_vtk_lagrange(
+        #     vtk.basename,
+        #     Dict(
+        #         "u" => u,
+        #         "lim_u" => lim_u,
+        #         "u_mean" => u_mean,
+        #         "θ" => vtk.θ,
+        #         # "uref" => uref,
+        #     ),
+        #     vtk.mesh,
+        #     U,
+        #     vtk.ite,
+        #     t;
+        #     collection_append = true,
+        # )
 
         ## Update counter
         vtk.ite += 1
@@ -123,6 +130,7 @@ function scalar_circle(; degree, nite, CFL, nθ)
     # Settings
     radius = 1.0
     C = 1.0 # velocity norm
+    tmax = nrot * 2π / C
 
     # Mesh
     qOrder = 2 * degree + 1
@@ -142,21 +150,26 @@ function scalar_circle(; degree, nite, CFL, nθ)
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
 
-    # Time step
+    # Time step and else
     dl = 2π * radius / nθ # analytic length
     dl = 2 * radius * sin(2π / nθ / 2) # discretized length
     Δt = CFL * dl / C / (2 * degree + 1)
+    t = 0.0
+    nite = min(floor(Int, tmax / Δt), nitemax)
+    @show nite
+    _nout = min(nite, nout)
+
     @show dl
     @show Δt
 
     # Limitation
-    isLimiterActive = true
     DMPrelax = 0.0 * dl
+    isLimiterActive = true
 
     # Output
     filename = "scalar_on_circle_d$(degree)"
     vtk = VtkHandler(joinpath(out_dir, filename), mesh)
-    dofOverTime = zeros(nite + 1, 4) # t, u, lim_u, u_mean
+    dofOverTime = zeros(nite + 1, 2) # t, u
     i_dof_out = 1
 
     # FEFunction and "boundary / source" condition
@@ -207,28 +220,28 @@ function scalar_circle(; degree, nite, CFL, nθ)
     end
 
     # Initial solution
-    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax = DMPrelax, mass = M)
+    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
+    isLimiterActive && (u.dofValues .= _u.dofValues)
+
     u_mean = Bcube.cell_mean(u, dΩ)
     t = 0.0
     plt = plot_solution(0, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
     append_vtk(vtk, u, lim_u, u_mean, t)
     frame(anim, plt)
-    dofOverTime[1, :] .=
-        t, u.dofValues[i_dof_out], get_values(lim_u)[1], get_values(u_mean)[1]
+    dofOverTime[1, :] .= t, u.dofValues[i_dof_out]
 
     b = Bcube.allocate_dofs(U)
-    for i in 1:nite
+    for ite in 1:nite
         b .= 0.0
 
         # Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax = DMPrelax, mass = M)
-        else
-            _u = u
+            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
+            set_dof_values!(u, get_dof_values(_u))
         end
 
         # Define linear forms
-        flux = upwind ∘ (side⁻(_u), side⁺(_u), side⁻(c), side⁻(nΓ))
+        flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
         l_Γ(v) = ∫(-flux * jump(v))dΓ
         l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
         # l_Ω(v) = ∫(_u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
@@ -237,6 +250,7 @@ function scalar_circle(; degree, nite, CFL, nθ)
         # Version linear volumic term
         assemble_linear!(b, l, V)
         u.dofValues .+= Δt .* invM * b
+        # @show u.dofValues
 
         # Version bilinear volumic term
         # assemble_linear!(b, l_Γ, V)
@@ -244,20 +258,26 @@ function scalar_circle(; degree, nite, CFL, nθ)
 
         t += Δt
 
-        # Output results
-        u_mean = Bcube.cell_mean(u, dΩ)
-        plt = plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
-        frame(anim, plt)
-        append_vtk(vtk, u, lim_u, u_mean, t)
-        dofOverTime[i + 1, :] .=
-            t, u.dofValues[i_dof_out], get_values(lim_u)[1], get_values(u_mean)[1]
+        # Output results        
+        if ite % (nite ÷ _nout) == 0
+            u_mean = Bcube.cell_mean(u, dΩ)
+            append_vtk(vtk, u, lim_u, u_mean, t)
+            plt = plot_solution(vtk.ite, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
+            frame(anim, plt)
+        end
+        dofOverTime[ite + 1, :] .= t, u.dofValues[i_dof_out]
     end
 
-    g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
-    display(g)
+    # Output final result and anim
     path = joinpath(out_dir, filename * ".csv")
     @info "Writing to $path"
-    writedlm(path, dofOverTime)
+    open(path, "w") do io
+        println(io, "t,u")
+        writedlm(io, dofOverTime, ",")
+    end
+    println("Computation is done, building gif...")
+    g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
+    display(g)
 end
 
 function vector_circle(; degree, nite, CFL, nθ)
@@ -416,7 +436,7 @@ end
 
 # Run
 # scalar_circle(; degree = 0, nite = 1000, CFL = 0.1, nθ = 10)
-scalar_circle(; degree = 1, nite = 1000, CFL = 0.1, nθ = 10)
+scalar_circle(; degree = 1, nrot = 10, CFL = 0.1, nθ = 100)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
 
 end
