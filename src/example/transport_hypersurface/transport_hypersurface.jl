@@ -372,6 +372,180 @@ function vector_circle(; degree, nite, CFL, nθ)
     display(g)
 end
 
+function scalar_cylinder(;
+    degree,
+    CFL,
+    nθ,
+    tmax,
+    nout = 100,
+    nitemax = Int(1e9),
+    volumic_bilinear = false,
+    isLimiterActive = true,
+)
+    function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
+        # Build animation
+        values_vertices = var_on_vertices(u, mesh)
+        values_centers = var_on_centers(u, mesh)
+        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
+        θ_centers = var_on_centers(vtk.θ, mesh)
+        θ_vertices = var_on_vertices(vtk.θ, mesh)
+
+        ## Write
+        Bcube.write_vtk(
+            vtk.basename,
+            vtk.ite,
+            t,
+            vtk.mesh,
+            Dict(
+                "u_centers" => (values_centers, VTKCellData()),
+                "u_vertices" => (values_vertices, VTKPointData()),
+                "lim_u" => (get_values(lim_u), VTKCellData()),
+                "u_mean" => (get_values(u_mean), VTKCellData()),
+                "θ_centers" => (θ_centers, VTKCellData()),
+                "θ_vertices" => (θ_vertices, VTKPointData()),
+            ),
+            ;
+            append = vtk.ite > 0,
+        )
+
+        ## Update counter
+        vtk.ite += 1
+    end
+
+    # Settings
+    radius = 1.0
+    Lz = 1.0
+    nz = 10
+    nθ = 45
+    C = 1.0 # velocity norm
+
+    # Mesh
+    quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
+    mesh = Bcube.gen_cylinder_shell_mesh(
+        joinpath(out_dir, "mesh.msh"),
+        Lz;
+        radius,
+        lc = 1e-1,
+        recombine = false,
+        transfinite = false,
+        nz,
+        nθ,
+    )
+    dΩ = Measure(CellDomain(mesh), quad)
+    Γ = InteriorFaceDomain(mesh)
+    dΓ = Measure(Γ, quad)
+    nΓ = get_face_normals(Γ)
+
+    # FESpace
+    fs = FunctionSpace(:Lagrange, degree)
+    U = TrialFESpace(fs, mesh, :discontinuous)
+    V = TestFESpace(U)
+
+    # Transport velocity
+    _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
+    P = Bcube.TangentialProjector()
+    c = C * (P * _c) / mynorm(P * _c)
+
+    # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
+    quad = Bcube.get_quadrature(dΩ)
+    s = Bcube.shape(Bcube.cells(mesh)[1])
+    qrule = Bcube.QuadratureRule(s, quad)
+    ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
+
+    # Time step and else
+    dl = 2π * radius / nθ # analytic length
+    dl = 2 * radius * sin(2π / nθ / 2) # discretized length
+    Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
+    t = 0.0
+    nite = min(floor(Int, tmax / Δt), nitemax)
+    @show nite
+    _nout = min(nite, nout)
+
+    @show dl
+    @show Δt
+
+    # Limitation
+    DMPrelax = 0.0 * dl
+
+    # Output
+    tail = isLimiterActive ? "lim" : "nolim"
+    filename = "scalar-on-cylinder-d$(degree)-$(tail)"
+    vtk = VtkHandler(joinpath(out_dir, filename), mesh)
+
+    # FEFunction and "boundary / source" condition
+    u = FEFunction(U)
+    if false
+        u.dofValues[1] = 1.0
+    else
+        projection_l2!(u, PhysicalFunction(x -> cos(atan(x[2], x[1]))), mesh)
+    end
+
+    # Forms
+    m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
+    a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # bilinear volumic convective term
+
+    function upwind(ui, uj, ci, nij)
+        cij = ci ⋅ nij
+        if cij > zero(cij)
+            fij = cij * ui
+        else
+            fij = cij * uj
+        end
+        fij
+    end
+
+    # Mass
+    M = assemble_bilinear(m, U, V)
+    invM = inv(Matrix(M)) #WARNING : really expensive !!!
+    if volumic_bilinear
+        K = assemble_bilinear(a_Ω, U, V)
+        invMK = invM * K
+    end
+
+    # Initial solution
+    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
+    isLimiterActive && (u.dofValues .= _u.dofValues)
+
+    u_mean = Bcube.cell_mean(u, dΩ)
+    t = 0.0
+    append_vtk(vtk, u, lim_u, u_mean, t)
+
+    b = Bcube.allocate_dofs(U)
+    for ite in 1:nite
+        b .= 0.0
+
+        # Apply limitation
+        if isLimiterActive
+            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
+            set_dof_values!(u, get_dof_values(_u))
+        end
+
+        # Define linear forms
+        flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
+        l_Γ(v) = ∫(-flux * jump(v))dΓ
+        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+        l(v) = l_Ω(v) + l_Γ(v)
+
+        if volumic_bilinear
+            # Version bilinear volumic term
+            assemble_linear!(b, l_Γ, V)
+            u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
+        else
+            # Version linear volumic term
+            assemble_linear!(b, l, V)
+            u.dofValues .+= Δt .* invM * b
+        end
+
+        t += Δt
+
+        # Output results        
+        if ite % (nite ÷ _nout) == 0
+            u_mean = Bcube.cell_mean(u, dΩ)
+            append_vtk(vtk, u, lim_u, u_mean, t)
+        end
+    end
+end
+
 # Run
 scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
