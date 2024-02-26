@@ -30,50 +30,65 @@ mutable struct VtkHandler
     end
 end
 
-"""
-nrot = number of "rotations" to run (in time)
-"""
-function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1e9))
-    function plot_solution(i, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
-        # Build animation
-        if degree > 0
-            uplot = var_on_vertices(u, mesh)
-            # uplot = var_on_centers(u, mesh)
-        else
-            uplot = var_on_centers(u, mesh)
-        end
-        lmax = 1.2
-        plt =
-            plt = plot(
-                [xnodes..., xnodes[1]],
-                [ynodes..., ynodes[1]];
-                aspect_ratio = :equal,
-                primary = false,
-                xlim = (-lmax, lmax),
-                ylim = (-lmax, lmax),
-            )
-        scatter!(xplot, yplot; marker_z = uplot, label = "u", clims = (-1, 1))
-        annotate!(0, 0.25, "i  = $i")
-        annotate!(0, 0, @sprintf "t = %.2e" t)
-        annotate!(0, -0.25, @sprintf "|u|_max = %.2e" maximum(abs.(uplot)))
+function plot_solution(i, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
+    # Build animation
+    uplot = var_on_centers(u, mesh)
+    lmax = 1.5
 
-        return plt
+    plt = plot(
+        [xnodes..., xnodes[1]],
+        [ynodes..., ynodes[1]];
+        aspect_ratio = :equal,
+        primary = false,
+        xlim = (-lmax, lmax),
+        ylim = (-lmax, lmax),
+    )
+    annotate!(0, 0.25, "i  = $i")
+    annotate!(0, 0, @sprintf "t = %.2e" t)
+
+    if ndims(uplot) == 1
+        scatter!(xcenters, ycenters; marker_z = uplot, label = "u", clims = (-1, 1))
+        annotate!(0, -0.25, @sprintf "|u|_max = %.2e" maximum(abs.(uplot)))
+    elseif ndims(uplot) == 2
+        L = maximum(x -> norm(x), eachrow(uplot))
+        scale = 0.75
+        uplot .*= scale
+        quiver!(
+            xcenters,
+            ycenters;
+            quiver = (uplot[:, 1], uplot[:, 2]),
+            label = "u",
+            xlabel = "x",
+            ylabel = "y",
+        )
+        annotate!(0, -0.25, @sprintf "|u|_max = %.2e" L)
     end
 
+    return plt
+end
+
+"""
+nrot = number of "rotations" to run (in time)
+volumic_bilinear = true means the volumic term is assembled once with a bilinear assembly while false means
+    a linear assembly (and hence the limiter is applied)
+"""
+function scalar_circle(;
+    degree,
+    CFL,
+    nθ,
+    nrot = 2,
+    nout = 100,
+    nitemax = Int(1e9),
+    volumic_bilinear = false,
+    isLimiterActive = true,
+)
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         # Build animation
-        if degree > 0
-            values_vertices = var_on_vertices(u, mesh)
-            values_centers = var_on_centers(u, mesh)
-            values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
-        else
-            values = var_on_centers(u, mesh)
-        end
-
+        values_vertices = var_on_vertices(u, mesh)
+        values_centers = var_on_centers(u, mesh)
+        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
         θ_centers = var_on_centers(vtk.θ, mesh)
         θ_vertices = var_on_vertices(vtk.θ, mesh)
-
-        # uref = cos.(vtk.θ .- C * t)
 
         ## Write
         Bcube.write_vtk(
@@ -92,36 +107,6 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
             ;
             append = vtk.ite > 0,
         )
-        # Bcube.write_vtk_discontinuous(
-        #     vtk.basename,
-        #     vtk.ite,
-        #     t,
-        #     vtk.mesh,
-        #     Dict(
-        #         "u" => (values, VTKPointData()),
-        #         "lim_u" => (get_values(lim_u), VTKCellData()),
-        #         "u_mean" => (get_values(u_mean), VTKCellData()),
-        #         "θ" => (vtk.θ, VTKPointData()),
-        #         "uref" => (uref, VTKPointData()),
-        #     ),
-        #     degree;
-        #     append = vtk.ite > 0,
-        # )
-        # Bcube.write_vtk_lagrange(
-        #     vtk.basename,
-        #     Dict(
-        #         "u" => u,
-        #         "lim_u" => lim_u,
-        #         "u_mean" => u_mean,
-        #         "θ" => vtk.θ,
-        #         # "uref" => uref,
-        #     ),
-        #     vtk.mesh,
-        #     U,
-        #     vtk.ite,
-        #     t;
-        #     collection_append = true,
-        # )
 
         ## Update counter
         vtk.ite += 1
@@ -133,7 +118,7 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
     tmax = nrot * 2π / C
 
     # Mesh
-    qOrder = 2 * degree + 1
+    qOrder = 2 * degree + 1 # we shall use Gauss-Lobatto for degree > 0, but in 1D this is ok
     mesh = circle_mesh(nθ; radius = radius, order = 1)
     dΩ = Measure(CellDomain(mesh), qOrder)
     Γ = InteriorFaceDomain(mesh)
@@ -150,10 +135,16 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
 
+    # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
+    quad = Bcube.get_quadrature(dΩ)
+    s = Bcube.shape(Bcube.cells(mesh)[1])
+    qrule = Bcube.QuadratureRule(s, quad)
+    ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
+
     # Time step and else
     dl = 2π * radius / nθ # analytic length
     dl = 2 * radius * sin(2π / nθ / 2) # discretized length
-    Δt = CFL * dl / C / (2 * degree + 1)
+    Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
     t = 0.0
     nite = min(floor(Int, tmax / Δt), nitemax)
     @show nite
@@ -164,10 +155,10 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
 
     # Limitation
     DMPrelax = 0.0 * dl
-    isLimiterActive = true
 
     # Output
-    filename = "scalar_on_circle_d$(degree)"
+    tail = isLimiterActive ? "lim" : "nolim"
+    filename = "scalar-on-circle-d$(degree)-$(tail)"
     vtk = VtkHandler(joinpath(out_dir, filename), mesh)
     dofOverTime = zeros(nite + 1, 2) # t, u
     i_dof_out = 1
@@ -183,7 +174,6 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
     a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # bilinear volumic convective term
-    # b_Ω(u, v) = ∫(u * v * divₛ(c))dΩ #
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -197,27 +187,18 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
 
     # Mass
     M = assemble_bilinear(m, U, V)
-    K = assemble_bilinear(a_Ω, U, V)
-    # C = assemble_bilinear(b_Ω, U, V)
     invM = inv(Matrix(M)) #WARNING : really expensive !!!
-    # invMK = invM * K
-    # display(K)
-    # display(C)
-    # display(invMK)
-    # display(invM)
-    # display(Δt .* invM)
+    if volumic_bilinear
+        K = assemble_bilinear(a_Ω, U, V)
+        invMK = invM * K
+    end
 
     # Anim
     anim = Animation()
     xnodes = [Bcube.coords(node, 1) for node in Bcube.get_nodes(mesh)]
     ynodes = [Bcube.coords(node, 2) for node in Bcube.get_nodes(mesh)]
-    if degree > 0
-        xplot = xnodes
-        yplot = ynodes
-    else
-        xplot = [center[1] for center in Bcube.get_cell_centers(mesh)]
-        yplot = [center[2] for center in Bcube.get_cell_centers(mesh)]
-    end
+    xcenters = [center[1] for center in Bcube.get_cell_centers(mesh)]
+    ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
     # Initial solution
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
@@ -225,7 +206,7 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
 
     u_mean = Bcube.cell_mean(u, dΩ)
     t = 0.0
-    plt = plot_solution(0, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
+    plt = plot_solution(0, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
     append_vtk(vtk, u, lim_u, u_mean, t)
     frame(anim, plt)
     dofOverTime[1, :] .= t, u.dofValues[i_dof_out]
@@ -244,17 +225,17 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
         flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
         l_Γ(v) = ∫(-flux * jump(v))dΓ
         l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
-        # l_Ω(v) = ∫(_u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
         l(v) = l_Ω(v) + l_Γ(v)
 
-        # Version linear volumic term
-        assemble_linear!(b, l, V)
-        u.dofValues .+= Δt .* invM * b
-        # @show u.dofValues
-
-        # Version bilinear volumic term
-        # assemble_linear!(b, l_Γ, V)
-        # u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
+        if volumic_bilinear
+            # Version bilinear volumic term
+            assemble_linear!(b, l_Γ, V)
+            u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
+        else
+            # Version linear volumic term
+            assemble_linear!(b, l, V)
+            u.dofValues .+= Δt .* invM * b
+        end
 
         t += Δt
 
@@ -262,7 +243,7 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
         if ite % (nite ÷ _nout) == 0
             u_mean = Bcube.cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
-            plt = plot_solution(vtk.ite, t, u, mesh, degree, xplot, yplot, xnodes, ynodes)
+            plt = plot_solution(vtk.ite, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
             frame(anim, plt)
         end
         dofOverTime[ite + 1, :] .= t, u.dofValues[i_dof_out]
@@ -281,44 +262,6 @@ function scalar_circle(; degree, CFL, nθ, nrot = 2, nout = 100, nitemax = Int(1
 end
 
 function vector_circle(; degree, nite, CFL, nθ)
-    function plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes, i, t)
-        # Build animation
-        if degree > 0
-            uplot = var_on_vertices(u, mesh)
-        else
-            uplot = var_on_centers(u, mesh)
-        end
-
-        L = maximum(x -> norm(x), eachrow(uplot))
-
-        scale = 0.75
-        uplot .*= scale
-        println("Max norm of u : $L")
-        plt =
-            plt = plot(
-                [xnodes..., xnodes[1]],
-                [ynodes..., ynodes[1]];
-                aspect_ratio = :equal,
-                primary = false,
-            )
-        quiver!(
-            xplot,
-            yplot;
-            quiver = (uplot[:, 1], uplot[:, 2]),
-            label = "u",
-            xlabel = "x",
-            ylabel = "y",
-        )
-        lim = 1.5
-        xlims!(-lim, lim)
-        ylims!(-lim, lim)
-        annotate!(0, 0.25, "i  = $i")
-        annotate!(0, 0.0, @sprintf "t = %.2e" t)
-        annotate!(0, -0.25, @sprintf "|u|_max = %.2e" L)
-
-        return plt
-    end
-
     # Settings
     radius = 1.0
     C = 1.0 # velocity norm
@@ -403,16 +346,11 @@ function vector_circle(; degree, nite, CFL, nθ)
     anim = Animation()
     xnodes = [Bcube.coords(node, 1) for node in Bcube.get_nodes(mesh)]
     ynodes = [Bcube.coords(node, 2) for node in Bcube.get_nodes(mesh)]
-    if degree > 0
-        xplot = xnodes
-        yplot = ynodes
-    else
-        xplot = [center[1] for center in Bcube.get_cell_centers(mesh)]
-        yplot = [center[2] for center in Bcube.get_cell_centers(mesh)]
-    end
+    xcenters = [center[1] for center in Bcube.get_cell_centers(mesh)]
+    ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
     # Initial solution
-    plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes, 0, 0.0)
+    plt = plot_solution(u, mesh, xcenters, ycenters, xnodes, ynodes, 0, 0.0)
     frame(anim, plt)
 
     t = 0.0
@@ -426,7 +364,7 @@ function vector_circle(; degree, nite, CFL, nθ)
         t += Δt
 
         # Build animation
-        plt = plot_solution(u, mesh, degree, xplot, yplot, xnodes, ynodes, i, t)
+        plt = plot_solution(u, mesh, xcenters, ycenters, xnodes, ynodes, i, t)
         frame(anim, plt)
     end
 
@@ -435,8 +373,7 @@ function vector_circle(; degree, nite, CFL, nθ)
 end
 
 # Run
-# scalar_circle(; degree = 0, nite = 1000, CFL = 0.1, nθ = 10)
-scalar_circle(; degree = 1, nrot = 10, CFL = 0.1, nθ = 100)
+scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
 
 end
