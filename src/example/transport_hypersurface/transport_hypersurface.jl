@@ -239,7 +239,7 @@ function scalar_circle(;
 
         t += Δt
 
-        # Output results        
+        # Output results
         if ite % (nite ÷ _nout) == 0
             u_mean = Bcube.cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
@@ -375,6 +375,8 @@ end
 function scalar_cylinder(;
     degree,
     CFL,
+    Lz,
+    nz,
     nθ,
     tmax,
     nout = 100,
@@ -414,23 +416,23 @@ function scalar_cylinder(;
 
     # Settings
     radius = 1.0
-    Lz = 1.0
-    nz = 10
-    nθ = 45
     C = 1.0 # velocity norm
 
     # Mesh
-    quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
-    mesh = Bcube.gen_cylinder_shell_mesh(
-        joinpath(out_dir, "mesh.msh"),
+    mesh_path = joinpath(out_dir, "mesh.msh")
+    Bcube.gen_cylinder_shell_mesh(
+        mesh_path,
+        nθ,
+        nz,
         Lz;
         radius,
         lc = 1e-1,
         recombine = false,
         transfinite = false,
-        nz,
-        nθ,
     )
+    mesh = read_msh(mesh_path)
+    # quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
+    quad = Quadrature(QuadratureLegendre(), 2 * degree + 1)
     dΩ = Measure(CellDomain(mesh), quad)
     Γ = InteriorFaceDomain(mesh)
     dΓ = Measure(Γ, quad)
@@ -472,13 +474,21 @@ function scalar_cylinder(;
     filename = "scalar-on-cylinder-d$(degree)-$(tail)"
     vtk = VtkHandler(joinpath(out_dir, filename), mesh)
 
-    # FEFunction and "boundary / source" condition
+    # FEFunction and initial solution
     u = FEFunction(U)
-    if false
-        u.dofValues[1] = 1.0
-    else
-        projection_l2!(u, PhysicalFunction(x -> cos(atan(x[2], x[1]))), mesh)
-    end
+    x0 = [0.0, 0.0] # center of P3-Gaussian
+    _r = 1 # radius of P3-Gaussian
+    _umax = 1
+    _a, _b = [
+        _r^3 _r^2
+        3*_r^2 2*_r
+    ] \ [-_umax; 0]
+    f = PhysicalFunction(x -> begin
+        dx = norm(x - x0)
+        dx < _r ? _a * dx^3 + _b * dx^2 + _umax : 0.0
+    end)
+
+    projection_l2!(u, f, mesh)
 
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
@@ -509,6 +519,7 @@ function scalar_cylinder(;
     u_mean = Bcube.cell_mean(u, dΩ)
     t = 0.0
     append_vtk(vtk, u, lim_u, u_mean, t)
+    error("todo")
 
     b = Bcube.allocate_dofs(U)
     for ite in 1:nite
@@ -538,7 +549,7 @@ function scalar_cylinder(;
 
         t += Δt
 
-        # Output results        
+        # Output results
         if ite % (nite ÷ _nout) == 0
             u_mean = Bcube.cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
@@ -547,7 +558,19 @@ function scalar_cylinder(;
 end
 
 # Run
-scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
+# scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
+scalar_cylinder(;
+    degree = 0,
+    CFL = 1.0,
+    Lz = 1.0,
+    nθ = 45,
+    nz = 10,
+    tmax = 1.0,
+    nout = 100,
+    nitemax = Int(1e9),
+    volumic_bilinear = false,
+    isLimiterActive = true,
+)
 
 end
