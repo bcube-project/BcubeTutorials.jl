@@ -25,7 +25,7 @@ function get_ref_checksum(key)
 end
 
 function compute_checksum(value::AbstractArray{<:Number}; digits = 10)
-    return bytes2hex(sha1(reinterpret(UInt8, vec(value))))
+    return bytes2hex(sha1(reinterpret(UInt8, vec(round.(value; digits = digits)))))
 end
 
 """
@@ -41,8 +41,9 @@ Note that the reference checksum must be generated with the number of `digits`.
 function check_value(value, key; digits = 10)
     _ref = get_ref_checksum(key)
     _cur = compute_checksum(value; digits = digits)
-    printstyled("   ➡ checksum ref = ", _ref, " \n"; color = :light_black)
-    printstyled("   ➡ checksum     = ", _cur, " \n"; color = :light_black)
+    printstyled("   ➡ key = ", key, " \n"; color = :light_black)
+    printstyled("      ↪ checksum ref = ", _ref, " \n"; color = :light_black)
+    printstyled("      ↪ checksum     = ", _cur, " \n"; color = :light_black)
     return _cur == _ref
 end
 
@@ -62,6 +63,12 @@ end
 
 ENV["TestMode"] = "true"
 @testset "BcubeTutorials.jl" begin
+    @testset "check_value" begin
+        a = [1.0, 2.0, 3.0]
+        b = a .+ 1.0e-14 * rand(Float64, 3)
+        @test check_value(a, "checkvalue_vector")
+        @test check_value(b, "checkvalue_vector")
+    end
     custom_include("../src/tutorial/helmholtz.jl")
 end
 
