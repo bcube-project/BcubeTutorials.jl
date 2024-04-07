@@ -25,10 +25,7 @@ function get_ref_checksum(key)
 end
 
 function compute_checksum(value::AbstractArray{<:Number}; digits = 10)
-    path, _ = mktemp()
-    writedlm(path, round.(value; digits = digits))
-    checksum = bytes2hex(open(sha1, path))
-    return checksum
+    return bytes2hex(sha1(reinterpret(UInt8, vec(value))))
 end
 
 """
