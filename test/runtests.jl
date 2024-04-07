@@ -42,7 +42,11 @@ due to approximative floating-point precision.
 Note that the reference checksum must be generated with the number of `digits`.
 """
 function check_value(value, key; digits = 10)
-    compute_checksum(value; digits = digits) == get_ref_checksum(key)
+    _ref = get_ref_checksum(key)
+    _cur = compute_checksum(value; digits = digits)
+    printstyled("   ➡ checksum ref = ", _ref, " \n"; color = :light_black)
+    printstyled("   ➡ checksum     = ", _cur, " \n"; color = :light_black)
+    return _cur == _ref
 end
 
 """
