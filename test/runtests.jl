@@ -3,7 +3,6 @@ using BcubeTutorials
 using Test
 using SHA: sha1
 using DelimitedFiles
-using Serialization
 
 # This dir will be removed at the end of the tests
 tempdir = mktempdir()
@@ -25,20 +24,25 @@ function get_ref_checksum(key)
     return fname2sum[key]
 end
 
-function compute_checksum(value)
-    path, io = mktemp()
-    serialize(path, value)
-    return bytes2hex(open(sha1, path))
+function compute_checksum(value::AbstractArray{<:Number}; digits = 10)
+    path, _ = mktemp()
+    writedlm(path, round.(value; digits = digits))
+    checksum = bytes2hex(open(sha1, path))
+    return checksum
 end
 
 """
-    check_value(value, key)
+    check_value(value, key; digits = 10)
 
 Compare the checksum of `value` with the reference checksum
-store for `key` in file "checksums.sha1"
+store for `key` in file "checksums.sha1".
+Keyword argument `digits` can be use to control rounding of `value`
+before computing the checksum. This option allows to avoid test failure
+due to approximative floating-point precision.
+Note that the reference checksum must be generated with the number of `digits`.
 """
-function check_value(value, key)
-    compute_checksum(value) == get_ref_checksum(key)
+function check_value(value, key; digits = 10)
+    compute_checksum(value; digits = digits) == get_ref_checksum(key)
 end
 
 """
