@@ -124,8 +124,8 @@ if get(ENV, "TestMode", "false") == "true"                  #src
         7.049403274103147,                                  #src
     ]                                                       #src
     @test all(results .≈ ref_results)                       #src
-    files2check = outputvtk .* [".pvd", "_00000000.vtu"]    #src
-    import ..BcubeTutorialsTests: test_files                #src
-    test_files(@__DIR__, files2check)                       #src
+    import ..BcubeTutorialsTests: check_value               #src
+    @test check_value(vp, "helmholtz_vp")                   #src
+    @test check_value(vecp, "helmholtz_vecp")               #src
 end                                                         #src
 end #hide
