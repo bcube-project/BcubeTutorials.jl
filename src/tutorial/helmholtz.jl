@@ -114,23 +114,24 @@ write_vtk(joinpath(@__DIR__, outputvtk), 0, 0.0, mesh, dict_vars)           #md
 # And here is the eigenvector corresponding to the 4th eigenvalue:
 # ![](../assets/helmholtz_x21_y21_vp6.png)
 
-if get(ENV, "TestMode", "false") == "true"                  #src
-    results = sqrt.(abs.(vp[3:8]))                          #src
-    ref_results = [                                         #src
-        3.144823462554393,                                  #src
-        4.447451992013584,                                  #src
-        6.309054755690625,                                  #src
-        6.309054755690786,                                  #src
-        7.049403274103087,                                  #src
-        7.049403274103147,                                  #src
-    ]                                                       #src
-    @test all(results .≈ ref_results)                       #src
-    using SparseArrays                                      #src
-    import ..BcubeTutorialsTests: test_ref                  #src
-    dict_A = Dict(zip(("I", "J", "V"), findnz(A)))          #src
-    dict_B = Dict(zip(("I", "J", "V"), findnz(B)))          #src
-    test_ref("helmholtz_A.jld2", dict_A)                    #src
-    test_ref("helmholtz_B.jld2", dict_B)                    #src
-    test_ref("helmholtz_vp.jld2", Dict("vp" => vp))         #src
-end                                                         #src
+if get(ENV, "TestMode", "false") == "true"                      #src
+    results = sqrt.(abs.(vp[3:8]))                              #src
+    ref_results = [                                             #src
+        3.144823462554393,                                      #src
+        4.447451992013584,                                      #src
+        6.309054755690625,                                      #src
+        6.309054755690786,                                      #src
+        7.049403274103087,                                      #src
+        7.049403274103147,                                      #src
+    ]                                                           #src
+    @test all(results .≈ ref_results)                           #src
+    using SparseArrays                                          #src
+    import ..BcubeTutorialsTests: test_ref, compare_checksum    #src
+    test_ref("helmholtz_A.jld2", A)                             #src
+    test_ref("helmholtz_B.jld2", B)                             #src
+    test_ref("helmholtz_vp.jld2", Dict("vp" => vp))             #src
+    # alternatively, we can test the checksum of `vp`           #src
+    # and avoid the storage of all its values in a file:        #src
+    @test compare_checksum("helmholtz_vp", vp; digits = 12)     #src
+end                                                             #src
 end #hide
