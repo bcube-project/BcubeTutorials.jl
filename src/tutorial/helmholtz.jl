@@ -113,19 +113,20 @@ write_vtk(joinpath(@__DIR__, outputvtk), 0, 0.0, mesh, dict_vars)           #md
 # And here is the eigenvector corresponding to the 4th eigenvalue:
 # ![](../assets/helmholtz_x21_y21_vp6.png)
 
-if get(ENV, "TestMode", "false") == "true"                  #src
-    results = sqrt.(abs.(vp[3:8]))                          #src
-    ref_results = [                                         #src
-        3.144823462554393,                                  #src
-        4.447451992013584,                                  #src
-        6.309054755690625,                                  #src
-        6.309054755690786,                                  #src
-        7.049403274103087,                                  #src
-        7.049403274103147,                                  #src
-    ]                                                       #src
-    @test all(results .≈ ref_results)                       #src
-    import ..BcubeTutorialsTests: check_value               #src
-    @test check_value(vp, "helmholtz_vp")                   #src
-    @test check_value(vecp, "helmholtz_vecp")               #src
-end                                                         #src
+if get(ENV, "TestMode", "false") == "true"                      #src
+    results = sqrt.(abs.(vp[3:8]))                              #src
+    ref_results = [                                             #src
+        3.144823462554393,                                      #src
+        4.447451992013584,                                      #src
+        6.309054755690625,                                      #src
+        6.309054755690786,                                      #src
+        7.049403274103087,                                      #src
+        7.049403274103147,                                      #src
+    ]                                                           #src
+    @test all(results .≈ ref_results)                           #src                                          #src
+    import ..BcubeTutorialsTests: test_ref                      #src
+    test_ref("helmholtz_A.jld2", A)                             #src
+    test_ref("helmholtz_B.jld2", B)                             #src
+    test_ref("helmholtz_vp.jld2", vp)                           #src
+end                                                             #src
 end #hide
