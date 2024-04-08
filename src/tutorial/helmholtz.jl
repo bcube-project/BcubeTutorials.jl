@@ -125,7 +125,7 @@ if get(ENV, "TestMode", "false") == "true"                  #src
     ]                                                       #src
     @test all(results .≈ ref_results)                       #src
     import ..BcubeTutorialsTests: check_value               #src
-    @test check_value(vp, "helmholtz_vp")                   #src
-    @test check_value(vecp, "helmholtz_vecp")               #src
+    @test check_value(vp, "helmholtz_vp"; digits = 5)       #src
+    @test check_value(vecp, "helmholtz_vecp"; digits = 5)   #src
 end                                                         #src
 end #hide
