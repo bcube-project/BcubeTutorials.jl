@@ -125,8 +125,12 @@ if get(ENV, "TestMode", "false") == "true"                  #src
         7.049403274103147,                                  #src
     ]                                                       #src
     @test all(results .≈ ref_results)                       #src
-    import ..BcubeTutorialsTests: comp, refpath             #src
-    @test_reference refpath("helmholtz_vp.jld2") Dict("vp" => vp) by = comp(1.0e-12)       #src
-    @test_reference refpath("helmholtz_vecp.jld2") Dict("vecp" => vecp) by = comp(1.0e-12) #src
+    using SparseArrays                                      #src
+    import ..BcubeTutorialsTests: test_ref                  #src
+    dict_A = Dict(zip(("I", "J", "V"), findnz(A)))          #src
+    dict_B = Dict(zip(("I", "J", "V"), findnz(B)))          #src
+    test_ref("helmholtz_A.jld2", dict_A)                    #src
+    test_ref("helmholtz_B.jld2", dict_B)                    #src
+    test_ref("helmholtz_vp.jld2", Dict("vp" => vp))         #src
 end                                                         #src
 end #hide

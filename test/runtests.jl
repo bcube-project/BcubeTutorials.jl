@@ -1,7 +1,7 @@
 module BcubeTutorialsTests
 using BcubeTutorials
 using Test
-using SHA: sha1, sha256
+using SHA: sha256
 using DelimitedFiles
 using Printf: Format, format
 using FileIO, JLD2
@@ -11,18 +11,18 @@ using ReferenceTests
 tempdir = mktempdir()
 
 # function test_files(dir, files2check)
-#     # Reading sha1 checksums
-#     f = readdlm(joinpath(@__DIR__, "checksums.sha1"), String)
+#     # Reading sha256 checksums
+#     f = readdlm(joinpath(@__DIR__, "checksums.sha256"), String)
 #     fname2sum = Dict(r[2] => r[1] for r in eachrow(f))
 #     for f in files2check
 #         printstyled("   ➡ testing output file: ", f, "\n"; color = :light_black)
-#         @test fname2sum[f] == bytes2hex(open(sha1, joinpath(dir, f)))
+#         @test fname2sum[f] == bytes2hex(open(sha256, joinpath(dir, f)))
 #     end
 # end
 
 function get_ref_checksum(key)
-    # Reading sha1 checksums
-    f = readdlm(joinpath(@__DIR__, "checksums.sha1"), String)
+    # Reading sha256 checksums
+    f = readdlm(joinpath(@__DIR__, "checksums.sha256"), String)
     fname2sum = Dict(r[2] => r[1] for r in eachrow(f))
     return fname2sum[key]
 end
@@ -30,7 +30,7 @@ end
 scientific_format(x, digits = 10) = format(Format("%10.$(digits)f"), x)
 
 function compute_checksum(value::AbstractArray{<:Number}; digits = 10)
-    #return bytes2hex(sha1(reinterpret(UInt8, vec(round.(value; digits = digits)))))
+    #return bytes2hex(sha256(reinterpret(UInt8, vec(round.(value; digits = digits)))))
     path, _ = mktemp()
     str_value = map(Base.Fix2(scientific_format, digits), round.(value, digits = digits))
     writedlm(path, str_value)
@@ -42,7 +42,7 @@ end
     check_value(value, key; digits = 10)
 
 Compare the checksum of `value` with the reference checksum
-store for `key` in file "checksums.sha1".
+store for `key` in file "checksums.sha256".
 Keyword argument `digits` can be use to control rounding of `value`
 before computing the checksum. This option allows to avoid test failure
 due to approximative floating-point precision.
@@ -74,17 +74,23 @@ end
 function comp(
     d1::Dict{String, <:AbstractArray},
     d2::Dict{String, <:AbstractArray},
-    eps = 1.0e-14,
+    rtol,
+    atol,
 )
     keys(d1) != keys(d2) && return false
     for (v1, v2) in zip(values(d1), values(d2))
-        any((!isapprox).(v1, v2; rtol = eps)) && return false
+        any((!isapprox).(v1, v2; atol = atol, rtol = rtol)) && return false
     end
     return true
 end
-comp(eps::Real) = (a, b) -> comp(a, b, eps)
+comp(atol::Real, rtol::Real) = (a, b) -> comp(a, b, atol, rtol)
+comp() = comp(1.0e-12, 1.0e-12)
 
 refpath(filename) = joinpath(@__DIR__, "references/", filename)
+
+function test_ref(filename_ref::String, dict::Dict, comp::Function = comp())
+    @test_reference refpath(filename_ref) dict by = comp
+end
 
 ENV["TestMode"] = "true"
 @testset "BcubeTutorials.jl" begin
