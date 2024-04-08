@@ -1,21 +1,22 @@
 module BcubeTutorialsTests
 using BcubeTutorials
 using Test
-using SHA: sha1
+using SHA: sha1, sha256
 using DelimitedFiles
+using Printf: Format, format
 
 # This dir will be removed at the end of the tests
 tempdir = mktempdir()
 
-function test_files(dir, files2check)
-    # Reading sha1 checksums
-    f = readdlm(joinpath(@__DIR__, "checksums.sha1"), String)
-    fname2sum = Dict(r[2] => r[1] for r in eachrow(f))
-    for f in files2check
-        printstyled("   ➡ testing output file: ", f, "\n"; color = :light_black)
-        @test fname2sum[f] == bytes2hex(open(sha1, joinpath(dir, f)))
-    end
-end
+# function test_files(dir, files2check)
+#     # Reading sha1 checksums
+#     f = readdlm(joinpath(@__DIR__, "checksums.sha1"), String)
+#     fname2sum = Dict(r[2] => r[1] for r in eachrow(f))
+#     for f in files2check
+#         printstyled("   ➡ testing output file: ", f, "\n"; color = :light_black)
+#         @test fname2sum[f] == bytes2hex(open(sha1, joinpath(dir, f)))
+#     end
+# end
 
 function get_ref_checksum(key)
     # Reading sha1 checksums
@@ -24,8 +25,15 @@ function get_ref_checksum(key)
     return fname2sum[key]
 end
 
+scientific_format(x, digits = 10) = format(Format("%10.$(digits)f"), x)
+
 function compute_checksum(value::AbstractArray{<:Number}; digits = 10)
-    return bytes2hex(sha1(reinterpret(UInt8, vec(round.(value; digits = digits)))))
+    #return bytes2hex(sha1(reinterpret(UInt8, vec(round.(value; digits = digits)))))
+    path, _ = mktemp()
+    str_value = map(Base.Fix2(scientific_format, digits), value)
+    writedlm(path, str_value)
+    checksum = bytes2hex(open(sha256, path))
+    return checksum
 end
 
 """
