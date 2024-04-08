@@ -53,6 +53,7 @@ println("Running Helmholtz example...") #hide
 using Bcube
 using LinearAlgebra
 using Test #src
+using ReferenceTests #src
 
 # Mesh a 2D rectangular domain with quads.
 mesh = rectangle_mesh(21, 21)
@@ -124,8 +125,8 @@ if get(ENV, "TestMode", "false") == "true"                  #src
         7.049403274103147,                                  #src
     ]                                                       #src
     @test all(results .≈ ref_results)                       #src
-    import ..BcubeTutorialsTests: check_value               #src
-    @test check_value(vp, "helmholtz_vp"; digits = 5)       #src
-    @test check_value(vecp, "helmholtz_vecp"; digits = 5)   #src
+    import ..BcubeTutorialsTests: comp, refpath             #src
+    @test_reference refpath("helmholtz_vp.jld2") Dict("vp" => vp) by = comp(1.0e-12)       #src
+    @test_reference refpath("helmholtz_vecp.jld2") Dict("vecp" => vecp) by = comp(1.0e-12) #src
 end                                                         #src
 end #hide

@@ -4,6 +4,8 @@ using Test
 using SHA: sha1, sha256
 using DelimitedFiles
 using Printf: Format, format
+using FileIO, JLD2
+using ReferenceTests
 
 # This dir will be removed at the end of the tests
 tempdir = mktempdir()
@@ -30,7 +32,7 @@ scientific_format(x, digits = 10) = format(Format("%10.$(digits)f"), x)
 function compute_checksum(value::AbstractArray{<:Number}; digits = 10)
     #return bytes2hex(sha1(reinterpret(UInt8, vec(round.(value; digits = digits)))))
     path, _ = mktemp()
-    str_value = map(Base.Fix2(scientific_format, digits), value)
+    str_value = map(Base.Fix2(scientific_format, digits), round.(value, digits = digits))
     writedlm(path, str_value)
     checksum = bytes2hex(open(sha256, path))
     return checksum
@@ -68,6 +70,21 @@ function custom_include(path)
     end
     println("done.")
 end
+
+function comp(
+    d1::Dict{String, <:AbstractArray},
+    d2::Dict{String, <:AbstractArray},
+    eps = 1.0e-14,
+)
+    keys(d1) != keys(d2) && return false
+    for (v1, v2) in zip(values(d1), values(d2))
+        any((!isapprox).(v1, v2; rtol = eps)) && return false
+    end
+    return true
+end
+comp(eps::Real) = (a, b) -> comp(a, b, eps)
+
+refpath(filename) = joinpath(@__DIR__, "references/", filename)
 
 ENV["TestMode"] = "true"
 @testset "BcubeTutorials.jl" begin
