@@ -123,7 +123,7 @@ if get(ENV, "TestMode", "false") == "true"                      #src
         7.049403274103087,                                      #src
         7.049403274103147,                                      #src
     ]                                                           #src
-    @test all(results .≈ ref_results)                           #src                                          #src
+    @test all(results .≈ ref_results)                           #src
     import ..BcubeTutorialsTests: test_ref                      #src
     test_ref("helmholtz_A.jld2", A)                             #src
     test_ref("helmholtz_B.jld2", B)                             #src
