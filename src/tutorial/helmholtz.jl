@@ -45,31 +45,14 @@ println("Running Helmholtz example...") #hide
 # # Uncommented code
 # The code below solves the described Helmholtz eigen problem. The code with detailed comments
 # is provided in the next section.
-using Bcube
-using LinearAlgebra
 
-mesh = rectangle_mesh(21, 21)
-
-degree = 1
-
-U = TrialFESpace(FunctionSpace(:Lagrange, degree), mesh)
-V = TestFESpace(U)
-
-dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
-
-a(u, v) = ∫(∇(u) ⋅ ∇(v))dΩ
-b(u, v) = ∫(u ⋅ v)dΩ
-
-A = assemble_bilinear(a, U, V)
-B = assemble_bilinear(b, U, V)
-
-vp, vecp = eigen(Matrix(A), Matrix(B))
-@show sqrt.(abs.(vp[3:8]))
+# @__PLAIN_CODE__
 
 # # Commented code
 # Load the necessary packages
 using Bcube
 using LinearAlgebra
+using Test #src
 
 # Mesh a 2D rectangular domain with quads.
 mesh = rectangle_mesh(21, 21)
@@ -107,37 +90,43 @@ vp, vecp = eigen(Matrix(A), Matrix(B))
 
 # Display the "first" five eigenvalues:
 @show sqrt.(abs.(vp[3:8]))
-results = sqrt.(abs.(vp[3:8])) #hide
-ref_results = [
-    3.144823462554393,
-    4.447451992013584,
-    6.309054755690625,
-    6.309054755690786,
-    7.049403274103087,
-    7.049403274103147,
-] #hide
-@assert all(results .≈ ref_results) "Invalid Helmholtz results" #hide
 
-# Now we can export the solution (the eigenvectors) at nodes of the mesh for several eigenvalues.
-# We will restrict to the first 20 eigenvectors. To do so, we will create a `FEFunction` for each
-# eigenvector. This `FEFunction` can then be evaluated on the mesh centers, nodes, etc.
-ϕ = FEFunction(U)
-nvecs = min(20, get_ndofs(U))
-values = zeros(nnodes(mesh), nvecs)
-for ivec in 1:nvecs
-    set_dof_values!(ϕ, vecp[:, ivec])
-    values[:, ivec] = var_on_vertices(ϕ, mesh)
-end
+# Now we can export the solution (the eigenvectors) at nodes of the mesh for several eigenvalues.   #md
+# We will restrict to the first 20 eigenvectors. To do so, we will create a `FEFunction` for each   #md
+# eigenvector. This `FEFunction` can then be evaluated on the mesh centers, nodes, etc.             #md
+ϕ = FEFunction(U)                               #md
+nvecs = min(20, get_ndofs(U))                   #md
+values = zeros(nnodes(mesh), nvecs)             #md
+for ivec in 1:nvecs                             #md
+    set_dof_values!(ϕ, vecp[:, ivec])           #md
+    values[:, ivec] = var_on_vertices(ϕ, mesh)  #md
+end                                             #md
 
-# To write a VTK file, we need to build a dictionnary linking the variable name with its
-# values and type
-using WriteVTK
-out_dir = joinpath(@__DIR__, "../../myout/helmholtz") # output directory
-mkpath(out_dir) #hide
-dict_vars = Dict("u_$i" => (values[:, i], VTKPointData()) for i in 1:nvecs)
-write_vtk(joinpath(out_dir, "rectangle_mesh"), 0, 0.0, mesh, dict_vars)
+# To write a VTK file, we need to build a dictionnary linking the variable name with its #md
+# values and type #md
+using WriteVTK #md
+outputvtk = "../../myout/helmholtz/rectangle_mesh"                          #md
+mkpath(dirname(joinpath(@__DIR__, outputvtk)))                              #src
+dict_vars = Dict("u_$i" => (values[:, i], VTKPointData()) for i in 1:nvecs) #md
+write_vtk(joinpath(@__DIR__, outputvtk), 0, 0.0, mesh, dict_vars)           #md
 
 # And here is the eigenvector corresponding to the 4th eigenvalue:
 # ![](../assets/helmholtz_x21_y21_vp6.png)
 
+if get(ENV, "TestMode", "false") == "true"                      #src
+    results = sqrt.(abs.(vp[3:8]))                              #src
+    ref_results = [                                             #src
+        3.144823462554393,                                      #src
+        4.447451992013584,                                      #src
+        6.309054755690625,                                      #src
+        6.309054755690786,                                      #src
+        7.049403274103087,                                      #src
+        7.049403274103147,                                      #src
+    ]                                                           #src
+    @test all(results .≈ ref_results)                           #src
+    import ..BcubeTutorialsTests: test_ref                      #src
+    test_ref("helmholtz_A.jld2", A)                             #src
+    test_ref("helmholtz_B.jld2", B)                             #src
+    test_ref("helmholtz_vp.jld2", vp)                           #src
+end                                                             #src
 end #hide
