@@ -375,13 +375,13 @@ end
 function scalar_cylinder(;
     degree,
     CFL,
-    Lz,
+    lz,
     nz,
     nθ,
     tmax,
+    dir,
     nout = 100,
     nitemax = Int(1e9),
-    volumic_bilinear = false,
     isLimiterActive = true,
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
@@ -423,12 +423,12 @@ function scalar_cylinder(;
     Bcube.gen_cylinder_shell_mesh(
         mesh_path,
         nθ,
-        nz,
-        Lz;
+        nz;
+        lz,
         radius,
         lc = 1e-1,
-        recombine = false,
-        transfinite = false,
+        recombine = true,
+        transfinite = true,
     )
     mesh = read_msh(mesh_path)
     # quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
@@ -437,6 +437,9 @@ function scalar_cylinder(;
     Γ = InteriorFaceDomain(mesh)
     dΓ = Measure(Γ, quad)
     nΓ = get_face_normals(Γ)
+    Γ_bnd = BoundaryFaceDomain(mesh, ("zmin", "zmax"))
+    dΓ_bnd = Measure(Γ_bnd, quad)
+    nΓ_bnd = get_face_normals(Γ_bnd)
 
     # FESpace
     fs = FunctionSpace(:Lagrange, degree)
@@ -444,7 +447,7 @@ function scalar_cylinder(;
     V = TestFESpace(U)
 
     # Transport velocity
-    _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
+    _c = PhysicalFunction(x -> C * normalize(dir))
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
 
@@ -457,6 +460,7 @@ function scalar_cylinder(;
     # Time step and else
     dl = 2π * radius / nθ # analytic length
     dl = 2 * radius * sin(2π / nθ / 2) # discretized length
+    dl = min(dl, lz / (nz - 1))
     Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
     t = 0.0
     nite = min(floor(Int, tmax / Δt), nitemax)
@@ -465,6 +469,7 @@ function scalar_cylinder(;
 
     @show dl
     @show Δt
+    @show get_ndofs(U)
 
     # Limitation
     DMPrelax = 0.0 * dl
@@ -476,7 +481,8 @@ function scalar_cylinder(;
 
     # FEFunction and initial solution
     u = FEFunction(U)
-    x0 = [0.0, 0.0] # center of P3-Gaussian
+    _θ0 = 0
+    x0 = [radius * cos(_θ0), radius * sin(_θ0), 0.1 * lz] # center of P3-Gaussian
     _r = 1 # radius of P3-Gaussian
     _umax = 1
     _a, _b = [
@@ -507,10 +513,6 @@ function scalar_cylinder(;
     # Mass
     M = assemble_bilinear(m, U, V)
     invM = inv(Matrix(M)) #WARNING : really expensive !!!
-    if volumic_bilinear
-        K = assemble_bilinear(a_Ω, U, V)
-        invMK = invM * K
-    end
 
     # Initial solution
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
@@ -519,7 +521,6 @@ function scalar_cylinder(;
     u_mean = Bcube.cell_mean(u, dΩ)
     t = 0.0
     append_vtk(vtk, u, lim_u, u_mean, t)
-    error("todo")
 
     b = Bcube.allocate_dofs(U)
     for ite in 1:nite
@@ -534,18 +535,14 @@ function scalar_cylinder(;
         # Define linear forms
         flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
         l_Γ(v) = ∫(-flux * jump(v))dΓ
+        flux_bnd = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ_bnd))
+        l_Γ_bnd(v) = ∫(-flux_bnd * jump(v))dΓ_bnd
         l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
-        l(v) = l_Ω(v) + l_Γ(v)
+        l(v) = l_Ω(v) + l_Γ(v) + l_Γ_bnd(v)
 
-        if volumic_bilinear
-            # Version bilinear volumic term
-            assemble_linear!(b, l_Γ, V)
-            u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
-        else
-            # Version linear volumic term
-            assemble_linear!(b, l, V)
-            u.dofValues .+= Δt .* invM * b
-        end
+        # Version linear volumic term
+        assemble_linear!(b, l, V)
+        u.dofValues .+= Δt .* invM * b
 
         t += Δt
 
@@ -563,13 +560,13 @@ end
 scalar_cylinder(;
     degree = 0,
     CFL = 1.0,
-    Lz = 1.0,
+    lz = 10,
     nθ = 45,
-    nz = 10,
+    nz = 20,
+    dir = [0.0, 1.0],
     tmax = 1.0,
     nout = 100,
-    nitemax = Int(1e9),
-    volumic_bilinear = false,
+    nitemax = 1,#Int(1e9),
     isLimiterActive = true,
 )
 
