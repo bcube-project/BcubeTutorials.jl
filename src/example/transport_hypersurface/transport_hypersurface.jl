@@ -594,17 +594,17 @@ end
 # scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
 scalar_cylinder(;
-    degree = 0,
-    CFL = 1.0,
+    degree = 1,
+    CFL = 0.1,
     lz = 10,
-    nθ = 30,
-    nz = 50,
-    ϕ = 1 * π / 2,
+    nθ = 50,
+    nz = 70,
+    ϕ = 0.5 * π / 2,
     C = 1.0,
     tmax = 10.0,
     nout = 100,
-    nitemax = 50,#Int(1e9),
-    isLimiterActive = false,
+    nitemax = 1000,#Int(1e9),
+    isLimiterActive = true,
 )
 
 end
