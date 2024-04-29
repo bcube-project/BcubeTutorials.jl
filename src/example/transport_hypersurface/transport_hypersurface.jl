@@ -23,9 +23,42 @@ mutable struct VtkHandler
     ite::Any
     mesh::Any
     θ::Any
-    function VtkHandler(basename, mesh)
+    θ_centers::Any
+    θ_vertices::Any
+    c::Any
+    c_centers::Any
+    c_vertices::Any
+    ν::Any
+    ν_centers::Any
+    ν_vertices::Any
+    function VtkHandler(basename, mesh, c)
         @info "Writing to $basename.vtu"
-        new(basename, 0, mesh, PhysicalFunction(x -> atan(x[2], x[1])))
+
+        θ = PhysicalFunction(x -> atan(x[2], x[1]))
+        θ_centers = var_on_centers(θ, mesh)
+        θ_vertices = var_on_vertices(θ, mesh)
+
+        ν = Bcube.CellNormal(mesh)
+        ν_centers = transpose(var_on_centers(ν, mesh))
+        ν_vertices = transpose(var_on_vertices(ν, mesh))
+
+        c_centers = transpose(var_on_centers(c, mesh))
+        c_vertices = transpose(var_on_vertices(c, mesh))
+
+        new(
+            basename,
+            0,
+            mesh,
+            θ,
+            θ_centers,
+            θ_vertices,
+            c,
+            c_centers,
+            c_vertices,
+            ν,
+            ν_centers,
+            ν_vertices,
+        )
         # new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
     end
 end
@@ -379,7 +412,9 @@ function scalar_cylinder(;
     nz,
     nθ,
     tmax,
-    dir,
+    ϕ, # velocity angle with respect to z axis
+    C, # velocity norm
+    radius = 1,
     nout = 100,
     nitemax = Int(1e9),
     isLimiterActive = true,
@@ -388,9 +423,7 @@ function scalar_cylinder(;
         # Build animation
         values_vertices = var_on_vertices(u, mesh)
         values_centers = var_on_centers(u, mesh)
-        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
-        θ_centers = var_on_centers(vtk.θ, mesh)
-        θ_vertices = var_on_vertices(vtk.θ, mesh)
+        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)        
 
         ## Write
         Bcube.write_vtk(
@@ -403,8 +436,12 @@ function scalar_cylinder(;
                 "u_vertices" => (values_vertices, VTKPointData()),
                 "lim_u" => (get_values(lim_u), VTKCellData()),
                 "u_mean" => (get_values(u_mean), VTKCellData()),
-                "θ_centers" => (θ_centers, VTKCellData()),
-                "θ_vertices" => (θ_vertices, VTKPointData()),
+                "θ_centers" => (vtk.θ_centers, VTKCellData()),
+                "θ_vertices" => (vtk.θ_vertices, VTKPointData()),
+                "c_centers" => (vtk.c_centers, VTKCellData()),
+                "c_vertices" => (vtk.c_vertices, VTKPointData()),
+                "ν_centers" => (vtk.ν_centers, VTKCellData()),
+                "ν_vertices" => (vtk.ν_vertices, VTKPointData()),
             ),
             ;
             append = vtk.ite > 0,
@@ -413,10 +450,6 @@ function scalar_cylinder(;
         ## Update counter
         vtk.ite += 1
     end
-
-    # Settings
-    radius = 1.0
-    C = 1.0 # velocity norm
 
     # Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
@@ -447,7 +480,9 @@ function scalar_cylinder(;
     V = TestFESpace(U)
 
     # Transport velocity
-    _c = PhysicalFunction(x -> C * normalize(dir))
+    Cz = C * cos(ϕ)
+    Cθ = C * sin(ϕ)
+    _c = PhysicalFunction(x -> SA[-Cθ * x[2] / radius, Cθ * x[1] / radius, Cz])
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
 
@@ -458,15 +493,17 @@ function scalar_cylinder(;
     ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
 
     # Time step and else
-    dl = 2π * radius / nθ # analytic length
-    dl = 2 * radius * sin(2π / nθ / 2) # discretized length
-    dl = min(dl, lz / (nz - 1))
+    dlθ = 2π * radius / nθ # analytic length
+    dlθ = 2 * radius * sin(2π / nθ / 2) # discretized length
+    dlz = lz / (nz - 1)
+    println("Timestep constrained by $(dlθ < dlz ? "θ" : "z") discretization")
+    dl = min(dlθ, dlz)
     Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
     t = 0.0
     nite = min(floor(Int, tmax / Δt), nitemax)
-    @show nite
     _nout = min(nite, nout)
 
+    @show nite
     @show dl
     @show Δt
     @show get_ndofs(U)
@@ -477,12 +514,12 @@ function scalar_cylinder(;
     # Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "scalar-on-cylinder-d$(degree)-$(tail)"
-    vtk = VtkHandler(joinpath(out_dir, filename), mesh)
+    vtk = VtkHandler(joinpath(out_dir, filename), mesh, c)
 
     # FEFunction and initial solution
     u = FEFunction(U)
     _θ0 = 0
-    x0 = [radius * cos(_θ0), radius * sin(_θ0), 0.1 * lz] # center of P3-Gaussian
+    x0 = [radius * cos(_θ0), radius * sin(_θ0), 0.2 * lz] # center of P3-Gaussian
     _r = 1 # radius of P3-Gaussian
     _umax = 1
     _a, _b = [
@@ -498,7 +535,6 @@ function scalar_cylinder(;
 
     # Forms
     m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
-    a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # bilinear volumic convective term
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -523,7 +559,7 @@ function scalar_cylinder(;
     append_vtk(vtk, u, lim_u, u_mean, t)
 
     b = Bcube.allocate_dofs(U)
-    for ite in 1:nite
+    for ite in 1:nitemax
         b .= 0.0
 
         # Apply limitation
@@ -547,7 +583,7 @@ function scalar_cylinder(;
         t += Δt
 
         # Output results
-        if ite % (nite ÷ _nout) == 0
+        if ite % (nitemax ÷ _nout) == 0
             u_mean = Bcube.cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
         end
@@ -561,13 +597,14 @@ scalar_cylinder(;
     degree = 0,
     CFL = 1.0,
     lz = 10,
-    nθ = 45,
-    nz = 20,
-    dir = [0.0, 1.0],
-    tmax = 1.0,
+    nθ = 30,
+    nz = 50,
+    ϕ = 1 * π / 2,
+    C = 1.0,
+    tmax = 10.0,
     nout = 100,
-    nitemax = 1,#Int(1e9),
-    isLimiterActive = true,
+    nitemax = 50,#Int(1e9),
+    isLimiterActive = false,
 )
 
 end
