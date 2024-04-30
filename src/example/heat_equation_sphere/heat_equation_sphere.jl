@@ -130,9 +130,9 @@ function run(;
     α = 1.0 / 42,
     degree = 1,
     tfinal = 1,
-    Δt = 1e-2,
     nout = 100,
     lc = 1e-1,
+    CFL = 0.5,
     vtk_output = true,
 )
 
@@ -158,7 +158,9 @@ function run(;
     U = TrialFESpace(FunctionSpace(:Lagrange, degree), mesh)
     V = TestFESpace(U)
     u = FEFunction(U)
-    @show get_ndofs(U)
+
+    # Display infos
+    println("degree = $degree, CFL = $CFL, lc = $lc, ndofs = $(get_ndofs(U))")
 
     # Init
     u0 = PhysicalFunction(
@@ -178,6 +180,7 @@ function run(;
     K = assemble_bilinear(a, U, V)
 
     # Time loop
+    Δt = CFL * lc^2 / α
     nite = floor(Int, tfinal / Δt)
     _nout = min(nite, nout)
     t = 0.0
@@ -197,15 +200,75 @@ function run(;
         end
     end
 
+    # Compute L2 error with analytical solution
     utrue = exp(-42 * α * t) * u0
-    errL2 = norm(var_on_vertices(utrue, mesh) .- var_on_vertices(u, mesh))
-    return errL2
+    errL2 = sum(Bcube.compute(∫((utrue - u)^2)dΩ))
+    return get_ndofs(U), errL2
 end
 
-tfinal = 1
-α = 1.0 / 42
-nout = 100
-for lc in [3e-2, 4e-2, 5e-2, 1e-1, 5e-1]
-    @show run(; degree = 1, α, tfinal, Δt = 1e-2, nout, lc, vtk_output = false)
+"""
+For dev purpose. Using a constant CFL is questionnable.
+"""
+function parametric_plots()
+    # Common settings
+    tfinal = 1
+    α = 1.0 / 42
+    nout = 100
+    CFL = 0.5
+
+    # Mesh size
+    degree = 1
+    lc = [2e-2, 3e-2, 4e-2, 5e-2, 1e-1, 5e-1]
+    x_lc = similar(lc)
+    y_lc = similar(lc)
+    for (i, _lc) in enumerate(lc)
+        x_lc[i], y_lc[i] = run(; degree, α, tfinal, CFL, nout, lc = _lc, vtk_output = false)
+    end
+    p = plot(
+        x_lc,
+        y_lc;
+        xscale = :log10,
+        yscale = :log10,
+        label = "L2 err, CFL = $CFL, degree = $degree",
+    )
+    xlabel!("ndofs")
+    ylabel!("L2 error")
+    display(p)
+
+    # Degree
+    lc = 4e-2
+    degree = [1, 2, 3]
+    x_degree = zeros(size(degree))
+    y_degree = similar(x_degree)
+    for (i, d) in enumerate(degree)
+        x_degree[i], y_degree[i] =
+            run(; degree = d, α, tfinal, CFL, nout, lc, vtk_output = false)
+    end
+    p = plot(
+        x_degree,
+        y_degree;
+        yscale = :log10,
+        label = "L2 err, CFL = $CFL (no degree dep), lc = $lc",
+    )
+    xlabel!("degree")
+    ylabel!("L2 error")
+    display(p)
 end
+
+ndofs, errL2 = run(;
+    degree = 1,
+    α = 1.0 / 42,
+    tfinal = 1,
+    CFL = 0.5,
+    nout = 100,
+    lc = 4e-2,
+    vtk_output = true,
+)
+@show errL2
+
+# if get(ENV, "TestMode", "false") == "true" #src
+#     using Test                             #src
+#     @test errL2 < 4.83e-5                  #src
+# end                                        #src
+
 end
