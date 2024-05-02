@@ -25,21 +25,7 @@ ENV["TestMode"] = "true"
         @test !compare_checksum("checkvalue_vector", c; digits = 10, verbose = false)
     end
     custom_include("../src/tutorial/helmholtz.jl")
-
-    @testset begin
-        custom_include("../src/example/heat_equation_sphere/heat_equation_sphere.jl")
-        import .HeatEquationSphere
-        ndofs, errL2 = HeatEquationSphere.run(;
-            degree = 1,
-            α = 1.0 / 42,
-            tfinal = 1,
-            CFL = 0.5,
-            nout = 100,
-            lc = 4e-2,
-            vtk_output = false,
-        )
-        @test errL2 < 4.83e-5
-    end
+    custom_include("../src/example/heat_equation_sphere/heat_equation_sphere.jl")
 end
 
 end

@@ -6,8 +6,8 @@ using LinearAlgebra
 using StaticArrays
 using FastTransforms
 using Random
-using Plots
 using ProgressMeter
+using Test #src
 
 """
 From wikipedia
@@ -142,7 +142,7 @@ function run(;
 
     # Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc) # 1e-1
+    Bcube.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
     mesh = read_msh(mesh_path)
     rng = MersenneTwister(0)
     R = rotMat(rand(rng, 3)...)
@@ -206,55 +206,6 @@ function run(;
     return get_ndofs(U), errL2
 end
 
-"""
-For dev purpose. Using a constant CFL is questionnable.
-"""
-function parametric_plots()
-    # Common settings
-    tfinal = 1
-    α = 1.0 / 42
-    nout = 100
-    CFL = 0.5
-
-    # Mesh size
-    degree = 1
-    lc = [2e-2, 3e-2, 4e-2, 5e-2, 1e-1, 5e-1]
-    x_lc = similar(lc)
-    y_lc = similar(lc)
-    for (i, _lc) in enumerate(lc)
-        x_lc[i], y_lc[i] = run(; degree, α, tfinal, CFL, nout, lc = _lc, vtk_output = false)
-    end
-    p = plot(
-        x_lc,
-        y_lc;
-        xscale = :log10,
-        yscale = :log10,
-        label = "L2 err, CFL = $CFL, degree = $degree",
-    )
-    xlabel!("ndofs")
-    ylabel!("L2 error")
-    display(p)
-
-    # Degree
-    lc = 4e-2
-    degree = [1, 2, 3]
-    x_degree = zeros(size(degree))
-    y_degree = similar(x_degree)
-    for (i, d) in enumerate(degree)
-        x_degree[i], y_degree[i] =
-            run(; degree = d, α, tfinal, CFL, nout, lc, vtk_output = false)
-    end
-    p = plot(
-        x_degree,
-        y_degree;
-        yscale = :log10,
-        label = "L2 err, CFL = $CFL (no degree dep), lc = $lc",
-    )
-    xlabel!("degree")
-    ylabel!("L2 error")
-    display(p)
-end
-
 ndofs, errL2 = run(;
     degree = 1,
     α = 1.0 / 42,
@@ -266,9 +217,8 @@ ndofs, errL2 = run(;
 )
 @show errL2
 
-# if get(ENV, "TestMode", "false") == "true" #src
-#     using Test                             #src
-#     @test errL2 < 4.83e-5                  #src
-# end                                        #src
+if get(ENV, "TestMode", "false") == "true" #src
+    @test errL2 < 4.83e-5                  #src
+end                                        #src
 
 end
