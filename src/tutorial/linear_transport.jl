@@ -82,13 +82,13 @@ const ly = 2.0 # Domain height
 const Δt = CFL * min(lx / nx, ly / ny) / norm(c) # Time step
 
 # Then generate the mesh of a rectangle using Gmsh and read it
-tmp_path = "tmp.msh"
+tmp_path = joinpath(@__DIR__, "..", "..", "myout", "tmp.msh")
 gen_rectangle_mesh(tmp_path, :quad; nx = nx, ny = ny, lx = lx, ly = ly, xc = 0.0, yc = 0.0)
 mesh = read_msh(tmp_path)
 rm(tmp_path)
 
 # We can now init our `VtkHandler`
-out_dir = joinpath(@__DIR__, "../../myout/linear_transport")
+out_dir = joinpath(@__DIR__, "..", "..", "myout", "linear_transport")
 mkpath(out_dir) #hide
 vtk = VtkHandler(joinpath(out_dir, "linear_transport"), mesh)
 
@@ -193,5 +193,10 @@ end
 
 # And here is an animation of the result:
 # ![](../assets/linear_transport.gif)
+
+if get(ENV, "TestMode", "false") == "true"                           #src
+    import ..BcubeTutorialsTests: test_ref                           #src
+    test_ref("linear_transport_sol_100ites.jld2", get_dof_values(u)) #src
+end                                                                  #src
 
 end #hide
