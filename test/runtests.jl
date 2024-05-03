@@ -24,7 +24,11 @@ ENV["TestMode"] = "true"
         @test compare_checksum("checkvalue_vector", b; digits = 10)
         @test !compare_checksum("checkvalue_vector", c; digits = 10, verbose = false)
     end
+    custom_include("../src/tutorial/heat_equation.jl")
     custom_include("../src/tutorial/helmholtz.jl")
+    custom_include("../src/tutorial/linear_transport.jl")
+
+    custom_include("../src/example/constrained_poisson/constrained_poisson.jl")
 end
 
 end

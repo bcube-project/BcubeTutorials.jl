@@ -33,7 +33,7 @@ println("Running constrained poisson with MultiplierFESpace API example...") #hi
 # ```math
 #    \lambda_v \int_\Gamma u \, d\gamma = 2 \pi \lambda_v
 # ```
-# This problem can be assembled by introducing a MultiplierFESpace and combining it with the usual FESpace using a MultiFESpace. 
+# This problem can be assembled by introducing a MultiplierFESpace and combining it with the usual FESpace using a MultiFESpace.
 # In this example, the manufactured solution $$u(x,y)=cos(4\pi(x^2 + y^2))$$ is used to test the method.
 
 # # Commented code
@@ -43,8 +43,9 @@ using Bcube
 using LinearAlgebra
 using SparseArrays
 using WriteVTK
+using Test #src
 
-const outputpath = joinpath(@__DIR__, "../../../myout/constrained_poisson/")
+const outputpath = joinpath(@__DIR__, "..", "..", "..", "myout", "constrained_poisson")
 mkpath(outputpath)
 
 # Read 2D mesh
@@ -120,6 +121,9 @@ l2(u) = sqrt(sum(Bcube.compute(∫(u ⋅ u)dΩ)))
 el2 = l2(error) / l2(u_ref)
 tol = 1.e-3
 println("L2 relative error : ", el2)
-@assert el2 < tol
+
+if get(ENV, "TestMode", "false") == "true" #src
+    @test el2 < tol                        #src
+end                                        #src
 
 end #hide
