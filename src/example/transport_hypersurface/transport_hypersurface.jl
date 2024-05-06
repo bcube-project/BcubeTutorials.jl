@@ -8,6 +8,7 @@ using Printf
 using WriteVTK
 using DelimitedFiles
 using Random
+using ProgressMeter
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
 rm(out_dir; force = true, recursive = true)
@@ -443,6 +444,7 @@ function scalar_cylinder(;
     nout = 100,
     nitemax = Int(1e9),
     isLimiterActive = true,
+    progressBar = true,
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         # Build animation
@@ -491,7 +493,9 @@ function scalar_cylinder(;
     mesh = read_msh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = rand(rng, 3) .* 2π
+    println("θx, θy, θz = $(rad2deg.(θ))")
     Rmat = rotMat(θ...)
+    RmatInv = inv(Rmat)
     transform!(mesh, x -> Rmat * x)
 
     # Domains
@@ -513,7 +517,10 @@ function scalar_cylinder(;
     # Transport velocity
     Cz = C * cos(ϕ)
     Cθ = C * sin(ϕ)
-    _c = PhysicalFunction(x -> SA[-Cθ * x[2] / radius, Cθ * x[1] / radius, Cz])
+    _c = PhysicalFunction(x -> begin
+        _x = RmatInv * x
+        Rmat * SA[-Cθ * _x[2] / radius, Cθ * _x[1] / radius, Cz]
+    end)
     P = Bcube.TangentialProjector()
     c = C * (P * _c) / mynorm(P * _c)
 
@@ -547,12 +554,12 @@ function scalar_cylinder(;
     filename = "scalar-on-cylinder-d$(degree)-$(tail)"
     vtk = VtkHandler(joinpath(out_dir, filename), mesh, c)
 
-    # FEFunction and initial solution
+    # FEFunction and initial solution (P3 Gaussian bump)
     u = FEFunction(U)
     _θ0 = 0
-    x0 = [radius * cos(_θ0), radius * sin(_θ0), 0.2 * lz] # center of P3-Gaussian
-    _r = 1 # radius of P3-Gaussian
-    _umax = 1
+    x0 = Rmat * [radius * cos(_θ0), radius * sin(_θ0), 0.2 * lz] # bump center (in rotated frame)
+    _r = 1 # bump radius
+    _umax = 1 # bump amplitude
     _a, _b = [
         _r^3 _r^2
         3*_r^2 2*_r
@@ -579,7 +586,8 @@ function scalar_cylinder(;
 
     # Mass
     M = assemble_bilinear(m, U, V)
-    invM = inv(Matrix(M)) #WARNING : really expensive !!!
+    # println("Matrix inversion...")
+    # invM = inv(Matrix(M)) #WARNING : really expensive !!!
 
     # Initial solution
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
@@ -590,6 +598,8 @@ function scalar_cylinder(;
     append_vtk(vtk, u, lim_u, u_mean, t)
 
     b = Bcube.allocate_dofs(U)
+    du = similar(b)
+    progressBar && (progress = Progress(nitemax))
     for ite in 1:nitemax
         b .= 0.0
 
@@ -609,9 +619,11 @@ function scalar_cylinder(;
 
         # Version linear volumic term
         assemble_linear!(b, l, V)
-        u.dofValues .+= Δt .* invM * b
+        du .= M \ b
+        @. u.dofValues += Δt * du
 
         t += Δt
+        progressBar && next!(progress)
 
         # Output results
         if ite % (nitemax ÷ _nout) == 0
@@ -624,7 +636,7 @@ end
 # Run
 # scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
-scalar_cylinder(;
+@time scalar_cylinder(;
     degree = 1,
     CFL = 0.1,
     lz = 10,
@@ -634,8 +646,9 @@ scalar_cylinder(;
     C = 1.0,
     tmax = 10.0,
     nout = 100,
-    nitemax = 1000,#Int(1e9),
+    nitemax = 2000,#Int(1e9),
     isLimiterActive = true,
+    progressBar = true,
 )
 
 end
