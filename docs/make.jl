@@ -6,7 +6,24 @@ using Literate
 
 # Alias for `Literate.markdown`
 function gen_markdown_with_literate(src, name, dir)
-    Literate.markdown(joinpath(src, name), dir; documenter = false, execute = false)
+    Literate.markdown(
+        joinpath(src, name),
+        dir;
+        documenter = false,
+        execute = false,
+        preprocess = replace_plain_code,
+    )
+end
+
+# replace line "# @__PLAIN_CODE__" in `content` with the uncommented content version
+function replace_plain_code(content::String)
+    tempdir = mktempdir()
+    filename = joinpath(tempdir, "tmp")
+    write(filename, content)
+    Literate.script(filename, tempdir; credit = false)
+    plaincode = read(filename * ".jl", String)
+    content = replace(content, "# @__PLAIN_CODE__" => plaincode)
+    return content
 end
 
 """

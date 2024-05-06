@@ -1,5 +1,5 @@
 module heat_equation_API #hide
-println("Running heat equation API example...") #hide
+println("Running heat equation tutorial...") #hide
 # # Heat equation (FE)
 # In this tutorial, the heat equation (first steady and then unsteady) is solved using finite-elements.
 #
@@ -21,6 +21,7 @@ println("Running heat equation API example...") #hide
 using Bcube
 using LinearAlgebra
 using WriteVTK
+using Test #src
 
 # First we define some physical and numerical constants
 const htc = 100.0 # Heat transfer coefficient (bnd cdt)
@@ -31,11 +32,11 @@ const λ = 100.0
 const η = λ
 const ρCp = 100.0 * 200.0
 const degree = 2
-const outputpath = joinpath(@__DIR__, "../../myout/heat_equation/")
+const outputpath = joinpath(@__DIR__, "..", "..", "myout", "heat_equation/")
 mkpath(outputpath) #hide
 
 # Read 2D mesh
-mesh_path = joinpath(@__DIR__, "../../input/mesh/domainSquare_tri.msh")
+mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri.msh")
 mesh = read_msh(mesh_path)
 
 # Build function space and associated Trial and Test FE spaces.
@@ -75,6 +76,10 @@ write_vtk(outputpath * "result_steady_heat_equation", 0, 0.0, mesh, dict_vars)
 # Compute and display the error
 @show norm(Tcn .- Tca, Inf) / norm(Tca, Inf)
 
+if get(ENV, "TestMode", "false") == "true"               #src
+    @test norm(Tcn .- Tca, Inf) / norm(Tca, Inf) < 2e-14 #src
+end                                                      #src
+
 # # Unsteady case
 # The code for the unsteady case if of course very similar to the steady case, at least for the
 # beginning. Start by defining two additional parameters:
@@ -82,7 +87,7 @@ totalTime = 100.0
 Δt = 0.1
 
 # Read a slightly different mesh
-mesh_path = joinpath(@__DIR__, "../../input/mesh/domainSquare_tri_2.msh")
+mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri_2.msh")
 mesh = read_msh(mesh_path)
 
 # The rest is similar to the steady case
@@ -153,5 +158,10 @@ while t <= totalTime
         )
     end
 end
+
+if get(ENV, "TestMode", "false") == "true"                 #src
+    import ..BcubeTutorialsTests: test_ref                 #src
+    test_ref("heat_equation_100s.jld2", get_dof_values(ϕ)) #src
+end                                                        #src
 
 end #hide
