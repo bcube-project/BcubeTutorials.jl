@@ -7,6 +7,7 @@ using LinearAlgebra
 using Printf
 using WriteVTK
 using DelimitedFiles
+using Random
 
 const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
 rm(out_dir; force = true, recursive = true)
@@ -98,6 +99,30 @@ function plot_solution(i, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
     end
 
     return plt
+end
+
+"""
+    rotMat(θx, θy, θz)
+
+Build the 3D rotation matrix from the angles given for each axis.
+"""
+function rotMat(θx, θy, θz)
+    Rx = @SMatrix[
+        1.0 0.0 0.0
+        0.0 cos(θx) sin(θx)
+        0.0 (-sin(θx)) cos(θx)
+    ]
+    Ry = @SMatrix[
+        cos(θy) 0.0 (-sin(θy))
+        0.0 1.0 0.0
+        sin(θy) 0.0 cos(θy)
+    ]
+    Rz = @SMatrix[
+        cos(θz) sin(θz) 0.0
+        -sin(θz) cos(θz) 0.0
+        0.0 0.0 1.0
+    ]
+    return Rx * Ry * Rz
 end
 
 """
@@ -423,7 +448,7 @@ function scalar_cylinder(;
         # Build animation
         values_vertices = var_on_vertices(u, mesh)
         values_centers = var_on_centers(u, mesh)
-        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)        
+        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
 
         ## Write
         Bcube.write_vtk(
@@ -464,6 +489,12 @@ function scalar_cylinder(;
         transfinite = true,
     )
     mesh = read_msh(mesh_path)
+    rng = Random.MersenneTwister(33)
+    θ = rand(rng, 3) .* 2π
+    Rmat = rotMat(θ...)
+    transform!(mesh, x -> Rmat * x)
+
+    # Domains
     # quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
     quad = Quadrature(QuadratureLegendre(), 2 * degree + 1)
     dΩ = Measure(CellDomain(mesh), quad)
