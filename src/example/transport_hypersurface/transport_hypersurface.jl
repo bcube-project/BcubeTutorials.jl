@@ -218,7 +218,7 @@ function scalar_circle(;
     # Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "scalar-on-circle-d$(degree)-$(tail)"
-    vtk = VtkHandler(joinpath(out_dir, filename), mesh)
+    vtk = VtkHandler(joinpath(out_dir, filename), mesh, c)
     dofOverTime = zeros(nite + 1, 2) # t, u
     i_dof_out = 1
 
@@ -254,8 +254,8 @@ function scalar_circle(;
 
     # Anim
     anim = Animation()
-    xnodes = [Bcube.coords(node, 1) for node in Bcube.get_nodes(mesh)]
-    ynodes = [Bcube.coords(node, 2) for node in Bcube.get_nodes(mesh)]
+    xnodes = [get_coords(node, 1) for node in get_nodes(mesh)]
+    ynodes = [get_coords(node, 2) for node in get_nodes(mesh)]
     xcenters = [center[1] for center in Bcube.get_cell_centers(mesh)]
     ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
@@ -403,13 +403,13 @@ function vector_circle(; degree, nite, CFL, nθ)
 
     # Anim
     anim = Animation()
-    xnodes = [Bcube.coords(node, 1) for node in Bcube.get_nodes(mesh)]
-    ynodes = [Bcube.coords(node, 2) for node in Bcube.get_nodes(mesh)]
+    xnodes = [get_coords(node, 1) for node in get_nodes(mesh)]
+    ynodes = [get_coords(node, 2) for node in get_nodes(mesh)]
     xcenters = [center[1] for center in Bcube.get_cell_centers(mesh)]
     ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
     # Initial solution
-    plt = plot_solution(u, mesh, xcenters, ycenters, xnodes, ynodes, 0, 0.0)
+    plt = plot_solution(0, 0.0, u, mesh, xcenters, ycenters, xnodes, ynodes)
     frame(anim, plt)
 
     t = 0.0
@@ -423,7 +423,7 @@ function vector_circle(; degree, nite, CFL, nθ)
         t += Δt
 
         # Build animation
-        plt = plot_solution(u, mesh, xcenters, ycenters, xnodes, ynodes, i, t)
+        plt = plot_solution(i, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
         frame(anim, plt)
     end
 
@@ -635,7 +635,7 @@ end
 
 # Run
 # scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
-# vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
+vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
 @time scalar_cylinder(;
     degree = 1,
     CFL = 0.1,
