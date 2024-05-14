@@ -46,10 +46,6 @@ function run_steady_two_layers_method1(; degree)
     # Read mesh
     mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices =
         read_msh_with_cell_names(joinpath(dir, "input", "mesh", "domainTwoLayer_tri.msh"))
-    @show el_names
-    @show el_names_inv
-    @show el_cells
-    @show glo2loc_cell_indices
 
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, Dict("West" => T0, "East" => T1))

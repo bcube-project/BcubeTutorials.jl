@@ -13,7 +13,7 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 
 [compat]
-Bcube = "0.1.4"
+Bcube = "0.1.7"
 
 [extras]
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
