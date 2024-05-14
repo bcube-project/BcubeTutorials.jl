@@ -1,4 +1,5 @@
 module TransportSUPG #hide
+println("Running transport SUPG example...") #hide
 # # Linear transport (FEM-SUPG)
 # This example demonstrates the application of the FEM Streamline Upwind Petrov-Galerkin method to a linear transport equation.
 #
@@ -64,7 +65,7 @@ const c = SA[1.0] # Transport velocity
 # Build mesh, and prepare output
 mesh = line_mesh(nx; xmax = lx, names = ("West", "East"))
 
-out_dir = joinpath(@__DIR__, "../../../myout/linear_transport")
+out_dir = joinpath(@__DIR__, "..", "..", "..", "myout", "linear_transport")
 mkpath(out_dir)
 
 # Time step defined by a CFL condition
@@ -112,7 +113,7 @@ u_ref = FEFunction(U)
 # we directly extract the mesh coordinates into a vector and the
 # dof values are in the same order.
 anim = Animation()
-x = [coords(node, 1) for node in get_nodes(mesh)]
+x = [get_coords(node, 1) for node in get_nodes(mesh)]
 
 # Let's loop
 for i in 1:nite
