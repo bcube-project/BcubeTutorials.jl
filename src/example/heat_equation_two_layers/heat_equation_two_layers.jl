@@ -51,7 +51,7 @@ function run_steady_two_layers_method1(; degree)
     U = TrialFESpace(fs, mesh, Dict("West" => T0, "East" => T1))
     V = TestFESpace(U)
 
-    # Define measures for cell and interior face integrations
+    # Define measures for cell integration
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
     material_1 = el_cells[el_names_inv["Domain_1"]]
