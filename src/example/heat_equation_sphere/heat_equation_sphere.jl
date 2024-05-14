@@ -200,7 +200,7 @@ function run(;
         end
     end
 
-    # Compute L2 error with analytical solution
+    # Compute L2 error with the analytical solution
     utrue = exp(-42 * α * t) * u0
     errL2 = sum(Bcube.compute(∫((utrue - u)^2)dΩ))
     return get_ndofs(U), errL2
