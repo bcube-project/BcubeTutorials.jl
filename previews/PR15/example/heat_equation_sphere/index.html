@@ -11,29 +11,20 @@ using ProgressMeter
 using Test #src
 
 &quot;&quot;&quot;
-From wikipedia
+From wikipedia (physics)
 
-or
-
-From CoordinateTransformations
-https://github.com/JuliaGeometry/CoordinateTransformations.jl/blob/b97c74a35c6835f6b015440cb4af6298824dbe1d/src/coordinatesystems.jl#L161
+Other mathematical valid possibilites:
+* CoordinateTransformations: https://github.com/JuliaGeometry/CoordinateTransformations.jl/blob/b97c74a35c6835f6b015440cb4af6298824dbe1d/src/coordinatesystems.jl#L161
+* Custom : θ = atan(z, sqrt(x^2 + y^2)), ϕ = atan(y, x)
 &quot;&quot;&quot;
 function cart2sphere(xyz)
     x, y, z = xyz
 
     r = norm(xyz)
 
-    # From Wikipedia (&quot;physics&quot;)
     θ = acos(z / r)
     ϕ = sign(y) * acos(x / sqrt(x^2 + y^2))
 
-    # From &quot;me&quot; (adapted from wiki) -&gt; physics
-    # θ = atan(z, sqrt(x^2 + y^2))
-    # ϕ = atan(y, x)
-
-    # Formulae from CoordinateTransformations
-    # θ = atan(y, x)
-    # ϕ = atan(z / sqrt(x^2 + y^2))
     return SA[r, θ, ϕ]
 end
 
@@ -222,4 +213,4 @@ if get(ENV, &quot;TestMode&quot;, &quot;false&quot;) == &quot;true&quot; #src
     @test errL2 &lt; 4.83e-5                  #src
 end                                        #src
 
-end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../poisson_dg/">« Poisson equation (DG)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Tuesday 14 May 2024 12:38">Tuesday 14 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../poisson_dg/">« Poisson equation (DG)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.4.1 on <span class="colophon-date" title="Thursday 16 May 2024 08:43">Thursday 16 May 2024</span>. Using Julia version 1.10.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
