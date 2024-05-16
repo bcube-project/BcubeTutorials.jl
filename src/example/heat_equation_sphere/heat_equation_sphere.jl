@@ -10,29 +10,20 @@ using ProgressMeter
 using Test #src
 
 """
-From wikipedia
+From wikipedia (physics)
 
-or
-
-From CoordinateTransformations
-https://github.com/JuliaGeometry/CoordinateTransformations.jl/blob/b97c74a35c6835f6b015440cb4af6298824dbe1d/src/coordinatesystems.jl#L161
+Other mathematical valid possibilites:
+* CoordinateTransformations: https://github.com/JuliaGeometry/CoordinateTransformations.jl/blob/b97c74a35c6835f6b015440cb4af6298824dbe1d/src/coordinatesystems.jl#L161
+* Custom : θ = atan(z, sqrt(x^2 + y^2)), ϕ = atan(y, x)
 """
 function cart2sphere(xyz)
     x, y, z = xyz
 
     r = norm(xyz)
 
-    # From Wikipedia ("physics")
     θ = acos(z / r)
     ϕ = sign(y) * acos(x / sqrt(x^2 + y^2))
 
-    # From "me" (adapted from wiki) -> physics
-    # θ = atan(z, sqrt(x^2 + y^2))
-    # ϕ = atan(y, x)
-
-    # Formulae from CoordinateTransformations
-    # θ = atan(y, x)
-    # ϕ = atan(z / sqrt(x^2 + y^2))
     return SA[r, θ, ϕ]
 end
 
