@@ -71,7 +71,7 @@ function run_steady_two_layers_method1(; degree)
     q = MeshCellData(qtmp)
     η = MeshCellData(λ)
 
-    # compute matrices associated to bilinear and linear forms
+    # Compute matrices associated to bilinear and linear forms
     a(u, v) = ∫(η * ∇(u) ⋅ ∇(v))dΩ
     l(v) = ∫(q * v)dΩ
 
