@@ -73,9 +73,10 @@ for (script_name, name) in (
     ("shallow_water.jl", "Shallow water"),
     ("poisson_dg.jl", "Poisson equation (DG)"),
     ("heat_equation_sphere.jl", "Heat equation on a sphere"),
+    ("heat_equation_two_layers.jl", "Heat equation with two layers"),
 )
     julia_to_markdown(
-        joinpath(example_src, splitext(script_name)[1]),
+        joinpath(example_src, first(splitext(script_name))),
         example_dir,
         script_name,
         name,
@@ -123,6 +124,7 @@ makedocs(;
             "example/transport_supg.md",
             "example/poisson_dg.md",
             "example/heat_equation_sphere.md",
+            "example/heat_equation_two_layers.md",
         ],
     ],
     # remotes = nothing, # tmp fix for bmxam windows
