@@ -4,7 +4,7 @@ println("Running heat equation two layers example...") #hide
 # # Theory
 # This example shows how to solve the heat equation with eventually variable physical properties in steady and unsteady formulations:
 # ```math
-#   \rho C_p \partial_t u - \nabla . ( \lambda u) = f
+#   \rho C_p \partial_t u - \nabla . ( \lambda \nabla u) = f
 # ```
 # We shall assume that $$f, \, \rho, \, C_p, \, \lambda \, \in L^2(\Omega)$$. The weak form of the problem is given by: find $$ u \in \tilde{H}^1_0(\Omega)$$
 # (there will be at least one Dirichlet boundary condition) such that:
