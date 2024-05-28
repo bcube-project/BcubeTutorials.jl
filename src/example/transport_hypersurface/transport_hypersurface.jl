@@ -227,7 +227,7 @@ function scalar_circle(;
     # Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "scalar-on-circle-d$(degree)-$(tail)"
-    vtk = VtkHandler(joinpath(out_dir, filename), mesh, c)
+    vtk = VtkHandler(joinpath(out_dir, filename), dΩ, U, c)
     dofOverTime = zeros(nite + 1, 2) # t, u
     i_dof_out = 1
 
@@ -461,6 +461,7 @@ function scalar_cylinder(;
     isLimiterActive = true,
     progressBar = true,
     meshOrder = 1,
+    profile = false,
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
         vars = Dict(
@@ -637,7 +638,7 @@ function scalar_cylinder(;
             append_vtk(vtk, u, lim_u, t)
         end
 
-        if ite == nitemax
+        if ite == nitemax && profile
             println("ndofs total = ", Bcube.get_ndofs(U))
             Profile.init(; n = 10^7) # returns the current settings
             Profile.clear()
@@ -781,7 +782,7 @@ function vector_cylinder(;
     # Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "vector-on-cylinder-d$(degree)-$(tail)"
-    vtk = VtkHandler(joinpath(out_dir, filename), mesh, c)
+    vtk = VtkHandler(joinpath(out_dir, filename), dΩ, U, c)
 
     # FEFunction and initial solution
     u = FEFunction(U)
@@ -896,24 +897,212 @@ function vector_cylinder(;
     end
 end
 
+"""
+Linear transport of a scalar quantity on a torus
+"""
+function scalar_torus(;
+    degree,
+    CFL,
+    rint,
+    rext,
+    lc,
+    tmax,
+    ϕ, # velocity angle with respect to z axis
+    C, # velocity norm
+    nout = 100,
+    nitemax = Int(1e9),
+    isLimiterActive = true,
+    progressBar = true,
+    meshOrder = 1,
+)
+    function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
+        vars = Dict(
+            "u" => u,
+            "u_mean" => Bcube.cell_mean(u, vtk.dΩ),
+            "lim_u" => lim_u,
+            "c" => vtk.c,
+            "cellnormal" => Bcube.CellNormal(vtk.mesh),
+            "u_warp" => u * Bcube.CellNormal(vtk.mesh),
+        )
+        Bcube.write_vtk_lagrange(
+            vtk.basename * "_lag",
+            vars,
+            vtk.mesh,
+            vtk.U,
+            vtk.ite,
+            t;
+            collection_append = vtk.ite > 0,
+        )
+
+        ## Update counter
+        vtk.ite += 1
+    end
+
+    # Mesh
+    mesh_path = joinpath(out_dir, "mesh.msh")
+    Bcube.gen_torus_shell_mesh(mesh_path, rint, rext; order = meshOrder)
+    mesh = read_msh(mesh_path)
+    rng = Random.MersenneTwister(33)
+    θ = zeros(3)
+    # θ = rand(rng, 3) .* 2π
+    println("θx, θy, θz = $(rad2deg.(θ))")
+    Rmat = rotMat(θ...)
+    RmatInv = inv(Rmat)
+    transform!(mesh, x -> Rmat * x)
+
+    # Domains
+    # quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
+    quad = Quadrature(QuadratureLegendre(), 2 * degree + 1)
+    dΩ = Measure(CellDomain(mesh), quad)
+    Γ = InteriorFaceDomain(mesh)
+    dΓ = Measure(Γ, quad)
+    nΓ = get_face_normals(Γ)
+
+    # FESpace
+    fs = FunctionSpace(:Lagrange, degree)
+    U = TrialFESpace(fs, mesh, :discontinuous)
+    V = TestFESpace(U)
+
+    # Transport velocity
+    Cθxy = C * cos(ϕ)
+    Cθxz = C * sin(ϕ)
+    xc = (rint + rext) / 2
+    r = (rext - rint) / 2
+    _c = PhysicalFunction(x -> begin
+        _x = RmatInv * x
+
+        # OK
+        θxy = atan(_x[2], _x[1])
+        cxy = SA[cos(θxy), sin(θxy), 0]
+
+        # NOT OK, depends on θxy
+        θxz = atan(_x[3], _x[1] - xc)
+        cxz = SA[cos(θxz), 0, sin(θxz)]
+
+        Rmat * (Cθxy * cxy + Cθxz * cxz)
+    end)
+    P = Bcube.tangential_projector(mesh) #Bcube.TangentialProjector()
+    c = (x -> C * normalize(x)) ∘ (P * _c)
+
+    # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
+    quad = Bcube.get_quadrature(dΩ)
+    s = Bcube.shape(Bcube.cells(mesh)[1])
+    qrule = Bcube.QuadratureRule(s, quad)
+    ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
+
+    # Time step and else
+    dl = lc
+    Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
+    t = 0.0
+    nite = min(floor(Int, tmax / Δt), nitemax)
+    _nout = min(nite, nout)
+
+    @show nite
+    @show dl
+    @show Δt
+    @show get_ndofs(U)
+
+    # Limitation
+    DMPrelax = 0.0 * dl
+
+    # Output
+    tail = isLimiterActive ? "lim" : "nolim"
+    filename = "scalar-on-torus-d$(degree)-$(tail)"
+    U_export =
+        TrialFESpace(FunctionSpace(:Lagrange, max(degree, meshOrder)), mesh, :discontinuous)
+    vtk = VtkHandler(joinpath(out_dir, filename), dΩ, U_export, c)
+
+    # FEFunction and initial solution (P3 Gaussian bump)
+    u = FEFunction(U)
+    _θ0 = 0
+    x0 = Rmat * SA[xc + r * cos(_θ0), 0.0, r * sin(_θ0)] # bump center (in rotated frame)
+    _r = 1 # bump radius
+    _umax = 1 # bump amplitude
+    _a, _b = SA[
+        _r^3 _r^2
+        3*_r^2 2*_r
+    ] \ SA[-_umax; 0]
+    f = PhysicalFunction(x -> begin
+        dx = norm(x - x0)
+        dx < _r ? _a * dx^3 + _b * dx^2 + _umax : 0.0
+    end)
+
+    projection_l2!(u, f, mesh)
+
+    # Forms
+    m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
+
+    function upwind(ui, uj, ci, nij)
+        cij = ci ⋅ nij
+        if cij > zero(cij)
+            fij = cij * ui
+        else
+            fij = cij * uj
+        end
+        fij
+    end
+
+    # Mass
+    M = factorize(assemble_bilinear(m, U, V))
+
+    # Initial solution
+    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
+    isLimiterActive && (u.dofValues .= _u.dofValues)
+
+    t = 0.0
+    append_vtk(vtk, u, lim_u, t)
+
+    b = Bcube.allocate_dofs(U)
+    du = similar(b)
+    progressBar && (progress = Progress(nitemax))
+    for ite in 1:nitemax
+        b .= 0.0
+
+        # Apply limitation
+        if isLimiterActive
+            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
+            set_dof_values!(u, get_dof_values(_u))
+        end
+
+        # Define linear forms
+        flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
+        l_Γ(v) = ∫(-flux * jump(v))dΓ
+        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+        l(v) = l_Ω(v) + l_Γ(v)
+
+        # Version linear volumic term
+        assemble_linear!(b, l, V)
+        du .= M \ b
+        @. u.dofValues += Δt * du
+
+        t += Δt
+        progressBar && next!(progress)
+
+        # Output results
+        if ite % (nitemax ÷ _nout) == 0
+            append_vtk(vtk, u, lim_u, t)
+        end
+    end
+end
+
 # Run
 # scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
 # vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
-@time scalar_cylinder(;
-    degree = 1,
-    CFL = 0.1,
-    lz = 10,
-    nθ = 50,
-    nz = 70,
-    ϕ = 0.5 * π / 2,
-    C = 1.0,
-    tmax = 10.0,
-    nout = 100,
-    nitemax = 2000,#Int(1e9),
-    isLimiterActive = false,
-    progressBar = true,
-    meshOrder = 2,
-)
+# @time scalar_cylinder(;
+#     degree = 1,
+#     CFL = 0.1,
+#     lz = 10,
+#     nθ = 50,
+#     nz = 70,
+#     ϕ = 0.5 * π / 2,
+#     C = 1.0,
+#     tmax = 10.0,
+#     nout = 100,
+#     nitemax = 2000,#Int(1e9),
+#     isLimiterActive = false,
+#     progressBar = true,
+#     meshOrder = 2,
+# )
 # @time vector_cylinder(;
 #     degree = 0,
 #     CFL = 0.1,
@@ -930,5 +1119,20 @@ end
 #     isLimiterActive = false,
 #     progressBar = true,
 # )
+@time scalar_torus(;
+    degree = 1,
+    rint = 1.0,
+    rext = 2.0,
+    CFL = 0.1,
+    lc = 0.1,
+    ϕ = 0.5 * π / 2,
+    C = 1.0,
+    tmax = 10.0,
+    nout = 100,
+    nitemax = 0,#Int(1e9),
+    isLimiterActive = false,
+    progressBar = true,
+    meshOrder = 1,
+)
 
 end
