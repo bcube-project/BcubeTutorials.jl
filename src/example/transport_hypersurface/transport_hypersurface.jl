@@ -940,7 +940,14 @@ function scalar_torus(;
 
     # Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_torus_shell_mesh(mesh_path, rint, rext; order = meshOrder)
+    Bcube.gen_torus_shell_mesh(
+        mesh_path,
+        rint,
+        rext;
+        lc,
+        order = meshOrder,
+        verbose = false,
+    )
     mesh = read_msh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = zeros(3)
@@ -964,25 +971,34 @@ function scalar_torus(;
     V = TestFESpace(U)
 
     # Transport velocity
-    Cθxy = C * cos(ϕ)
-    Cθxz = C * sin(ϕ)
-    xc = (rint + rext) / 2
+    Cθ = C * cos(ϕ)
+    Cφ = C * sin(ϕ)
+    rc = (rint + rext) / 2
     r = (rext - rint) / 2
-    _c = PhysicalFunction(x -> begin
-        _x = RmatInv * x
+    ez = SA[0, 0, 1]
+    _c = PhysicalFunction(coords -> begin
+        _x = RmatInv * coords
+        x, y, z = _x
 
-        # OK
-        θxy = atan(_x[2], _x[1])
-        cxy = SA[cos(θxy), sin(θxy), 0]
+        # In the (ex, ey) plane
+        θ = atan(y, x)
+        er = SA[cos(θ), sin(θ), 0]
+        eθ = SA[-sin(θ), cos(θ), 0]
 
-        # NOT OK, depends on θxy
-        θxz = atan(_x[3], _x[1] - xc)
-        cxz = SA[cos(θxz), 0, sin(θxz)]
+        # In the (er, ez) plane
+        l = _x ⋅ er - rc
+        φ = atan(z, l)
+        eφ = -sin(φ) * er + cos(φ) * ez
 
-        Rmat * (Cθxy * cxy + Cθxz * cxz)
+        # direction vector
+        v = Cθ * eθ + Cφ * eφ
+
+        # Rotate back
+        Rmat * v
     end)
-    P = Bcube.tangential_projector(mesh) #Bcube.TangentialProjector()
-    c = (x -> C * normalize(x)) ∘ (P * _c)
+    #P = Bcube.tangential_projector(mesh) #Bcube.TangentialProjector()
+    # c = (x -> C * normalize(x)) ∘ (P * _c) # use this if `_c` is not necessarily tangent
+    c = _c # `_c` is anatically tangent, so no need to project
 
     # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
     quad = Bcube.get_quadrature(dΩ)
@@ -1014,9 +1030,9 @@ function scalar_torus(;
 
     # FEFunction and initial solution (P3 Gaussian bump)
     u = FEFunction(U)
-    _θ0 = 0
-    x0 = Rmat * SA[xc + r * cos(_θ0), 0.0, r * sin(_θ0)] # bump center (in rotated frame)
-    _r = 1 # bump radius
+    _θ0 = π / 2
+    x0 = Rmat * SA[rc + r * cos(_θ0), 0.0, r * sin(_θ0)] # bump center (in rotated frame)
+    _r = 0.5 # bump radius
     _umax = 1 # bump amplitude
     _a, _b = SA[
         _r^3 _r^2
@@ -1121,18 +1137,18 @@ end
 # )
 @time scalar_torus(;
     degree = 1,
+    CFL = 0.5, # d=0, CFL=0.4 OK
     rint = 1.0,
-    rext = 2.0,
-    CFL = 0.1,
-    lc = 0.1,
+    rext = 1.5,
+    lc = 0.08,
     ϕ = 0.5 * π / 2,
     C = 1.0,
     tmax = 10.0,
     nout = 100,
-    nitemax = 0,#Int(1e9),
+    nitemax = 10000, # d = 4, n = 400 OK,
     isLimiterActive = false,
     progressBar = true,
-    meshOrder = 1,
+    meshOrder = 2,
 )
 
 end
