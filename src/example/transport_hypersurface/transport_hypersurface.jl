@@ -1072,8 +1072,8 @@ function scalar_torus(;
 
     b = Bcube.allocate_dofs(U)
     du = similar(b)
-    progressBar && (progress = Progress(nitemax))
-    for ite in 1:nitemax
+    progressBar && (progress = Progress(nite))
+    for ite in 1:nite
         b .= 0.0
 
         # Apply limitation
@@ -1097,7 +1097,7 @@ function scalar_torus(;
         progressBar && next!(progress)
 
         # Output results
-        if ite % (nitemax ÷ _nout) == 0
+        if ite % (nite ÷ _nout) == 0
             append_vtk(vtk, u, lim_u, t)
         end
     end
@@ -1139,15 +1139,15 @@ end
 # )
 @time scalar_torus(;
     degree = 1,
-    CFL = 0.5, # d=0, CFL=0.4 OK
+    CFL = 0.2, # d=0, CFL=0.4 OK
     rint = 1.0,
     rext = 1.5,
     lc = 0.08,
     ϕ = 0.5 * π / 2,
     C = 1.0,
-    tmax = 10.0,
+    tmax = 11.0, # 11s  = 1 turn for rint=1, rext=1.5
     nout = 100,
-    nitemax = 10000, # d = 4, n = 400 OK,
+    nitemax = 100000, # d = 4, n = 400 OK,
     isLimiterActive = false,
     progressBar = true,
     meshOrder = 2,
