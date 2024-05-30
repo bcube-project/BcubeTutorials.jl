@@ -981,16 +981,18 @@ function scalar_torus(;
         x, y, z = _x
 
         # In the (ex, ey) plane
-        L1 = √(x * x + y * y)
-        _cosθ = x / L1
-        _sinθ = y / L1
-        er = SA[_cosθ, _sinθ, 0]
-        eθ = SA[-_sinθ, _cosθ, 0]
+        r_xy = √(x * x + y * y)
+        cosθ = x / r_xy
+        sinθ = y / r_xy
+        er = SA[cosθ, sinθ, 0]
+        eθ = SA[-sinθ, cosθ, 0]
 
         # In the (er, ez) plane
         l = _x ⋅ er - rc
-        L2 = √(z * z + l * l)
-        eφ = -(z / L2) * er + (l / L2) * ez
+        r_rz = √(z * z + l * l)
+        cosφ = l / r_rz
+        sinφ = z / r_rz
+        eφ = -sinφ * er + cosφ * ez
 
         # direction vector
         v = Cθ * eθ + Cφ * eφ
