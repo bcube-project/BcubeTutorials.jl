@@ -1,5 +1,19 @@
-module HeatEquationSphere
-# Adapted from https://www.chebfun.org/examples/sphere/SphereHeatConduction.html
+module HeatEquationSphere #hide
+# # Heat equation on a sphere
+# Adapted from https://www.chebfun.org/examples/sphere/SphereHeatConduction.html.
+# The equation solved on the sphere is
+# $$
+#   \partial_t T = \alpha \Delta_\Gamma T
+# $$
+# The temperature is initialized by
+# the following sum of spherical harmonic: $u(\lambda, \theta) = Y^0_6(\lambda, \theta) + \sqrt{14/11}Y^6_6(\lambda,\theta)$,
+# where $\lambda$ and $\theta$ are two angles parametrizing the sphere.
+# Hence an analytical solution can be found : $u(\lambda,\theta, t) = e^{-42 \alpha t} u_0(\lambda, \theta)$.
+#
+# The following animation is obtained after running the simulation:
+#
+# ![](../assets/heat_equation_sphere.gif)
+#
 using Bcube
 using WriteVTK
 using LinearAlgebra
@@ -127,11 +141,11 @@ function run(;
     vtk_output = true,
 )
 
-    # Settings
+    ## Settings
     out_dir = joinpath(@__DIR__, "../../../myout/heat_eqn_sphere")
     mkpath(out_dir)
 
-    # Mesh
+    ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
     Bcube.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
     mesh = read_msh(mesh_path)
@@ -139,21 +153,21 @@ function run(;
     R = rotMat(rand(rng, 3)...)
     transform!(mesh, x -> R * x) # rotate to avoid being "aligned" with an axis
 
-    # Domain
+    ## Domain
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
-    # Prepare output
+    ## Prepare output
     vtk = VtkHandler(joinpath(out_dir, "result_d$(degree)"), mesh)
 
-    # Discretization
+    ## Discretization
     U = TrialFESpace(FunctionSpace(:Lagrange, degree), mesh)
     V = TestFESpace(U)
     u = FEFunction(U)
 
-    # Display infos
+    ## Display infos
     println("degree = $degree, CFL = $CFL, lc = $lc, ndofs = $(get_ndofs(U))")
 
-    # Init
+    ## Init
     u0 = PhysicalFunction(
         x -> begin
             _r, _θ, _ϕ = cart2sphere(x)
@@ -162,15 +176,15 @@ function run(;
     )
     projection_l2!(u, u0, mesh)
 
-    # Bilinear forms
+    ## Bilinear forms
     m(u, v) = ∫(u ⋅ v)dΩ
     a(u, v) = ∫(∇ₛ(u) ⋅ ∇ₛ(v))dΩ
 
-    # Assemble
+    ## Assemble
     M = assemble_bilinear(m, U, V)
     K = assemble_bilinear(a, U, V)
 
-    # Time loop
+    ## Time loop
     Δt = CFL * lc^2 / α
     nite = floor(Int, tfinal / Δt)
     _nout = min(nite, nout)
@@ -185,13 +199,13 @@ function run(;
         t += Δt
         next!(progress)
 
-        # Output results
+        ## Output results
         if ite % (nite ÷ _nout) == 0
             vtk_output && append_vtk(vtk, u, t)
         end
     end
 
-    # Compute L2 error with the analytical solution
+    ## Compute L2 error with the analytical solution
     utrue = exp(-42 * α * t) * u0
     errL2 = sum(Bcube.compute(∫((utrue - u)^2)dΩ))
     return get_ndofs(U), errL2
@@ -212,4 +226,4 @@ if get(ENV, "TestMode", "false") == "true" #src
     @test errL2 < 4.83e-5                  #src
 end                                        #src
 
-end
+end #hide

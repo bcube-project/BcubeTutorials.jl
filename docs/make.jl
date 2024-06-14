@@ -72,7 +72,6 @@ for (script_name, name) in (
     ("euler_naca_steady.jl", "Euler equations on a NACA0012"),
     ("shallow_water.jl", "Shallow water"),
     ("poisson_dg.jl", "Poisson equation (DG)"),
-    ("heat_equation_sphere.jl", "Heat equation on a sphere"),
     ("heat_equation_two_layers.jl", "Heat equation with two layers"),
 )
     julia_to_markdown(
@@ -84,21 +83,14 @@ for (script_name, name) in (
 end
 
 # Generator markdown with `Literate`
-gen_markdown_with_literate(
-    joinpath(example_src, "linear_thermoelasticity"),
-    "linear_thermoelasticity.jl",
-    example_dir,
+for name in (
+    "linear_thermoelasticity",
+    "constrained_poisson",
+    "transport_supg",
+    "heat_equation_sphere",
 )
-gen_markdown_with_literate(
-    joinpath(example_src, "constrained_poisson"),
-    "constrained_poisson.jl",
-    example_dir,
-)
-gen_markdown_with_literate(
-    joinpath(example_src, "transport_supg"),
-    "transport_supg.jl",
-    example_dir,
-)
+    gen_markdown_with_literate(joinpath(example_src, name), "$(name).jl", example_dir)
+end
 
 makedocs(;
     modules = [BcubeTutorials],
