@@ -5,7 +5,7 @@ println("Running constrained poisson with MultiplierFESpace API example...") #hi
 # In this example, a Poisson equation with Neumann boundary conditions is solved using a boundary integral constraint.
 #
 # # Theory
-# Consider the following Poisson equation on the unit disk (noted $$\Omega$$ in this example, its boundary is noted $$\Gamma$$):
+# Consider the following Poisson equation on the unit disk (noted $\Omega$ in this example, its boundary is noted $\Gamma$):
 # ```math
 # \begin{cases}
 # - \Delta u = f \, \, \forall x \in \Omega \\
@@ -25,8 +25,8 @@ println("Running constrained poisson with MultiplierFESpace API example...") #hi
 # ```math
 #    \mathcal{L}(u, \lambda_u) = \frac{1}{2} \int_{\Omega} \nabla u \cdot \nabla u \, dV - \int_{\Omega} f u \, dV + \lambda_u ( \int_{\Gamma} u \, d \gamma - 2 \pi)
 # ```
-# where $$\lambda_u$$ is a Lagrange multiplier.
-# The first order optimality conditions translate to the problem: find $$(u, \lambda_u)$$ such that for all $$(v, \lambda_v)$$:
+# where $\lambda_u$ is a Lagrange multiplier.
+# The first order optimality conditions translate to the problem: find $(u, \lambda_u)$ such that for all $(v, \lambda_v)$:
 # ```math
 #    \int_{\Omega} \nabla u \cdot \nabla v \, dV + \lambda_u \int_\Gamma v \, d \gamma = \int_\Omega f v \, dV
 # ```
@@ -34,7 +34,7 @@ println("Running constrained poisson with MultiplierFESpace API example...") #hi
 #    \lambda_v \int_\Gamma u \, d\gamma = 2 \pi \lambda_v
 # ```
 # This problem can be assembled by introducing a MultiplierFESpace and combining it with the usual FESpace using a MultiFESpace.
-# In this example, the manufactured solution $$u(x,y)=cos(4\pi(x^2 + y^2))$$ is used to test the method.
+# In this example, the manufactured solution $u(x,y)=cos(4\pi(x^2 + y^2))$ is used to test the method.
 
 # # Commented code
 
