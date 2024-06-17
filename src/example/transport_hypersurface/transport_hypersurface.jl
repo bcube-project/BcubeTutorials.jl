@@ -1,5 +1,20 @@
-module TransportHypersurface
-
+module TransportHypersurface #hide
+# # Transport equation on hypersurfaces
+# In this file, a linear transport equation is solved on several hypersurfaces. The scalar
+# transport equation is
+# ```math
+#   \partial_t u + c \cdot \nabla_\Gamma u = 0
+# ```
+# where $c$ is the (tangential) transport velocity (always divergent-free in these examples); and
+# $\nabla_\Gamma$ is the tangential gradient.
+# The vector transport equation is
+# ```math
+#  \partial_t u + \nabla_\Gamma (c \otimes u) = 0
+# ```
+#
+# Here is an example of the transport of a scalar bump on a torus meshed with P2 triangles:
+#
+# ![](../assets/transport-torus-mesh2-degree1.gif)
 using Plots
 using Bcube
 using StaticArrays
@@ -16,7 +31,7 @@ const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
 rm(out_dir; force = true, recursive = true)
 mkpath(out_dir)
 
-""" Hack waiting for Ghislain to finish his branch """
+""" Norm alias for AbstractLazy """
 mynorm(a) = sqrt(a ⋅ a)
 
 """ Tangential divergence operator """
@@ -68,12 +83,12 @@ mutable struct VtkHandler
             ν_centers,
             ν_vertices,
         )
-        # new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
+        ## new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
     end
 end
 
 function plot_solution(i, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
-    # Build animation
+    ## Build animation
     uplot = var_on_centers(u, mesh)
     lmax = 1.5
 
@@ -151,10 +166,10 @@ function scalar_circle(;
     isLimiterActive = true,
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
-        # Build animation
+        ## Build animation
         values_vertices = var_on_vertices(u, mesh)
         values_centers = var_on_centers(u, mesh)
-        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
+        ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
         θ_centers = var_on_centers(vtk.θ, mesh)
         θ_vertices = var_on_vertices(vtk.θ, mesh)
 
@@ -180,38 +195,38 @@ function scalar_circle(;
         vtk.ite += 1
     end
 
-    # Settings
+    ## Settings
     radius = 1.0
-    C = 1.0 # velocity norm
+    C = 1.0 ## velocity norm
     tmax = nrot * 2π / C
 
-    # Mesh
-    qOrder = 2 * degree + 1 # we shall use Gauss-Lobatto for degree > 0, but in 1D this is ok
+    ## Mesh
+    qOrder = 2 * degree + 1 ## we shall use Gauss-Lobatto for degree > 0, but in 1D this is ok
     mesh = circle_mesh(nθ; radius = radius, order = 1)
     dΩ = Measure(CellDomain(mesh), qOrder)
     Γ = InteriorFaceDomain(mesh)
     dΓ = Measure(Γ, qOrder)
     nΓ = get_face_normals(Γ)
 
-    # FESpace
+    ## FESpace
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, :discontinuous)
     V = TestFESpace(U)
 
-    # Transport velocity
+    ## Transport velocity
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
     P = Bcube.tangential_projector(mesh)
-    c = (x -> C * normalize(x)) ∘ (P * _c) # useless in theory since velocity is already tangent
+    c = (x -> C * normalize(x)) ∘ (P * _c) ## useless in theory since velocity is already tangent
 
-    # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
+    ## Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
     quad = Bcube.get_quadrature(dΩ)
     s = Bcube.shape(Bcube.cells(mesh)[1])
     qrule = Bcube.QuadratureRule(s, quad)
     ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
 
-    # Time step and else
-    dl = 2π * radius / nθ # analytic length
-    dl = 2 * radius * sin(2π / nθ / 2) # discretized length
+    ## Time step and else
+    dl = 2π * radius / nθ ## analytic length
+    dl = 2 * radius * sin(2π / nθ / 2) ## discretized length
     Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
     t = 0.0
     nite = min(floor(Int, tmax / Δt), nitemax)
@@ -221,17 +236,17 @@ function scalar_circle(;
     @show dl
     @show Δt
 
-    # Limitation
+    ## Limitation
     DMPrelax = 0.0 * dl
 
-    # Output
+    ## Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "scalar-on-circle-d$(degree)-$(tail)"
     vtk = VtkHandler(joinpath(out_dir, filename), dΩ, U, c)
-    dofOverTime = zeros(nite + 1, 2) # t, u
+    dofOverTime = zeros(nite + 1, 2) ## t, u
     i_dof_out = 1
 
-    # FEFunction and "boundary / source" condition
+    ## FEFunction and "boundary / source" condition
     u = FEFunction(U)
     if false
         u.dofValues[1] = 1.0
@@ -239,9 +254,9 @@ function scalar_circle(;
         projection_l2!(u, PhysicalFunction(x -> cos(atan(x[2], x[1]))), mesh)
     end
 
-    # Forms
-    m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
-    a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # bilinear volumic convective term
+    ## Forms
+    m(u, v) = ∫(u ⋅ v)dΩ ## Mass matrix
+    a_Ω(u, v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ ## bilinear volumic convective term
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -253,22 +268,22 @@ function scalar_circle(;
         fij
     end
 
-    # Mass
+    ## Mass
     M = assemble_bilinear(m, U, V)
-    invM = inv(Matrix(M)) #WARNING : really expensive !!!
+    invM = inv(Matrix(M)) ##WARNING : really expensive !!!
     if volumic_bilinear
         K = assemble_bilinear(a_Ω, U, V)
         invMK = invM * K
     end
 
-    # Anim
+    ## Anim
     anim = Animation()
     xnodes = [get_coords(node, 1) for node in get_nodes(mesh)]
     ynodes = [get_coords(node, 2) for node in get_nodes(mesh)]
     xcenters = [center[1] for center in Bcube.get_cell_centers(mesh)]
     ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
-    # Initial solution
+    ## Initial solution
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
     isLimiterActive && (u.dofValues .= _u.dofValues)
 
@@ -283,31 +298,31 @@ function scalar_circle(;
     for ite in 1:nite
         b .= 0.0
 
-        # Apply limitation
+        ## Apply limitation
         if isLimiterActive
             lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
             set_dof_values!(u, get_dof_values(_u))
         end
 
-        # Define linear forms
+        ## Define linear forms
         flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
         l_Γ(v) = ∫(-flux * jump(v))dΓ
-        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ ## linear Volumic convective term
         l(v) = l_Ω(v) + l_Γ(v)
 
         if volumic_bilinear
-            # Version bilinear volumic term
+            ## Version bilinear volumic term
             assemble_linear!(b, l_Γ, V)
             u.dofValues .= (I + Δt .* invMK) * u.dofValues + Δt .* invM * b
         else
-            # Version linear volumic term
+            ## Version linear volumic term
             assemble_linear!(b, l, V)
             u.dofValues .+= Δt .* invM * b
         end
 
         t += Δt
 
-        # Output results
+        ## Output results
         if ite % (nite ÷ _nout) == 0
             u_mean = Bcube.cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
@@ -317,7 +332,7 @@ function scalar_circle(;
         dofOverTime[ite + 1, :] .= t, u.dofValues[i_dof_out]
     end
 
-    # Output final result and anim
+    ## Output final result and anim
     path = joinpath(out_dir, filename * ".csv")
     @info "Writing to $path"
     open(path, "w") do io
@@ -333,36 +348,36 @@ end
 Linear transport of a vector quantity on a circle
 """
 function vector_circle(; degree, nite, CFL, nθ)
-    # Settings
+    ## Settings
     radius = 1.0
-    C = 1.0 # velocity norm
+    C = 1.0 ## velocity norm
 
-    # Mesh
+    ## Mesh
     mesh = circle_mesh(nθ; radius = radius, order = 1)
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
     Γ = InteriorFaceDomain(mesh)
     dΓ = Measure(Γ, 2 * degree + 1)
     nΓ = get_face_normals(Γ)
 
-    # Operators
+    ## Operators
     P = Bcube.tangential_projector(mesh)
     R = Bcube.CoplanarRotation()
 
-    # Transport velocity : it must be coplanar to each element, so we use the
-    # tangential projector operator and force the projected velocity to have
-    # the same norm as the "analytical" one
+    ## Transport velocity : it must be coplanar to each element, so we use the
+    ## tangential projector operator and force the projected velocity to have
+    ## the same norm as the "analytical" one
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
-    c = (x -> C * normalize(x)) ∘ (P * _c) # useless in theory since velocity is already tangent
+    c = (x -> C * normalize(x)) ∘ (P * _c) ## useless in theory since velocity is already tangent
 
-    # FESpace
+    ## FESpace
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, :discontinuous; size = 2)
     V = TestFESpace(U)
 
-    # FEFunction and "boundary / source" condition
+    ## FEFunction and "boundary / source" condition
     u = FEFunction(U)
 
-    # Initial condition
+    ## Initial condition
     _u0 = PhysicalFunction(x -> begin
         θ = atan(x[2], x[1])
         if 0 <= θ <= 2π / nθ
@@ -373,9 +388,9 @@ function vector_circle(; degree, nite, CFL, nθ)
     end)
     projection_l2!(u, _u0, mesh)
 
-    # Forms
-    m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
-    l_Ω(v) = ∫((u ⊗ c) ⊡ ∇ₛ(v))dΩ # Volumic convective term
+    ## Forms
+    m(u, v) = ∫(u ⋅ v)dΩ ## Mass matrix
+    l_Ω(v) = ∫((u ⊗ c) ⊡ ∇ₛ(v))dΩ ## Volumic convective term
 
     function upwind(ui, uj, Ri, Rj, vi, vj, ci, nij)
         _uj = Ri * uj
@@ -400,26 +415,26 @@ function vector_circle(; degree, nite, CFL, nθ)
 
     l(v) = l_Ω(v) + l_Γ(v)
 
-    # Time step
-    dl = 2π * radius / nθ # analytic length
-    dl = 2 * radius * sin(2π / nθ / 2) # discretized length
+    ## Time step
+    dl = 2π * radius / nθ ## analytic length
+    dl = 2 * radius * sin(2π / nθ / 2) ## discretized length
     Δt = CFL * dl / C
     @show dl
     @show Δt
 
-    # Mass
+    ## Mass
     M = assemble_bilinear(m, U, V)
-    invM = inv(Matrix(M)) #WARNING : really expensive !!!
-    # display(invM)
+    invM = inv(Matrix(M)) ##WARNING : really expensive !!!
+    ## display(invM)
 
-    # Anim
+    ## Anim
     anim = Animation()
     xnodes = [get_coords(node, 1) for node in get_nodes(mesh)]
     ynodes = [get_coords(node, 2) for node in get_nodes(mesh)]
     xcenters = [center[1] for center in Bcube.get_cell_centers(mesh)]
     ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
-    # Initial solution
+    ## Initial solution
     plt = plot_solution(0, 0.0, u, mesh, xcenters, ycenters, xnodes, ynodes)
     frame(anim, plt)
 
@@ -433,7 +448,7 @@ function vector_circle(; degree, nite, CFL, nθ)
 
         t += Δt
 
-        # Build animation
+        ## Build animation
         plt = plot_solution(i, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
         frame(anim, plt)
     end
@@ -452,8 +467,8 @@ function scalar_cylinder(;
     nz,
     nθ,
     tmax,
-    ϕ, # velocity angle with respect to z axis
-    C, # velocity norm
+    ϕ, ## velocity angle with respect to z axis
+    C, ## velocity norm
     radius = 1,
     nout = 100,
     nitemax = Int(1e9),
@@ -485,7 +500,7 @@ function scalar_cylinder(;
         vtk.ite += 1
     end
 
-    # Mesh
+    ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
     Bcube.gen_cylinder_shell_mesh(
         mesh_path,
@@ -506,8 +521,8 @@ function scalar_cylinder(;
     RmatInv = inv(Rmat)
     transform!(mesh, x -> Rmat * x)
 
-    # Domains
-    # quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
+    ## Domains
+    ## quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
     quad = Quadrature(QuadratureLegendre(), 2 * degree + 1)
     dΩ = Measure(CellDomain(mesh), quad)
     Γ = InteriorFaceDomain(mesh)
@@ -517,30 +532,30 @@ function scalar_cylinder(;
     dΓ_bnd = Measure(Γ_bnd, quad)
     nΓ_bnd = get_face_normals(Γ_bnd)
 
-    # FESpace
+    ## FESpace
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, :discontinuous)
     V = TestFESpace(U)
 
-    # Transport velocity
+    ## Transport velocity
     Cz = C * cos(ϕ)
     Cθ = C * sin(ϕ)
     _c = PhysicalFunction(x -> begin
         _x = RmatInv * x
         Rmat * SA[-Cθ * _x[2] / radius, Cθ * _x[1] / radius, Cz]
     end)
-    P = Bcube.tangential_projector(mesh) #Bcube.TangentialProjector()
+    P = Bcube.tangential_projector(mesh) ##Bcube.TangentialProjector()
     c = (x -> C * normalize(x)) ∘ (P * _c)
 
-    # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
+    ## Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
     quad = Bcube.get_quadrature(dΩ)
     s = Bcube.shape(Bcube.cells(mesh)[1])
     qrule = Bcube.QuadratureRule(s, quad)
     ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
 
-    # Time step and else
-    dlθ = 2π * radius / nθ # analytic length
-    dlθ = 2 * radius * sin(2π / nθ / 2) # discretized length
+    ## Time step and else
+    dlθ = 2π * radius / nθ ## analytic length
+    dlθ = 2 * radius * sin(2π / nθ / 2) ## discretized length
     dlz = lz / (nz - 1)
     println("Timestep constrained by $(dlθ < dlz ? "θ" : "z") discretization")
     dl = min(dlθ, dlz)
@@ -554,22 +569,22 @@ function scalar_cylinder(;
     @show Δt
     @show get_ndofs(U)
 
-    # Limitation
+    ## Limitation
     DMPrelax = 0.0 * dl
 
-    # Output
+    ## Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "scalar-on-cylinder-d$(degree)-$(tail)"
     U_export =
         TrialFESpace(FunctionSpace(:Lagrange, max(degree, meshOrder)), mesh, :discontinuous)
     vtk = VtkHandler(joinpath(out_dir, filename), dΩ, U_export, c)
 
-    # FEFunction and initial solution (P3 Gaussian bump)
+    ## FEFunction and initial solution (P3 Gaussian bump)
     u = FEFunction(U)
     _θ0 = 0
-    x0 = Rmat * SA[radius * cos(_θ0), radius * sin(_θ0), 0.2 * lz] # bump center (in rotated frame)
-    _r = 1 # bump radius
-    _umax = 1 # bump amplitude
+    x0 = Rmat * SA[radius * cos(_θ0), radius * sin(_θ0), 0.2 * lz] ## bump center (in rotated frame)
+    _r = 1 ## bump radius
+    _umax = 1 ## bump amplitude
     _a, _b = SA[
         _r^3 _r^2
         3*_r^2 2*_r
@@ -581,8 +596,8 @@ function scalar_cylinder(;
 
     projection_l2!(u, f, mesh)
 
-    # Forms
-    m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
+    ## Forms
+    m(u, v) = ∫(u ⋅ v)dΩ ## Mass matrix
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -594,10 +609,10 @@ function scalar_cylinder(;
         fij
     end
 
-    # Mass
+    ## Mass
     M = factorize(assemble_bilinear(m, U, V))
 
-    # Initial solution
+    ## Initial solution
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
     isLimiterActive && (u.dofValues .= _u.dofValues)
 
@@ -610,21 +625,21 @@ function scalar_cylinder(;
     for ite in 1:nitemax
         b .= 0.0
 
-        # Apply limitation
+        ## Apply limitation
         if isLimiterActive
             lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
             set_dof_values!(u, get_dof_values(_u))
         end
 
-        # Define linear forms
+        ## Define linear forms
         flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
         l_Γ(v) = ∫(-flux * jump(v))dΓ
         flux_bnd = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ_bnd))
         l_Γ_bnd(v) = ∫(-flux_bnd * jump(v))dΓ_bnd
-        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ ## linear Volumic convective term
         l(v) = l_Ω(v) + l_Γ(v) + l_Γ_bnd(v)
 
-        # Version linear volumic term
+        ## Version linear volumic term
         assemble_linear!(b, l, V)
         du .= M \ b
         @. u.dofValues += Δt * du
@@ -632,14 +647,14 @@ function scalar_cylinder(;
         t += Δt
         progressBar && next!(progress)
 
-        # Output results
+        ## Output results
         if ite % (nitemax ÷ _nout) == 0
             append_vtk(vtk, u, lim_u, t)
         end
 
         if ite == nitemax && profile
             println("ndofs total = ", Bcube.get_ndofs(U))
-            Profile.init(; n = 10^7) # returns the current settings
+            Profile.init(; n = 10^7) ## returns the current settings
             Profile.clear()
             Profile.clear_malloc_data()
             @profile begin
@@ -662,10 +677,10 @@ function vector_cylinder(;
     nz,
     nθ,
     tmax,
-    ϕ_vel, # velocity angle with respect to z axis
-    C_vel, # velocity norm
-    ϕ_u, # transported vector angle with respect to z axis
-    C_u, # transported vector norm
+    ϕ_vel, ## velocity angle with respect to z axis
+    C_vel, ## velocity norm
+    ϕ_u, ## transported vector angle with respect to z axis
+    C_u, ## transported vector norm
     radius = 1,
     nout = 100,
     nitemax = Int(1e9),
@@ -673,10 +688,10 @@ function vector_cylinder(;
     progressBar = true,
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
-        # Build animation
+        ## Build animation
         values_vertices = transpose(var_on_vertices(u, mesh))
         values_centers = transpose(var_on_centers(u, mesh))
-        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
+        ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
 
         ## Write
         Bcube.write_vtk(
@@ -704,7 +719,7 @@ function vector_cylinder(;
         vtk.ite += 1
     end
 
-    # Mesh
+    ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
     Bcube.gen_cylinder_shell_mesh(
         mesh_path,
@@ -724,8 +739,8 @@ function vector_cylinder(;
     RmatInv = inv(Rmat)
     transform!(mesh, x -> Rmat * x)
 
-    # Domains
-    # quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
+    ## Domains
+    ## quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
     quad = Quadrature(QuadratureLegendre(), 2 * degree + 1)
     dΩ = Measure(CellDomain(mesh), quad)
     Γ = InteriorFaceDomain(mesh)
@@ -735,33 +750,33 @@ function vector_cylinder(;
     dΓ_bnd = Measure(Γ_bnd, quad)
     nΓ_bnd = get_face_normals(Γ_bnd)
 
-    # FESpace
+    ## FESpace
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, :discontinuous; size = Bcube.spacedim(mesh))
     V = TestFESpace(U)
 
-    # Operators
+    ## Operators
     P = Bcube.tangential_projector(mesh)
     R = Bcube.CoplanarRotation()
 
-    # Transport velocity
+    ## Transport velocity
     Cz = C_vel * cos(ϕ_vel)
     Cθ = C_vel * sin(ϕ_vel)
     _c = PhysicalFunction(x -> begin
         _x = RmatInv * x
         Rmat * SA[-Cθ * _x[2] / radius, Cθ * _x[1] / radius, Cz]
     end)
-    c = (x -> C_vel * normalize(x)) ∘ (P * _c) # useless in theory because velocity is already tangent
+    c = (x -> C_vel * normalize(x)) ∘ (P * _c) ## useless in theory because velocity is already tangent
 
-    # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
+    ## Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
     quad = Bcube.get_quadrature(dΩ)
     s = Bcube.shape(Bcube.cells(mesh)[1])
     qrule = Bcube.QuadratureRule(s, quad)
     ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
 
-    # Time step and else
-    dlθ = 2π * radius / nθ # analytic length
-    dlθ = 2 * radius * sin(2π / nθ / 2) # discretized length
+    ## Time step and else
+    dlθ = 2π * radius / nθ ## analytic length
+    dlθ = 2 * radius * sin(2π / nθ / 2) ## discretized length
     dlz = lz / (nz - 1)
     println("Timestep constrained by $(dlθ < dlz ? "θ" : "z") discretization")
     dl = min(dlθ, dlz)
@@ -775,34 +790,20 @@ function vector_cylinder(;
     @show Δt
     @show get_ndofs(U)
 
-    # Limitation
+    ## Limitation
     DMPrelax = 0.0 * dl
 
-    # Output
+    ## Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "vector-on-cylinder-d$(degree)-$(tail)"
     vtk = VtkHandler(joinpath(out_dir, filename), dΩ, U, c)
 
-    # FEFunction and initial solution
-    u = FEFunction(U)
-
-    #-- v1
-    # Cz = C_u * cos(ϕ_u)
-    # Cθ = C_u * sin(ϕ_u)
-    # _f = PhysicalFunction(
-    #     x -> begin
-    #         _x = RmatInv * x
-    #         _u = Rmat * SA[-Cθ * _x[2] / radius, Cθ * _x[1] / radius, Cz]
-    #         # To avoid troubles with the bnd condition, vector is null near the bottom
-    #         return _x[3] > lz / 10.0 ? _u : SA[0.0, 0.0, 0.0]
-    #     end,
-    # )
-    #-- v2
+    ## FEFunction and initial solution
     u = FEFunction(U)
     _θ0 = 0
-    x0 = Rmat * [radius * cos(_θ0), radius * sin(_θ0), 0.2 * lz] # bump center (in rotated frame)
-    _r = 1 # bump radius
-    _umax = C_u # bump amplitude
+    x0 = Rmat * [radius * cos(_θ0), radius * sin(_θ0), 0.2 * lz] ## bump center (in rotated frame)
+    _r = 1 ## bump radius
+    _umax = C_u ## bump amplitude
     _a, _b = [
         _r^3 _r^2
         3*_r^2 2*_r
@@ -822,8 +823,8 @@ function vector_cylinder(;
     f = C_u * (P * _f) / (mynorm(P * _f) + eps())
     projection_l2!(u, f, mesh)
 
-    # Forms
-    m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
+    ## Forms
+    m(u, v) = ∫(u ⋅ v)dΩ ## Mass matrix
 
     function upwind(ui, uj, Ri, Rj, vi, vj, ci, nij)
         _uj = Ri * uj
@@ -845,17 +846,15 @@ function vector_cylinder(;
         (side⁻(u), side⁺(u), side⁻(R), side⁺(R), side⁻(v), side⁺(v), side⁻(c), side⁻(n))
     end
 
-    # Mass
+    ## Mass
     M = assemble_bilinear(m, U, V)
-    # println("Matrix inversion...")
-    # invM = inv(Matrix(M)) #WARNING : really expensive !!!
 
-    # Initial solution
+    ## Initial solution
     if isLimiterActive
         lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
         u.dofValues .= _u.dofValues
     else
-        lim_u = MeshCellData(zero(get_dof_values(u))) # dummy, just for the output
+        lim_u = MeshCellData(zero(get_dof_values(u))) ## dummy, just for the output
     end
 
     u_mean = Bcube.cell_mean(u, dΩ)
@@ -868,19 +867,19 @@ function vector_cylinder(;
     for ite in 1:nitemax
         b .= 0.0
 
-        # Apply limitation
+        ## Apply limitation
         if isLimiterActive
             lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
             set_dof_values!(u, get_dof_values(_u))
         end
 
-        # Define linear forms
+        ## Define linear forms
         l_Γ(v) = ∫(-flux(v, nΓ))dΓ
         l_Γ_bnd(v) = ∫(-flux(v, nΓ_bnd))dΓ_bnd
-        l_Ω(v) = ∫((u ⊗ c) ⊡ ∇ₛ(v))dΩ # linear Volumic convective term
+        l_Ω(v) = ∫((u ⊗ c) ⊡ ∇ₛ(v))dΩ ## linear Volumic convective term
         l(v) = l_Ω(v) + l_Γ(v) + l_Γ_bnd(v)
 
-        # Version linear volumic term
+        ## Version linear volumic term
         assemble_linear!(b, l, V)
         du .= M \ b
         @. u.dofValues += Δt * du
@@ -888,7 +887,7 @@ function vector_cylinder(;
         t += Δt
         progressBar && next!(progress)
 
-        # Output results
+        ## Output results
         if ite % (nitemax ÷ _nout) == 0
             u_mean = Bcube.cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
@@ -906,8 +905,8 @@ function scalar_torus(;
     rext,
     lc,
     tmax,
-    ϕ, # velocity angle with respect to z axis
-    C, # velocity norm
+    ϕ, ## velocity angle with respect to z axis
+    C, ## velocity norm
     nout = 100,
     nitemax = Int(1e9),
     isLimiterActive = true,
@@ -937,7 +936,7 @@ function scalar_torus(;
         vtk.ite += 1
     end
 
-    # Mesh
+    ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
     Bcube.gen_torus_shell_mesh(
         mesh_path,
@@ -950,26 +949,26 @@ function scalar_torus(;
     mesh = read_msh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = zeros(3)
-    # θ = rand(rng, 3) .* 2π
+    ## θ = rand(rng, 3) .* 2π
     println("θx, θy, θz = $(rad2deg.(θ))")
     Rmat = rotMat(θ...)
     RmatInv = inv(Rmat)
     transform!(mesh, x -> Rmat * x)
 
-    # Domains
-    # quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
+    ## Domains
+    ## quad = Quadrature(QuadratureLobatto(), 2 * degree + 1)
     quad = Quadrature(QuadratureLegendre(), 2 * degree + 1)
     dΩ = Measure(CellDomain(mesh), quad)
     Γ = InteriorFaceDomain(mesh)
     dΓ = Measure(Γ, quad)
     nΓ = get_face_normals(Γ)
 
-    # FESpace
+    ## FESpace
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, :discontinuous)
     V = TestFESpace(U)
 
-    # Transport velocity
+    ## Transport velocity
     Cθ = C * cos(ϕ)
     Cφ = C * sin(ϕ)
     rc = (rint + rext) / 2
@@ -979,37 +978,37 @@ function scalar_torus(;
         _x = RmatInv * coords
         x, y, z = _x
 
-        # In the (ex, ey) plane
+        ## In the (ex, ey) plane
         r_xy = √(x * x + y * y)
         cosθ = x / r_xy
         sinθ = y / r_xy
         er = SA[cosθ, sinθ, 0]
         eθ = SA[-sinθ, cosθ, 0]
 
-        # In the (er, ez) plane
+        ## In the (er, ez) plane
         l = _x ⋅ er - rc
         r_rz = √(z * z + l * l)
         cosφ = l / r_rz
         sinφ = z / r_rz
         eφ = -sinφ * er + cosφ * ez
 
-        # direction vector
+        ## direction vector
         v = Cθ * eθ + Cφ * eφ
 
-        # Rotate back
+        ## Rotate back
         Rmat * v
     end)
-    #P = Bcube.tangential_projector(mesh)
-    # c = (x -> C * normalize(x)) ∘ (P * _c) # use this if `_c` is not necessarily tangent
-    c = _c # `_c` is anatically tangent, so no need to project
+    ##P = Bcube.tangential_projector(mesh)
+    ## c = (x -> C * normalize(x)) ∘ (P * _c) ## use this if `_c` is not necessarily tangent
+    c = _c ## `_c` is anatically tangent, so no need to project
 
-    # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
+    ## Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
     quad = Bcube.get_quadrature(dΩ)
     s = Bcube.shape(Bcube.cells(mesh)[1])
     qrule = Bcube.QuadratureRule(s, quad)
     ω_quad = degree > 0 ? Bcube.get_weights(qrule)[1] : 1.0
 
-    # Time step and else
+    ## Time step and else
     dl = lc
     Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
     t = 0.0
@@ -1021,22 +1020,22 @@ function scalar_torus(;
     @show Δt
     @show get_ndofs(U)
 
-    # Limitation
+    ## Limitation
     DMPrelax = 0.0 * dl
 
-    # Output
+    ## Output
     tail = isLimiterActive ? "lim" : "nolim"
     filename = "scalar-on-torus-d$(degree)-$(tail)"
     U_export =
         TrialFESpace(FunctionSpace(:Lagrange, max(degree, meshOrder)), mesh, :discontinuous)
     vtk = VtkHandler(joinpath(out_dir, filename), dΩ, U_export, c)
 
-    # FEFunction and initial solution (P3 Gaussian bump)
+    ## FEFunction and initial solution (P3 Gaussian bump)
     u = FEFunction(U)
     _θ0 = π / 2
-    x0 = Rmat * SA[rc + r * cos(_θ0), 0.0, r * sin(_θ0)] # bump center (in rotated frame)
-    _r = 0.5 # bump radius
-    _umax = 1 # bump amplitude
+    x0 = Rmat * SA[rc + r * cos(_θ0), 0.0, r * sin(_θ0)] ## bump center (in rotated frame)
+    _r = 0.5 ## bump radius
+    _umax = 1 ## bump amplitude
     _a, _b = SA[
         _r^3 _r^2
         3*_r^2 2*_r
@@ -1048,8 +1047,8 @@ function scalar_torus(;
 
     projection_l2!(u, f, mesh)
 
-    # Forms
-    m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
+    ## Forms
+    m(u, v) = ∫(u ⋅ v)dΩ ## Mass matrix
 
     function upwind(ui, uj, ci, nij)
         cij = ci ⋅ nij
@@ -1061,10 +1060,10 @@ function scalar_torus(;
         fij
     end
 
-    # Mass
+    ## Mass
     M = factorize(assemble_bilinear(m, U, V))
 
-    # Initial solution
+    ## Initial solution
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
     isLimiterActive && (u.dofValues .= _u.dofValues)
 
@@ -1077,19 +1076,19 @@ function scalar_torus(;
     for ite in 1:nite
         b .= 0.0
 
-        # Apply limitation
+        ## Apply limitation
         if isLimiterActive
             lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
             set_dof_values!(u, get_dof_values(_u))
         end
 
-        # Define linear forms
+        ## Define linear forms
         flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
         l_Γ(v) = ∫(-flux * jump(v))dΓ
-        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ # linear Volumic convective term
+        l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ ## linear Volumic convective term
         l(v) = l_Ω(v) + l_Γ(v)
 
-        # Version linear volumic term
+        ## Version linear volumic term
         assemble_linear!(b, l, V)
         du .= M \ b
         @. u.dofValues += Δt * du
@@ -1097,14 +1096,14 @@ function scalar_torus(;
         t += Δt
         progressBar && next!(progress)
 
-        # Output results
+        ## Output results
         if ite % (nite ÷ _nout) == 0
             append_vtk(vtk, u, lim_u, t)
         end
     end
 end
 
-# Run
+## Run
 scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
 vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
 @time scalar_cylinder(;
@@ -1154,4 +1153,4 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     meshOrder = 2,
 )
 
-end
+end #hide
