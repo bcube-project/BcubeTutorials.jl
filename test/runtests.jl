@@ -28,7 +28,9 @@ ENV["TestMode"] = "true"
     custom_include("../src/tutorial/helmholtz.jl")
     custom_include("../src/tutorial/linear_transport.jl")
 
+    custom_include("../src/example/heat_equation_sphere/heat_equation_sphere.jl")
     custom_include("../src/example/constrained_poisson/constrained_poisson.jl")
+    custom_include("../src/example/heat_equation_two_layers/heat_equation_two_layers.jl")
 end
 
 end
