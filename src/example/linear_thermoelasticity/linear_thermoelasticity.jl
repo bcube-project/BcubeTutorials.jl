@@ -57,7 +57,7 @@ Bcube.materialize(A::LinearAlgebra.UniformScaling, B) = A
 #   U^{n+1} = U^{n} + \Delta t V^{n} + (\frac{1}{2} - \beta)*\Delta t^2 G^{n} + \beta \Delta t^2 G^{n+1}
 # \end{cases}
 # ```
-# where $$M$$ is the mass matrix, $$A$$ is the stiffness matrix and $$L$$ is the RHS
+# where $M$ is the mass matrix, $A$ is the stiffness matrix and $L$ is the RHS
 # G is then computed by solving the linear system obtained by inserting the expressions for U and V in the equation for G.
 function Newmark_α_HHT(dt, L, A, Mat, U0, V0, G0)
     L1 = L - α * A * U0
