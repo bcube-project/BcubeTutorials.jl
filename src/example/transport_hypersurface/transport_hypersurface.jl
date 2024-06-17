@@ -200,8 +200,8 @@ function scalar_circle(;
 
     # Transport velocity
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
-    P = Bcube.TangentialProjector()
-    c = C * (P * _c) / mynorm(P * _c)
+    P = Bcube.tangential_projector(mesh)
+    c = (x -> C * normalize(x)) ∘ (P * _c) # useless in theory since velocity is already tangent
 
     # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
     quad = Bcube.get_quadrature(dΩ)
@@ -344,16 +344,15 @@ function vector_circle(; degree, nite, CFL, nθ)
     dΓ = Measure(Γ, 2 * degree + 1)
     nΓ = get_face_normals(Γ)
 
+    # Operators
+    P = Bcube.tangential_projector(mesh)
+    R = Bcube.CoplanarRotation()
+
     # Transport velocity : it must be coplanar to each element, so we use the
     # tangential projector operator and force the projected velocity to have
     # the same norm as the "analytical" one
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
-    P = Bcube.TangentialProjector()
-    c = C * (P * _c) / mynorm(P * _c)
-
-    # Operators
-    P = Bcube.TangentialProjector()
-    R = Bcube.CoplanarRotation()
+    c = (x -> C * normalize(x)) ∘ (P * _c) # useless in theory since velocity is already tangent
 
     # FESpace
     fs = FunctionSpace(:Lagrange, degree)
@@ -742,7 +741,7 @@ function vector_cylinder(;
     V = TestFESpace(U)
 
     # Operators
-    P = Bcube.TangentialProjector()
+    P = Bcube.tangential_projector(mesh)
     R = Bcube.CoplanarRotation()
 
     # Transport velocity
@@ -752,7 +751,7 @@ function vector_cylinder(;
         _x = RmatInv * x
         Rmat * SA[-Cθ * _x[2] / radius, Cθ * _x[1] / radius, Cz]
     end)
-    c = C_vel * (P * _c) / mynorm(P * _c)
+    c = (x -> C_vel * normalize(x)) ∘ (P * _c) # useless in theory because velocity is already tangent
 
     # Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
     quad = Bcube.get_quadrature(dΩ)
@@ -1000,7 +999,7 @@ function scalar_torus(;
         # Rotate back
         Rmat * v
     end)
-    #P = Bcube.tangential_projector(mesh) #Bcube.TangentialProjector()
+    #P = Bcube.tangential_projector(mesh)
     # c = (x -> C * normalize(x)) ∘ (P * _c) # use this if `_c` is not necessarily tangent
     c = _c # `_c` is anatically tangent, so no need to project
 
@@ -1106,39 +1105,39 @@ function scalar_torus(;
 end
 
 # Run
-# scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
-# vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
-# @time scalar_cylinder(;
-#     degree = 1,
-#     CFL = 0.1,
-#     lz = 10,
-#     nθ = 50,
-#     nz = 70,
-#     ϕ = 0.5 * π / 2,
-#     C = 1.0,
-#     tmax = 10.0,
-#     nout = 100,
-#     nitemax = 2000,#Int(1e9),
-#     isLimiterActive = false,
-#     progressBar = true,
-#     meshOrder = 2,
-# )
-# @time vector_cylinder(;
-#     degree = 0,
-#     CFL = 0.1,
-#     lz = 10,
-#     nθ = 50,
-#     nz = 70,
-#     ϕ_vel = 0.5 * π / 2,
-#     C_vel = 1.0,
-#     ϕ_u = -0.5 * π / 2,
-#     C_u = 1.0,
-#     tmax = 10.0,
-#     nout = 100,
-#     nitemax = 50,#Int(1e9),
-#     isLimiterActive = false,
-#     progressBar = true,
-# )
+scalar_circle(; degree = 1, nrot = 5, CFL = 0.1, nθ = 25, isLimiterActive = false)
+vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
+@time scalar_cylinder(;
+    degree = 1,
+    CFL = 0.1,
+    lz = 10,
+    nθ = 50,
+    nz = 70,
+    ϕ = 0.5 * π / 2,
+    C = 1.0,
+    tmax = 10.0,
+    nout = 100,
+    nitemax = 2000,#Int(1e9),
+    isLimiterActive = false,
+    progressBar = true,
+    meshOrder = 2,
+)
+@time vector_cylinder(;
+    degree = 0,
+    CFL = 0.1,
+    lz = 10,
+    nθ = 50,
+    nz = 70,
+    ϕ_vel = 0.5 * π / 2,
+    C_vel = 1.0,
+    ϕ_u = -0.5 * π / 2,
+    C_u = 1.0,
+    tmax = 10.0,
+    nout = 100,
+    nitemax = 50,#Int(1e9),
+    isLimiterActive = false,
+    progressBar = true,
+)
 @time scalar_torus(;
     degree = 1,
     CFL = 0.2, # d=0, CFL=0.4 OK
