@@ -2,11 +2,14 @@ module HeatEquationSphere #hide
 # # Heat equation on a sphere
 # Adapted from https://www.chebfun.org/examples/sphere/SphereHeatConduction.html.
 # The equation solved on the sphere is
-# $$
+# ```math
 #   \partial_t T = \alpha \Delta_\Gamma T
-# $$
+# ```
 # The temperature is initialized by
-# the following sum of spherical harmonic: $u(\lambda, \theta) = Y^0_6(\lambda, \theta) + \sqrt{14/11}Y^6_6(\lambda,\theta)$,
+# the following sum of spherical harmonic:
+# ```math
+#   u(\lambda, \theta) = Y^0_6(\lambda, \theta) + \sqrt{14/11}Y^6_6(\lambda,\theta)
+# ```
 # where $\lambda$ and $\theta$ are two angles parametrizing the sphere.
 # Hence an analytical solution can be found : $u(\lambda,\theta, t) = e^{-42 \alpha t} u_0(\lambda, \theta)$.
 #
