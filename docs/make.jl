@@ -72,7 +72,6 @@ for (script_name, name) in (
     ("euler_naca_steady.jl", "Euler equations on a NACA0012"),
     ("shallow_water.jl", "Shallow water"),
     ("poisson_dg.jl", "Poisson equation (DG)"),
-    ("heat_equation_sphere.jl", "Heat equation on a sphere"),
     ("heat_equation_two_layers.jl", "Heat equation with two layers"),
 )
     julia_to_markdown(
@@ -88,6 +87,7 @@ for name in (
     "linear_thermoelasticity",
     "constrained_poisson",
     "transport_supg",
+    "heat_equation_sphere",
     "transport_hypersurface",
 )
     gen_markdown_with_literate(joinpath(example_src, name), "$(name).jl", example_dir)
