@@ -3,7 +3,6 @@ println("Running linear elasticity API example...") #hide
 
 # # Linear elasticity
 
-const dir = string(@__DIR__, "/") # bcube/example dir
 using Bcube
 using LinearAlgebra
 using WriteVTK
@@ -15,8 +14,9 @@ const degree = 1 # FunctionSpace degree
 const degquad = 2 * degree + 1
 
 # Input and output paths
-const outputpath = dir * "../../../myout/elasticity/"
-const meshpath = dir * "../../../input/mesh/domainElast_tri.msh"
+const dir = joinpath(@__DIR__, "..", "..", "..")
+const outputpath = joinpath(dir, "myout", "elasticity")
+const meshpath = joinpath(dir, "input", "mesh", "domainElast_tri.msh")
 
 # Time stepping scheme params
 const α = 0.05
@@ -71,7 +71,14 @@ function run_steady()
     # Write the obtained FE solution
     dict_vars = Dict("Displacement" => (transpose(Un), VTKPointData()))
     mkpath(outputpath)
-    write_vtk(outputpath * "result_elasticity", itime, t, mesh, dict_vars; append = false)
+    write_vtk(
+        joinpath(outputpath, "result_elasticity_steady"),
+        0,
+        0.0,
+        mesh,
+        dict_vars;
+        append = false,
+    )
 end
 
 # Function that performs a time step using a Newmark α-HHT scheme
@@ -136,7 +143,14 @@ function run_unsteady()
     # Write the obtained FE solution
     dict_vars = Dict("Displacement" => (transpose(Un), VTKPointData()))
     mkpath(outputpath)
-    write_vtk(outputpath * "result_elasticity", 0, 0.0, mesh, dict_vars; append = false)
+    write_vtk(
+        joinpath(outputpath, "result_elasticity_unsteady"),
+        0,
+        0.0,
+        mesh,
+        dict_vars;
+        append = false,
+    )
 
     # Time loop
     totalTime = 1.0e-3
@@ -168,7 +182,7 @@ function run_unsteady()
             # Write the obtained FE solution
             dict_vars = Dict("Displacement" => (transpose(Un), VTKPointData()))
             write_vtk(
-                outputpath * "result_elasticity",
+                joinpath(outputpath, "result_elasticity"),
                 itime,
                 t,
                 mesh,
@@ -182,7 +196,7 @@ function run_unsteady()
     end
 end
 
-#run_steady()
-run_unsteady()
+run_steady()
+# run_unsteady()
 
 end #hide
