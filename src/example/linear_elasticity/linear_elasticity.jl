@@ -15,7 +15,7 @@ const degquad = 2 * degree + 1
 
 # Input and output paths
 const dir = joinpath(@__DIR__, "..", "..", "..")
-const outputpath = joinpath(dir, "myout", "elasticity")
+const outputpath = joinpath(dir, "myout", "linear_elasticity")
 const meshpath = joinpath(dir, "input", "mesh", "domainElast_tri.msh")
 
 # Time stepping scheme params
@@ -182,7 +182,7 @@ function run_unsteady()
             # Write the obtained FE solution
             dict_vars = Dict("Displacement" => (transpose(Un), VTKPointData()))
             write_vtk(
-                joinpath(outputpath, "result_elasticity"),
+                joinpath(outputpath, "result_elasticity_unsteady"),
                 itime,
                 t,
                 mesh,
@@ -197,6 +197,6 @@ function run_unsteady()
 end
 
 run_steady()
-# run_unsteady()
+run_unsteady()
 
 end #hide
