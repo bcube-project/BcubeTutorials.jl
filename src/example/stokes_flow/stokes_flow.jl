@@ -56,11 +56,9 @@ println("Running Stokes flow API example...") #hide
 # import necessary packages
 using Bcube
 using LinearAlgebra
-using SparseArrays
 using WriteVTK
 using StaticArrays
 using SpecialFunctions
-using Test #src
 
 # Function space: P2 for velocity and P1 for pressure
 const fspace = :Lagrange
@@ -342,13 +340,15 @@ function run_unsteady()
 end
 # The obtained solution compares well with the reference solution
 # ![](../assets/Stokes_flow_unsteady.gif)
-
+println("")
+println("-------------------------------")
 println("----- Running steady case -----")
 run_steady()
 println("-------------------------------")
 println("")
+println("---------------------------------")
 println("----- Running unsteady case -----")
 run_unsteady()
-println("-------------------------------")
+println("---------------------------------")
 println("")
 end #hide
