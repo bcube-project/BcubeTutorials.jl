@@ -402,9 +402,7 @@ function vector_circle(; degree, nite, CFL, nθ)
             fi = cij * _uj
         end
 
-        fj = Rj * fi
-
-        return fi ⋅ vi - fj ⋅ vj
+        return fi ⋅ (vi - transpose(Rj) * vj)
     end
 
     function flux(v)
@@ -836,9 +834,7 @@ function vector_cylinder(;
             fi = cij * _uj
         end
 
-        fj = Rj * fi
-
-        return fi ⋅ vi - fj ⋅ vj
+        return fi ⋅ (vi - transpose(Rj) * vj)
     end
 
     function flux(v, n)
