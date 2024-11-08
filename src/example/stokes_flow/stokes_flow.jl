@@ -265,6 +265,7 @@ function run_unsteady()
     a((u, p), (v, q)) = ∫(μ * ∇(u) ⊡ ∇(v) - tr(∇(v)) * p + tr(∇(u)) * q)dΩ
     l((v, q)) = ∫(fv ⋅ v)dΩ
 
+    # Assemnle matrices and factorize
     M = assemble_bilinear(m, U, V)
     A = assemble_bilinear(a, U, V)
     L = assemble_linear(l, V)
@@ -274,6 +275,8 @@ function run_unsteady()
 
     Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
     Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
+
+    luMtime = lu(M .+ Δt * A)
 
     ϕ = FEFunction(V)
 
@@ -297,7 +300,7 @@ function run_unsteady()
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
 
         ## Solve time step
-        sol = (M .+ Δt * A) \ (Δt * L + M * sol)
+        sol = luMtime \ (Δt * L + M * sol)
 
         ## Write results
         if itime % 10 == 0
