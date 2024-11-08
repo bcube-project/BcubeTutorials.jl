@@ -322,6 +322,9 @@ function run_unsteady()
     end
 end
 
+# The obtained solution compares well with the reference solution
+# ![](../assets/Stokes_flow_unsteady.gif)
+
 println("")
 println("-------------------------------")
 println("----- Running steady case -----")
@@ -333,8 +336,5 @@ println("----- Running unsteady case -----")
 run_unsteady()
 println("---------------------------------")
 println("")
-
-# The obtained solution compares well with the reference solution
-# ![](../assets/Stokes_flow_unsteady.gif)
 
 end #hide
