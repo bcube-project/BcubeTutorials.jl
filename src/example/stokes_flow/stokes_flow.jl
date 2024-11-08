@@ -265,7 +265,7 @@ function run_unsteady()
     a((u, p), (v, q)) = ∫(μ * ∇(u) ⊡ ∇(v) - tr(∇(v)) * p + tr(∇(u)) * q)dΩ
     l((v, q)) = ∫(fv ⋅ v)dΩ
 
-    # Assemnle matrices and factorize
+    # Assemble matrices and factorize
     M = assemble_bilinear(m, U, V)
     A = assemble_bilinear(a, U, V)
     L = assemble_linear(l, V)
