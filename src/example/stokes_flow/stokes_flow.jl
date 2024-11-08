@@ -4,8 +4,8 @@ println("Running Stokes flow API example...") #hide
 # # Stokes flow example (FE with Taylor-Hood elements)
 # This example shows how to solve the equations of motion for Stokes flow with $\mathbb{P2}-\mathbb{P1}$ (Taylor-Hood) elements using Bcube.
 #
-# # Steady case - Moffat vortices
-# ## Theory
+# ## Steady case - Moffat vortices
+# ### Theory
 # Let's first consider a Stokes flow within a wedge of angle $\theta = 28^\circ$ and height $H=1m$. A velocity of $1m/s$ is imposed on the top boundary (the lid) as well as zero pressure. 
 # On the left and right edges a no-slip boundary condition is applied. 
 #
@@ -52,7 +52,7 @@ println("Running Stokes flow API example...") #hide
 # = L
 # ``` 
 #
-# ## Commented code
+# ### Commented code
 
 # import necessary packages
 using Bcube
@@ -89,6 +89,7 @@ function run_steady()
         joinpath(@__DIR__, "..", "..", "..", "input", "mesh", "domainTriangle_tri.msh")
     mesh = read_msh(mesh_path)
 
+    # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
     fsu = FunctionSpace(fspace, degree_u)
     U_vel = TrialFESpace(
         fsu,
@@ -153,8 +154,8 @@ end
 # The obtained solution captures the Moffat vortices topology of the flow
 # ![](../assets/Stokes_flow_Moffat_vortices.png)
 
-# # Unsteady case - oscillating plate
-# ## Theory
+# ## Unsteady case - oscillating plate
+# ### Theory
 # Let's now consider a Stokes flow over an oscillating flat plate of length $0.1m$ and height $0.5m$. An oscillating velocity $(\sin(2\pi f t),0)$ is imposed on the bottom boundary as well as zero pressure. 
 # On all the other boundaries a "do nothing" condition is applied: $-pn + \mu \frac{\partial u}{\partial n} = 0$. 
 # The set of equations are:
@@ -175,6 +176,7 @@ end
 # ``` 
 # where $m((u,p),(v,q)) = \int_\Omega \rho u \cdot v \, dx$ and
 # $l((v,q))=\int_\Omega f \cdot v \, dx$
+#
 # $\mathbb{P2}-\mathbb{P1}$ (Taylor-Hood) elements are used to discretize the weak form of the problem which leads to the linear system:
 # ```math
 # \begin{bmatrix}
@@ -196,7 +198,7 @@ end
 # = L
 # ``` 
 #
-# ## Commented code
+# ### Commented code
 
 # Reference solution for unsteady case (Panton, R. L. (2013). Incompressible Flow, 4th edition, pages 228-236)
 # This solution is valid for a semi-infinite domain.  
@@ -232,6 +234,7 @@ function run_unsteady()
     )
     mesh = read_msh(mesh_path)
 
+    # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
     fsu = FunctionSpace(fspace, degree_u)
     U_vel = TrialFESpace(
         fsu,
@@ -245,13 +248,12 @@ function run_unsteady()
     U_pre = TrialFESpace(fsp, mesh, Dict("South" => SA[0.0]); size = 1)
     V_pre = TestFESpace(U_pre)
 
+    # Define MultiFESpace (mixed formalism)
     U = MultiFESpace(U_vel, U_pre)
     V = MultiFESpace(V_vel, V_pre)
 
     velocity = FEFunction(U_vel, 0.0)
     pressure = FEFunction(U_pre, 0.0)
-
-    #################################################################
 
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
