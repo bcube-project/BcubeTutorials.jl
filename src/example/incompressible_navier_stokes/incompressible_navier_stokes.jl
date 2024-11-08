@@ -2,7 +2,7 @@ module incompressible_navier_stokes #hide
 println("Running incompressible Navier-Stokes example...") #hide
 
 # # Incompressible Navier-Stokes (FEM) - flow around a cylinder
-# In this tutorial, the laminar flow around a cylinder is simulated by solving the incompressible Navier-Stokes equations.
+# In this example, the laminar flow around a cylinder is simulated by solving the incompressible Navier-Stokes equations.
 # The equations are discretized and solved using two methods, the projection method and the "mixed form" method. This tutorial is based
 # on a [DFG Benchmark](https://wwwold.mathematik.tu-dortmund.de/~featflow/en/benchmarks/cfdbenchmarking/flow/dfg_benchmark2_re100.html) and is also an 
 # example in [Ferrite.jl](https://ferrite-fem.github.io/Ferrite.jl/stable/tutorials/ns_vs_diffeq/).
@@ -13,7 +13,7 @@ println("Running incompressible Navier-Stokes example...") #hide
 #
 # ![](../assets/navier_stokes_cylindre.png)
 #
-# The flow around the cylinder is governed by the Navier-Stokes equations:
+# The flow around the cylinder is governed by the incompressible Navier-Stokes equations:
 # ```math
 #   \partial_t u + u \cdot \nabla u = - \nabla p + \nu \Delta u
 # ```
@@ -21,12 +21,15 @@ println("Running incompressible Navier-Stokes example...") #hide
 #   \nabla \cdot u = 0
 # ```
 # 
-# To discretize the equations P2-P1 elements are used (Taylor-Hood). No-slip boundary conditions are applied on all walls. The inlet is given by an imposed velocity profile which
+# To discretize the equations $\mathbb{P}_2$-$\mathbb{P}_1$ elements are used (Taylor-Hood). 
+# 
+# No-slip boundary conditions are applied on all walls. The inlet is given by an imposed parabolic velocity profile which
 # is ramped up in time:
 # ```math
-#   u(t,x,y) = \left( 4 u_{in}(t) y (0.41-y)/0.41^2 , 0 \right)
+#   u(t,x,y) = u_{in}(t) \times \left( 4  y (0.41-y)/0.41^2 , 0 \right)
 # ```
-# where $u_{in} = \textrm{clamp}(t,0.0,1.5)$. 
+# where $u_{in}(t) = \textrm{clamp}(t,0.0,1.5)$. 
+# 
 # At the outlet, $p=0$ is imposed when using the projection method and a "do-nothing" ($-pn + \nu \nabla u \cdot n = 0$) condition is applied when using the "mixed form" method.
 #
 # # Code
@@ -61,10 +64,10 @@ end
 
 # Function that solves the problem using the projection method
 function run_unsteady_projection_method()
-    # read mesh
+    # Read mesh
     mesh = read_msh(meshpath)
 
-    # Definition of trial and test function spaces
+    # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
     fsu = FunctionSpace(fspace, degree_u)
     U_vel = TrialFESpace(
         fsu,
@@ -89,27 +92,44 @@ function run_unsteady_projection_method()
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
 
-    # definition of bilinear and linear forms
-    # tentative velocity forms
+    # Definition of bilinear and linear forms
+    # Tentative velocity forms
     m1(u, v) = ∫(u ⋅ v)dΩ
+    ## function l1(v)
+    ##     ∫(velocity ⋅ v)dΩ - Δt * ∫(ν * ∇(velocity) ⊡ ∇(v) + (∇(velocity) * velocity) ⋅ v)dΩ
+    ## end
+    ## Below is an equivalent définition of l1(v) that yields better performance thanks to the use of composition 
     function l1(v)
-        ∫(velocity ⋅ v)dΩ - Δt * ∫(ν * ∇(velocity) ⊡ ∇(v) + (∇(velocity) * velocity) ⋅ v)dΩ
+        f(u, ∇u, v, ∇v) = u ⋅ v - Δt * (ν * ∇u ⊡ ∇v + (∇u * u) ⋅ v)
+        ∫(f ∘ (velocity, ∇(velocity), v, ∇(v)))dΩ
+    end
+    # Pressure forms
+    a2(p, q) = ∫(∇(p) ⋅ ∇(q))dΩ
+    ## l2(q) = (-1.0 / Δt) * ∫(tr(∇(velocity)) ⋅ q)dΩ
+    ## Below is an equivalent définition of l2(v) that yields better performance thanks to the use of composition 
+    function l2(q)
+        f(∇u, q) = (-1.0 / Δt) * (tr(∇u) ⋅ q)
+        ∫(f ∘ (∇(velocity), q))dΩ
+    end
+    # Velocity correction forms
+    ## l3(v) = ∫(velocity ⋅ v)dΩ - Δt * ∫(∇(pressure) ⋅ v)dΩ
+    ## Below is an equivalent définition of l3(v) that yields better performance thanks to the use of composition 
+    function l3(v)
+        f(u, ∇p, v) = u ⋅ v - Δt * ∇p ⋅ v
+        ∫(f ∘ (velocity, ∇(pressure), v))dΩ
     end
 
-    # pressure forms
-    a2(p, q) = ∫(∇(p) ⋅ ∇(q))dΩ
-    l2(q) = (-1.0 / Δt) * ∫(tr(∇(velocity)) ⋅ q)dΩ
-
-    # velocity correction forms
-    l3(v) = ∫(velocity ⋅ v)dΩ - Δt * ∫(∇(pressure) ⋅ v)dΩ
-
+    # Assemble and factorize matrices
     M1 = assemble_bilinear(m1, U_vel, V_vel)
     M0 = copy(M1)
     Bcube.apply_dirichlet_to_matrix!(M1, U_vel, V_vel, mesh)
+    luM1 = lu(M1)
 
     A2 = assemble_bilinear(a2, U_pre, V_pre)
     Bcube.apply_dirichlet_to_matrix!(A2, U_pre, V_pre, mesh)
+    luA2 = lu(A2)
 
+    # Time stepping
     time = 0.0
     itime = 0
 
@@ -119,43 +139,43 @@ function run_unsteady_projection_method()
 
         println("Time stepping : time = ", time, " / ", finalTime)
 
-        # assemble l1
+        ## assemble l1
         L1 = assemble_linear(l1, V_vel)
         Wd = Bcube.assemble_dirichlet_vector(U_vel, V_vel, mesh, time)
-        # Apply lift
+        ## Apply lift
         L1 = L1 - M0 * Wd
 
-        # Apply homogeneous dirichlet condition
+        ## Apply homogeneous Dirichlet condition
         Bcube.apply_homogeneous_dirichlet_to_vector!(L1, U_vel, V_vel, mesh)
 
-        # Compute tentative velocity
-        sol = M1 \ L1
+        ## Compute tentative velocity
+        sol = luM1 \ L1
 
         set_dof_values!(velocity, sol .+ Wd)
 
-        # Assemble l2
+        ## Assemble l2
         L2 = assemble_linear(l2, V_pre)
         Bcube.apply_homogeneous_dirichlet_to_vector!(L2, U_pre, V_pre, mesh)
 
-        # Compute pressure
-        sol = A2 \ L2
+        ## Compute pressure
+        sol = luA2 \ L2
 
         set_dof_values!(pressure, sol)
 
-        # Assemble l3
+        ## Assemble l3
         L3 = assemble_linear(l3, V_vel)
-        # Apply lift
+        ## Apply lift
         L3 = L3 - M0 * Wd
 
-        # Apply homogeneous dirichlet condition
+        ## Apply homogeneous Dirichlet condition
         Bcube.apply_homogeneous_dirichlet_to_vector!(L3, U_vel, V_vel, mesh)
 
-        # Velocity correction step
-        sol = M1 \ L3
+        ## Velocity correction step
+        sol = luM1 \ L3
 
         set_dof_values!(velocity, sol .+ Wd)
 
-        # Write outputs
+        ## Write outputs
         if itime % 100 == 0
             vars = Dict("Velocity" => velocity, "Pressure" => pressure)
             Bcube.write_vtk_lagrange(
@@ -173,10 +193,10 @@ end
 
 # Function that solves the problem using a mixed formalism
 function run_unsteady_mixed()
-    # read mesh
+    # Read mesh
     mesh = read_msh(meshpath)
 
-    # Definition of trial and test function spaces
+    # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
     fsu = FunctionSpace(fspace, degree_u)
     U_vel = TrialFESpace(
         fsu,
@@ -204,11 +224,12 @@ function run_unsteady_mixed()
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
 
-    # definition of bilinear and linear forms
+    # Definition of bilinear and linear forms
     m((u, p), (v, q)) = ∫(u ⋅ v)dΩ
     a((u, p), (v, q)) = ∫(ν * ∇(u) ⊡ ∇(v) - tr(∇(v)) * p + tr(∇(u)) * q)dΩ
     l((v, q)) = -∫((∇(velocity) * velocity) ⋅ v)dΩ
 
+    # Assemble and factorize matrices
     M = assemble_bilinear(m, U, V)
     A = assemble_bilinear(a, U, V)
     L = assemble_linear(l, V)
@@ -217,8 +238,11 @@ function run_unsteady_mixed()
     Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
     Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
 
+    luMtime = lu(M .+ Δt * A)
+
     ϕ = FEFunction(V)
 
+    # Time stepping
     time = 0.0
     itime = 0
     sol = zero(L)
@@ -233,19 +257,19 @@ function run_unsteady_mixed()
 
         Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
 
-        # Apply lift
+        ## Apply lift
         L = L - A0 * Wd
 
-        # Apply homogeneous dirichlet condition
+        ## Apply homogeneous Dirichlet condition
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
 
-        # Compute solution
-        sol = (M .+ Δt * A) \ (Δt * L + M * sol)
+        ## Compute solution
+        sol = luMtime \ (Δt * L + M * sol)
 
         set_dof_values!(ϕ, sol .+ Wd)
         velocity, pressure = ϕ
 
-        # Write outputs
+        ## Write outputs
         if itime % 100 == 0
             vars = Dict("Velocity" => velocity, "Pressure" => pressure)
             Bcube.write_vtk_lagrange(
@@ -265,12 +289,16 @@ end
 println(" ")
 println("---------------------------------------------------")
 println("--------- solving with projection method ----------")
-run_unsteady_projection_method()
+@time begin
+    run_unsteady_projection_method()
+end
 println("---------------------------------------------------")
 println(" ")
 println("---------------------------------------------------")
 println("--------- solving with mixed form method ----------")
-run_unsteady_mixed()
+@time begin
+    run_unsteady_mixed()
+end
 println("---------------------------------------------------")
 println(" ")
 end #hide
