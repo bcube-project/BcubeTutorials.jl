@@ -1,7 +1,7 @@
 module incompressible_navier_stokes #hide
 println("Running incompressible Navier-Stokes example...") #hide
 
-# # Incompressible Navier-Stokes - flow around a cylinder
+# # Incompressible Navier-Stokes (FEM) - flow around a cylinder
 # In this tutorial, the laminar flow around a cylinder is simulated by solving the incompressible Navier-Stokes equations.
 # The equations are discretized and solved using two methods, the projection method and the "mixed form" method. This tutorial is based
 # on a [DFG Benchmark](https://wwwold.mathematik.tu-dortmund.de/~featflow/en/benchmarks/cfdbenchmarking/flow/dfg_benchmark2_re100.html) and is also an 
@@ -168,6 +168,8 @@ function run_unsteady_projection_method()
         end
     end
 end
+# The animation below shows the result of simulation with the projection method:
+# ![](../assets/navier_stokes_projection.gif)
 
 # Function that solves the problem using a mixed formalism
 function run_unsteady_mixed()
@@ -256,6 +258,9 @@ function run_unsteady_mixed()
         end
     end
 end
+
+# The animation below shows the result of simulation with the "mixed form" method:
+# ![](../assets/navier_stokes_mixed.gif)
 
 println(" ")
 println("---------------------------------------------------")
