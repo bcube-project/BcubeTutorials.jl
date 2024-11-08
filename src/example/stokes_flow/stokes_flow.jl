@@ -1,10 +1,11 @@
 module stokes_flow_API #hide
 println("Running Stokes flow API example...") #hide
 
-# # Steady and unsteady Stokes flow example (FE with Taylor-Hood elements)
+# # Stokes flow example (FE with Taylor-Hood elements)
 # This example shows how to solve the equations of motion for Stokes flow with $\mathbb{P2}-\mathbb{P1}$ (Taylor-Hood) elements using Bcube.
 #
-# # Theory (Steady Stokes flow - Moffat vortices)
+# # Steady case - Moffat vortices
+# ## Theory
 # Let's first consider a Stokes flow within a wedge of angle $\theta = 28^\circ$ and height $H=1m$. A velocity of $1m/s$ is imposed on the top boundary (the lid) as well as zero pressure. 
 # On the left and right edges a no-slip boundary condition is applied. 
 #
@@ -51,7 +52,7 @@ println("Running Stokes flow API example...") #hide
 # = L
 # ``` 
 #
-# # Commented code
+# ## Commented code
 
 # import necessary packages
 using Bcube
@@ -141,31 +142,19 @@ function run_steady()
 
     sol = sol .+ Wd
 
-    ϕ = FEFunction(V)
+    ϕ = FEFunction(V, sol)
 
     # Write solution
-    set_dof_values!(ϕ, sol)
     velocity, pressure = ϕ
 
-    vars_1 = Dict("Velocity" => velocity)
-    Bcube.write_vtk_lagrange(
-        joinpath(outputpath, "output_velocity_steady"),
-        vars_1,
-        mesh,
-        U_vel,
-    )
-    vars_2 = Dict("Pressure" => pressure)
-    Bcube.write_vtk_lagrange(
-        joinpath(outputpath, "output_pressure_steady"),
-        vars_2,
-        mesh,
-        U_pre,
-    )
+    vars = Dict("Velocity" => velocity, "Pressure" => pressure)
+    Bcube.write_vtk_lagrange(joinpath(outputpath, "output_steady"), vars, mesh)
 end
 # The obtained solution captures the Moffat vortices topology of the flow
 # ![](../assets/Stokes_flow_Moffat_vortices.png)
 
-# # Theory (Unsteady Stokes flow - oscillating plate)
+# # Unsteady case - oscillating plate
+# ## Theory
 # Let's now consider a Stokes flow over an oscillating flat plate of length $0.1m$ and height $0.5m$. An oscillating velocity $(\sin(2\pi f t),0)$ is imposed on the bottom boundary as well as zero pressure. 
 # On all the other boundaries a "do nothing" condition is applied: $-pn + \mu \frac{\partial u}{\partial n} = 0$. 
 # The set of equations are:
@@ -207,7 +196,7 @@ end
 # = L
 # ``` 
 #
-# # Commented code
+# ## Commented code
 
 # Reference solution for unsteady case (Panton, R. L. (2013). Incompressible Flow, 4th edition, pages 228-236)
 # This solution is valid for a semi-infinite domain.  
@@ -247,7 +236,7 @@ function run_unsteady()
     U_vel = TrialFESpace(
         fsu,
         mesh,
-        Dict("South" => (x, t) -> [sin(2.0 * π * f * t), 0.0]);
+        Dict("South" => (x, t) -> SA[sin(2.0 * π * f * t), 0.0]);
         size = 2,
     )
     V_vel = TestFESpace(U_vel)
@@ -286,6 +275,7 @@ function run_unsteady()
 
     ϕ = FEFunction(V)
 
+    # Time loop
     time = 0.0
     itime = 0
     sol = zero(L)
@@ -298,14 +288,16 @@ function run_unsteady()
 
         Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
 
-        # Apply lift
+        ## Apply lift
         L = -A0 * Wd
 
-        # Apply homogeneous dirichlet condition
+        ## Apply homogeneous dirichlet condition
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
 
+        ## Solve time step
         sol = (M .+ Δt * A) \ (Δt * L + M * sol)
 
+        ## Write results
         if itime % 10 == 0
             set_dof_values!(ϕ, sol .+ Wd)
             velocity, pressure = ϕ
@@ -313,25 +305,16 @@ function run_unsteady()
             velocity_ref = PhysicalFunction(x -> SA[reference_solution(time, x), 0.0])
             error = velocity - velocity_ref
 
-            vars_1 = Dict(
+            vars = Dict(
                 "Velocity" => velocity,
                 "Velocity_ref" => velocity_ref,
                 "error" => error,
+                "Pressure" => pressure,
             )
             Bcube.write_vtk_lagrange(
-                joinpath(outputpath, "output_velocity_unsteady"),
-                vars_1,
+                joinpath(outputpath, "output_unsteady"),
+                vars,
                 mesh,
-                U_vel,
-                itime,
-                time,
-            )
-            vars_2 = Dict("Pressure" => pressure)
-            Bcube.write_vtk_lagrange(
-                joinpath(outputpath, "output_pressure_unsteady"),
-                vars_2,
-                mesh,
-                U_pre,
                 itime,
                 time,
             )
