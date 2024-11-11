@@ -67,11 +67,12 @@ Tcn = var_on_centers(ϕ, mesh)
 T_analytical = x -> 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1])
 Tca = map(T_analytical, get_cell_centers(mesh))
 
-# Write both the obtained FE solution and the analytical solution to a vtk file.
+# Write both the obtained FE solution and the analytical solution to a vtk file. To
+# write the data on mesh centers, we need to wrap them in a `MeshCellData` object.
+using BcubeVTK
 mkpath(outputpath)
-dict_vars =
-    Dict("Temperature" => (Tcn, VTKCellData()), "Temperature_a" => (Tca, VTKCellData()))
-write_vtk(outputpath * "result_steady_heat_equation", 0, 0.0, mesh, dict_vars)
+dict_vars = Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
+write_file(outputpath * "result_steady_heat_equation.pbd", mesh, dict_vars)
 
 # Compute and display the error
 @show norm(Tcn .- Tca, Inf) / norm(Tca, Inf)
