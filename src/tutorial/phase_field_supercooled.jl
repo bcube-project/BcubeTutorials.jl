@@ -25,8 +25,8 @@ println("Running phase field supercooled equation example...") #hide
 # # Code
 # Load the necessary packages
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using Random
 
 Random.seed!(1234) # to obtain reproductible results
@@ -97,11 +97,8 @@ apply_dirichlet_to_matrix!((C_ϕ, C_T), U, V, mesh)
 set_dof_values!(ϕ, d)
 set_dof_values!(T, d)
 
-dict_vars = Dict(
-    "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
-    "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
-)
-write_vtk(joinpath(out_dir, "result_phaseField_imex_1space"), 0, 0.0, mesh, dict_vars)
+dict_vars = Dict("Temperature" => T, "Phi" => ϕ)
+write_file(joinpath(out_dir, "result_phaseField_imex_1space.pvd"), mesh, dict_vars, 0, 0.0)
 
 # Factorize and allocate some vectors to increase performance
 C_ϕ = factorize(C_ϕ)
@@ -136,17 +133,14 @@ while t <= totalTime
 
     ## write solution in vtk format
     if itime % nout == 0
-        dict_vars = Dict(
-            "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
-            "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
-        )
-        write_vtk(
-            joinpath(out_dir, "result_phaseField_imex_1space"),
-            itime,
-            t,
+        dict_vars = Dict("Temperature" => T, "Phi" => ϕ)
+        write_file(
+            joinpath(out_dir, "result_phaseField_imex_1space.pvd"),
             mesh,
-            dict_vars;
-            append = true,
+            dict_vars,
+            itime,
+            t;
+            collection_append = true,
         )
     end
 end
