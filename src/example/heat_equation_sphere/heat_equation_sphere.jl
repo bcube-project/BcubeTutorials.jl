@@ -125,7 +125,7 @@ function run(;
 )
 
     ## Settings
-    out_dir = joinpath(@__DIR__, "../../../myout/heat_eqn_sphere")
+    out_dir = joinpath(@__DIR__, "..", "..", "..", "myout", "heat_eqn_sphere")
     mkpath(out_dir)
 
     ## Mesh
