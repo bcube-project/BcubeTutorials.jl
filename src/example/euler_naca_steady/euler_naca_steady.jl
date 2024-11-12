@@ -233,9 +233,9 @@ function append_vtk(vtk, mesh, vars, t, params; res = nothing)
         "rhoE" => ρE,
         "Cp" => Cp,
         "Mach" => Ma,
-        "rho_mean" => Bcube.cell_mean(ρ, params.dΩ),
-        "rhou_mean" => Bcube.cell_mean(ρu, params.dΩ),
-        "rhoE_mean" => Bcube.cell_mean(ρE, params.dΩ),
+        "rho_mean" => cell_mean(ρ, params.dΩ),
+        "rhou_mean" => cell_mean(ρu, params.dΩ),
+        "rhoE_mean" => cell_mean(ρE, params.dΩ),
         "lim_rho" => params.limρ,
         "lim_all" => params.limAll,
     )
@@ -487,7 +487,7 @@ function isoutofdomain(dof, p, t)
     any(isnan, dof) && return true
 
     q = FEFunction(p.Q, dof)
-    q_mean = map(get_values, Bcube.cell_mean(q, p.cache.cacheCellMean))
+    q_mean = map(get_values, cell_mean(q, p.cache.cacheCellMean))
     p_mean = pressure.(q_mean..., stateInit.γ)
 
     negative_ρ = any(x -> x < 0, q_mean[1])
@@ -596,7 +596,7 @@ function apply_limitation!(q::Bcube.AbstractFEFunction, ode_params)
     mesh = get_mesh(get_domain(params.dΩ))
     ρ, ρu, ρE = q
 
-    ρ_mean, ρu_mean, ρE_mean = Bcube.cell_mean(q, cache.cacheCellMean)
+    ρ_mean, ρu_mean, ρE_mean = cell_mean(q, cache.cacheCellMean)
 
     _limρ, ρ_proj = linear_scaling_limiter(
         ρ,
