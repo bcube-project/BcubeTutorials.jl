@@ -3,8 +3,9 @@ println("Running euler_naca_steady example...") #hide
 # # Solve Euler equation around a NACA0012 airfoil
 
 using Bcube
+using BcubeVTK
+using WriteVTK # for write_vtk_bnd_discontinuous
 using LinearAlgebra
-using WriteVTK
 using StaticArrays
 using BenchmarkTools
 using Roots
@@ -200,7 +201,7 @@ function sparse2vtk(
     a::AbstractSparseMatrix,
     name::String = string(@__DIR__, "../../../myout/sparse"),
 )
-    vtk_write_array(name, Array(a), "my_property_name")
+    BcubeVTK.vtk_write_array(name, Array(a), "my_property_name")
 end
 
 mutable struct VtkHandler
@@ -223,32 +224,30 @@ function append_vtk(vtk, mesh, vars, t, params; res = nothing)
 
     vtk_degree = maximum(x -> get_degree(Bcube.get_function_space(get_fespace(x))), vars)
     vtk_degree = max(1, mesh_degree, vtk_degree)
-    _ρ = var_on_nodes_discontinuous(ρ, mesh, vtk_degree)
-    _ρu = var_on_nodes_discontinuous(ρu, mesh, vtk_degree)
-    _ρE = var_on_nodes_discontinuous(ρE, mesh, vtk_degree)
 
-    Cp = pressure_coefficient.(_ρ, _ρu, _ρE)
-    Ma = mach.(_ρ, _ρu, _ρE)
+    Cp = pressure_coefficient ∘ (ρ, ρu, ρE)
+    Ma = mach ∘ (ρ, ρu, ρE)
     dict_vars_dg = Dict(
-        "rho" => (_ρ, VTKPointData()),
-        "rhou" => (_ρu, VTKPointData()),
-        "rhoE" => (_ρE, VTKPointData()),
-        "Cp" => (Cp, VTKPointData()),
-        "Mach" => (Ma, VTKPointData()),
-        "rho_mean" => (get_values(Bcube.cell_mean(ρ, params.dΩ)), VTKCellData()),
-        "rhou_mean" => (get_values(Bcube.cell_mean(ρu, params.dΩ)), VTKCellData()),
-        "rhoE_mean" => (get_values(Bcube.cell_mean(ρE, params.dΩ)), VTKCellData()),
-        "lim_rho" => (get_values(params.limρ), VTKCellData()),
-        "lim_all" => (get_values(params.limAll), VTKCellData()),
+        "rho" => ρ,
+        "rhou" => ρu,
+        "rhoE" => ρE,
+        "Cp" => Cp,
+        "Mach" => Ma,
+        "rho_mean" => Bcube.cell_mean(ρ, params.dΩ),
+        "rhou_mean" => Bcube.cell_mean(ρu, params.dΩ),
+        "rhoE_mean" => Bcube.cell_mean(ρE, params.dΩ),
+        "lim_rho" => params.limρ,
+        "lim_all" => params.limAll,
     )
-    Bcube.write_vtk_discontinuous(
-        vtk.basename * "_DG",
-        vtk.ite,
-        t,
+    write_file(
+        vtk.basename * "_DG.pvd",
         mesh,
         dict_vars_dg,
-        vtk_degree;
-        append = vtk.ite > 0,
+        vtk.ite,
+        t;
+        discontinuous = true,
+        mesh_degree = vtk_degree,
+        collection_append = vtk.ite > 0,
     )
 
     _ρ_wall = var_on_bnd_nodes_discontinuous(ρ, params.Γ_wall, vtk_degree)
@@ -265,7 +264,7 @@ function append_vtk(vtk, mesh, vars, t, params; res = nothing)
         "Cp" => (Cp_wall, VTKPointData()),
         "Mach" => (Ma_wall, VTKPointData()),
     )
-    Bcube.write_vtk_bnd_discontinuous(
+    BcubeVTK.write_vtk_bnd_discontinuous(
         vtk.basename * "_bnd_DG",
         1,
         0.0,
