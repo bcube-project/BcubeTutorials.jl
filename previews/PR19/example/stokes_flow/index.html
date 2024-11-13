@@ -143,7 +143,7 @@ end</code></pre><p>Function that runs the unsteady case:</p><pre><code class="la
     Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
     Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
 
-    luMtime = lu(M .+ Δt * A)
+    f_Mtime = factorize(M .+ Δt * A)
 
     ϕ = FEFunction(V)</code></pre><p>Time loop</p><pre><code class="language-julia hljs">    time = 0.0
     itime = 0
@@ -164,7 +164,7 @@ end</code></pre><p>Function that runs the unsteady case:</p><pre><code class="la
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
 
         # Solve time step
-        sol = luMtime \ (Δt * L + M * sol)
+        sol = f_Mtime \ (Δt * L + M * sol)
 
         # Write results
         if itime % 10 == 0
@@ -200,4 +200,4 @@ println(&quot;----- Running unsteady case -----&quot;)
 run_unsteady()
 println(&quot;---------------------------------&quot;)
 println(&quot;&quot;)
-</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../transport_hypersurface/">« Transport equation on hypersurfaces</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 13 November 2024 16:14">Wednesday 13 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../transport_hypersurface/">« Transport equation on hypersurfaces</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 13 November 2024 16:49">Wednesday 13 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
