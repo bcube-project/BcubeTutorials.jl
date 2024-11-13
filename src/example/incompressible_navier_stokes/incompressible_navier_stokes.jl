@@ -47,7 +47,7 @@ const degquad = 2 * degree_u + 1
 const degree_p = 1
 
 # Input and output paths
-const outputpath = joinpath(dir, "../../../myout/navier_stokes/")
+const outputpath = joinpath(dir, "..", "..", "..", "myout", "navier_stokes/")
 const meshpath = joinpath(dir, "../../../input/mesh/cylinder_navier_stokes_tri.msh")
 
 # Kinematic viscosity
@@ -86,8 +86,8 @@ function run_unsteady_projection_method()
     U_pre = TrialFESpace(fsp, mesh, Dict("right" => SA[0.0]); size = 1)
     V_pre = TestFESpace(U_pre)
 
-    velocity = FEFunction(U_vel, 0.0)
-    pressure = FEFunction(U_pre, 0.0)
+    velocity = FEFunction(U_vel)
+    pressure = FEFunction(U_pre)
 
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
@@ -120,7 +120,8 @@ function run_unsteady_projection_method()
     end
 
     # Assemble and factorize matrices
-    M1 = assemble_bilinear(m1, U_vel, V_vel)
+    #M1 = assemble_bilinear(m1, U_vel, V_vel)
+    M1 = Bcube.build_mass_matrix(U_vel, V_vel, dΩ)
     M0 = copy(M1)
     Bcube.apply_dirichlet_to_matrix!(M1, U_vel, V_vel, mesh)
     luM1 = lu(M1)
@@ -218,8 +219,8 @@ function run_unsteady_mixed()
     U = MultiFESpace(U_vel, U_pre)
     V = MultiFESpace(V_vel, V_pre)
 
-    velocity = FEFunction(U_vel, 0.0)
-    pressure = FEFunction(U_pre, 0.0)
+    velocity = FEFunction(U_vel)
+    pressure = FEFunction(U_pre)
 
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
