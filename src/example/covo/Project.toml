@@ -2,9 +2,12 @@
 Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
+BcubeVTK = "f7a61acb-f482-4505-b2eb-e9cadd76b6b4"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 Profile = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 UnPack = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
+
+[compat]
+Bcube = "0.2"

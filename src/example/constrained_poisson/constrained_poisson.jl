@@ -40,9 +40,9 @@ println("Running constrained poisson with MultiplierFESpace API example...") #hi
 
 # import necessary packages
 using Bcube
+using BcubeVTK
 using LinearAlgebra
 using SparseArrays
-using WriteVTK
 using Test #src
 
 const outputpath = joinpath(@__DIR__, "..", "..", "..", "myout", "constrained_poisson")
@@ -114,8 +114,8 @@ u_ref = PhysicalFunction(x -> cos(4.0 * π * (x[1]^2 + x[2]^2)))
 error = u_ref - u
 
 vars = Dict("Numerical solution" => u, "Analytical solution" => u_ref, "error" => error)
-filename = joinpath(outputpath, "output")
-Bcube.write_vtk_lagrange(filename, vars, mesh, U)
+filename = joinpath(outputpath, "output.pvd")
+write_file(filename, mesh, U, vars)
 
 l2(u) = sqrt(sum(Bcube.compute(∫(u ⋅ u)dΩ)))
 el2 = l2(error) / l2(u_ref)

@@ -19,8 +19,8 @@ println("Running heat equation tutorial...") #hide
 # # Steady case
 # As usual, start by importing the necessary packages.
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using Test #src
 
 # First we define some physical and numerical constants
@@ -67,11 +67,12 @@ Tcn = var_on_centers(ϕ, mesh)
 T_analytical = x -> 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1])
 Tca = map(T_analytical, get_cell_centers(mesh))
 
-# Write both the obtained FE solution and the analytical solution to a vtk file.
+# Write both the obtained FE solution and the analytical solution to a vtk file. To
+# write the data on mesh centers, we need to wrap them in a `MeshCellData` object.
+using BcubeVTK
 mkpath(outputpath)
-dict_vars =
-    Dict("Temperature" => (Tcn, VTKCellData()), "Temperature_a" => (Tca, VTKCellData()))
-write_vtk(outputpath * "result_steady_heat_equation", 0, 0.0, mesh, dict_vars)
+dict_vars = Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
+write_file(outputpath * "result_steady_heat_equation.pvd", mesh, dict_vars)
 
 # Compute and display the error
 @show norm(Tcn .- Tca, Inf) / norm(Tca, Inf)
@@ -127,8 +128,8 @@ Miter = factorize(M + Δt * A)
 
 # Write initial solution to a file
 mkpath(outputpath)
-dict_vars = Dict("Temperature" => (var_on_centers(ϕ, mesh), VTKCellData()))
-write_vtk(outputpath * "result_unsteady_heat_equation", 0, 0.0, mesh, dict_vars)
+dict_vars = Dict("Temperature" => MeshCellData(var_on_centers(ϕ, mesh)))
+write_file(outputpath * "result_unsteady_heat_equation.pvd", mesh, dict_vars, 0, 0.0)
 
 # Time loop
 itime = 0
@@ -147,14 +148,14 @@ while t <= totalTime
 
     ## Write solution (every 10 iterations)
     if itime % 10 == 0
-        dict_vars = Dict("Temperature" => (var_on_centers(ϕ, mesh), VTKCellData()))
-        write_vtk(
-            outputpath * "result_unsteady_heat_equation",
-            itime,
-            t,
+        dict_vars = Dict("Temperature" => MeshCellData(var_on_centers(ϕ, mesh)))
+        write_file(
+            outputpath * "result_unsteady_heat_equation.pvd",
             mesh,
-            dict_vars;
-            append = true,
+            dict_vars,
+            itime,
+            t;
+            collection_append = true,
         )
     end
 end

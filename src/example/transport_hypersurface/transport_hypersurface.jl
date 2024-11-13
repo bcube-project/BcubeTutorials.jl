@@ -287,7 +287,7 @@ function scalar_circle(;
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
     isLimiterActive && (u.dofValues .= _u.dofValues)
 
-    u_mean = Bcube.cell_mean(u, dΩ)
+    u_mean = cell_mean(u, dΩ)
     t = 0.0
     plt = plot_solution(0, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
     append_vtk(vtk, u, lim_u, u_mean, t)
@@ -324,7 +324,7 @@ function scalar_circle(;
 
         ## Output results
         if ite % (nite ÷ _nout) == 0
-            u_mean = Bcube.cell_mean(u, dΩ)
+            u_mean = cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
             plt = plot_solution(vtk.ite, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
             frame(anim, plt)
@@ -478,7 +478,7 @@ function scalar_cylinder(;
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
         vars = Dict(
             "u" => u,
-            "u_mean" => Bcube.cell_mean(u, vtk.dΩ),
+            "u_mean" => cell_mean(u, vtk.dΩ),
             "lim_u" => lim_u,
             "c" => vtk.c,
             "cellnormal" => Bcube.CellNormal(vtk.mesh),
@@ -853,7 +853,7 @@ function vector_cylinder(;
         lim_u = MeshCellData(zero(get_dof_values(u))) ## dummy, just for the output
     end
 
-    u_mean = Bcube.cell_mean(u, dΩ)
+    u_mean = cell_mean(u, dΩ)
     t = 0.0
     append_vtk(vtk, u, lim_u, u_mean, t)
 
@@ -885,7 +885,7 @@ function vector_cylinder(;
 
         ## Output results
         if ite % (nitemax ÷ _nout) == 0
-            u_mean = Bcube.cell_mean(u, dΩ)
+            u_mean = cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
         end
     end
@@ -912,7 +912,7 @@ function scalar_torus(;
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
         vars = Dict(
             "u" => u,
-            "u_mean" => Bcube.cell_mean(u, vtk.dΩ),
+            "u_mean" => cell_mean(u, vtk.dΩ),
             "lim_u" => lim_u,
             "c" => vtk.c,
             "cellnormal" => Bcube.CellNormal(vtk.mesh),

@@ -36,8 +36,8 @@ println("Running linear transport example...") #hide
 # Start by importing the necessary packages:
 # Load the necessary packages
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 
 # Before all, to ease to ease the solution VTK output we will write a
 # structure to store the vtk filename and the number of iteration; and a function
@@ -52,18 +52,15 @@ mutable struct VtkHandler
 end
 
 function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
-    ## Values on center
-    values = var_on_nodes_discontinuous(u, vtk.mesh)
-
     ## Write
-    Bcube.write_vtk_discontinuous(
+    Bcube.write_file(
         vtk.basename,
-        vtk.ite,
-        t,
         vtk.mesh,
-        Dict("u" => (values, VTKPointData())),
-        1;
-        append = vtk.ite > 0,
+        Dict("u" => u),
+        vtk.ite,
+        t;
+        discontinuous = true,
+        collection_append = vtk.ite > 0,
     )
 
     ## Update counter
@@ -90,7 +87,7 @@ rm(tmp_path)
 # We can now init our `VtkHandler`
 out_dir = joinpath(@__DIR__, "..", "..", "myout", "linear_transport")
 mkpath(out_dir) #hide
-vtk = VtkHandler(joinpath(out_dir, "linear_transport"), mesh)
+vtk = VtkHandler(joinpath(out_dir, "linear_transport.pvd"), mesh)
 
 # As seen in the previous tutorial, the definition of trial and test spaces needs a mesh and
 # a function space. Here, we select Taylor space, and build discontinuous FE spaces with it.

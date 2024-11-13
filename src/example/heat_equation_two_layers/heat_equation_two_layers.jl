@@ -16,8 +16,8 @@ println("Running heat equation two layers example...") #hide
 
 const dir = joinpath(@__DIR__, "..", "..", "..") # BcubeTutorials dir
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using Test #src
 
 function T_analytical_two_layers(x, λ1, λ2, T0, T1, L)
@@ -83,11 +83,9 @@ function run_steady_two_layers_method1(; degree)
     Tcn = var_on_centers(ϕ, mesh)
     Tca = var_on_centers(T_analytical, mesh)
     dict_vars =
-        Dict("Temperature" => (Tcn, VTKCellData()), "Temperature_a" => (Tca, VTKCellData()))
-    write_vtk(
-        joinpath(outputpath, "result_steady_heat_equation_two_layers_method1"),
-        0,
-        0.0,
+        Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
+    write_file(
+        joinpath(outputpath, "result_steady_heat_equation_two_layers_method1.pvd"),
         mesh,
         dict_vars,
     )
@@ -145,11 +143,9 @@ function run_steady_two_layers_method2(; degree)
     Tcn = var_on_centers(ϕ, mesh)
     Tca = var_on_centers(T_analytical, mesh)
     dict_vars =
-        Dict("Temperature" => (Tcn, VTKCellData()), "Temperature_a" => (Tca, VTKCellData()))
-    write_vtk(
-        joinpath(outputpath, "result_steady_heat_equation_two_layers_method2"),
-        0,
-        0.0,
+        Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
+    write_file(
+        joinpath(outputpath, "result_steady_heat_equation_two_layers_method2.pvd"),
         mesh,
         dict_vars,
     )

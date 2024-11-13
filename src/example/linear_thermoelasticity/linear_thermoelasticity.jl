@@ -5,8 +5,8 @@ println("Running linear thermo-elasticity API example...") #hide
 
 const dir = string(@__DIR__, "/") # Bcube dir
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using StaticArrays
 
 # Function space (here we shall use Lagrange P1 elements) and quadrature degree.
@@ -15,7 +15,7 @@ const degree = 1 # FunctionSpace degree
 const degquad = 2 * degree + 1
 
 # Input and output paths
-const outputpath = joinpath(dir, "../../../myout/elasticity/")
+const outputpath = joinpath(dir, "../../../myout/linear_thermoelasticity/")
 const meshpath = joinpath(dir, "../../../input/mesh/domainThermoElast_tri.msh")
 
 # Time stepping scheme params
@@ -143,20 +143,16 @@ function run_unsteady()
     Bcube.apply_dirichlet_to_matrix!((AT, MT), U_scal, V_scal, mesh)
 
     ## Write initial solution
-    Un = var_on_vertices(U, mesh)
-    Un = transpose(Un)
-    Tn = var_on_vertices(T, mesh)
     mkpath(outputpath)
-    dict_vars =
-        Dict("Displacement" => (Un, VTKPointData()), "Temperature" => (Tn, VTKPointData()))
+    dict_vars = Dict("Displacement" => U, "Temperature" => T)
     ## Write the obtained FE solution
-    write_vtk(
-        outputpath * "result_thermoelasticity",
-        0,
-        0.0,
+    write_file(
+        outputpath * "result_thermoelasticity.pvd",
         mesh,
-        dict_vars;
-        append = false,
+        dict_vars,
+        0,
+        0.0;
+        collection_append = false,
     )
 
     ## Time loop
@@ -190,22 +186,15 @@ function run_unsteady()
 
         ## Write solution
         if itime % 10 == 0
-            Un = var_on_vertices(U, mesh)
-            Un = transpose(Un)
-            Tn = var_on_vertices(T, mesh)
-            mkpath(outputpath)
-            dict_vars = Dict(
-                "Displacement" => (Un, VTKPointData()),
-                "Temperature" => (Tn, VTKPointData()),
-            )
+            dict_vars = Dict("Displacement" => U, "Temperature" => T)
             ## Write the obtained FE solution
-            write_vtk(
-                outputpath * "result_thermoelasticity",
-                itime,
-                t,
+            write_file(
+                outputpath * "result_thermoelasticity.pvd",
                 mesh,
-                dict_vars;
-                append = true,
+                dict_vars,
+                itime,
+                t;
+                collection_append = true,
             )
             ## In order to use the warp function in paraview (solid is deformed using the displacement field)
             ## the calculator filter has to be used with the following formula to reconstruct a 3D displacement field
