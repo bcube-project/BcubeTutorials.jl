@@ -94,11 +94,7 @@ function run_unsteady_projection_method()
 
     # Definition of bilinear and linear forms
     # Tentative velocity forms
-    # It is possible to define the mass form as usual: 
-    ## m1(u, v) = ∫(u ⋅ v)dΩ
-    # but here we shall use the function 
-    ## build_mass_matrix 
-    # This will be done later during the assembly step. We now proceed to define the other forms.
+    m1(u, v) = ∫(u ⋅ v)dΩ
     ## function l1(v)
     ##     ∫(velocity ⋅ v)dΩ - Δt * ∫(ν * ∇(velocity) ⊡ ∇(v) + (∇(velocity) * velocity) ⋅ v)dΩ
     ## end
@@ -124,7 +120,7 @@ function run_unsteady_projection_method()
     end
 
     # Assemble and factorize matrices
-    M1 = Bcube.build_mass_matrix(U_vel, V_vel, dΩ)
+    M1 = assemble_bilinear(m1, U_vel, V_vel)
     M0 = copy(M1)
     Bcube.apply_dirichlet_to_matrix!(M1, U_vel, V_vel, mesh)
     luM1 = lu(M1)
