@@ -177,7 +177,7 @@ end
 # where $m((u,p),(v,q)) = \int_\Omega \rho u \cdot v \, dx$ and
 # $l((v,q))=\int_\Omega f \cdot v \, dx$
 #
-# $\mathbb{P2}-\mathbb{P1}$ (Taylor-Hood) elements are used to discretize the weak form of the problem which leads to the linear system:
+# Taylor-Hood ($\mathbb{P2}-\mathbb{P1}$) elements are used to discretize the weak form of the problem which leads to the linear system:
 # ```math
 # \begin{bmatrix}
 #  M & 0 \\
