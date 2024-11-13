@@ -51,11 +51,11 @@ end</code></pre><p>Function that solves the problem using the projection method<
     end</code></pre><p>Assemble and factorize matrices</p><pre><code class="language-julia hljs">    M1 = assemble_bilinear(m1, U_vel, V_vel)
     M0 = copy(M1)
     Bcube.apply_dirichlet_to_matrix!(M1, U_vel, V_vel, mesh)
-    luM1 = lu(M1)
+    f_M1 = factorize(M1)
 
     A2 = assemble_bilinear(a2, U_pre, V_pre)
     Bcube.apply_dirichlet_to_matrix!(A2, U_pre, V_pre, mesh)
-    luA2 = lu(A2)</code></pre><p>Time stepping</p><pre><code class="language-julia hljs">    time = 0.0
+    f_A2 = factorize(A2)</code></pre><p>Time stepping</p><pre><code class="language-julia hljs">    time = 0.0
     itime = 0
 
     while time &lt;= finalTime
@@ -74,7 +74,7 @@ end</code></pre><p>Function that solves the problem using the projection method<
         Bcube.apply_homogeneous_dirichlet_to_vector!(L1, U_vel, V_vel, mesh)
 
         # Compute tentative velocity
-        sol = luM1 \ L1
+        sol = f_M1 \ L1
 
         set_dof_values!(velocity, sol .+ Wd)
 
@@ -83,7 +83,7 @@ end</code></pre><p>Function that solves the problem using the projection method<
         Bcube.apply_homogeneous_dirichlet_to_vector!(L2, U_pre, V_pre, mesh)
 
         # Compute pressure
-        sol = luA2 \ L2
+        sol = f_A2 \ L2
 
         set_dof_values!(pressure, sol)
 
@@ -96,7 +96,7 @@ end</code></pre><p>Function that solves the problem using the projection method<
         Bcube.apply_homogeneous_dirichlet_to_vector!(L3, U_vel, V_vel, mesh)
 
         # Velocity correction step
-        sol = luM1 \ L3
+        sol = f_M1 \ L3
 
         set_dof_values!(velocity, sol .+ Wd)
 
@@ -144,7 +144,7 @@ end</code></pre><p>The animation below shows the result of simulation with the p
     Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
     Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
 
-    luMtime = lu(M .+ Δt * A)
+    f_Mtime = factorize(M .+ Δt * A)
 
     ϕ = FEFunction(V)</code></pre><p>Time stepping</p><pre><code class="language-julia hljs">    time = 0.0
     itime = 0
@@ -167,7 +167,7 @@ end</code></pre><p>The animation below shows the result of simulation with the p
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
 
         # Compute solution
-        sol = luMtime \ (Δt * L + M * sol)
+        sol = f_Mtime \ (Δt * L + M * sol)
 
         set_dof_values!(ϕ, sol .+ Wd)
         velocity, pressure = ϕ
@@ -198,4 +198,4 @@ println(&quot;--------- solving with mixed form method ----------&quot;)
     run_unsteady_mixed()
 end
 println(&quot;---------------------------------------------------&quot;)
-println(&quot; &quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../transport_hypersurface/">« Transport equation on hypersurfaces</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 13 November 2024 16:34">Wednesday 13 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+println(&quot; &quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../transport_hypersurface/">« Transport equation on hypersurfaces</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 13 November 2024 16:45">Wednesday 13 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
