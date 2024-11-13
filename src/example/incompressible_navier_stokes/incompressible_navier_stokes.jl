@@ -123,11 +123,11 @@ function run_unsteady_projection_method()
     M1 = assemble_bilinear(m1, U_vel, V_vel)
     M0 = copy(M1)
     Bcube.apply_dirichlet_to_matrix!(M1, U_vel, V_vel, mesh)
-    luM1 = lu(M1)
+    f_M1 = factorize(M1)
 
     A2 = assemble_bilinear(a2, U_pre, V_pre)
     Bcube.apply_dirichlet_to_matrix!(A2, U_pre, V_pre, mesh)
-    luA2 = lu(A2)
+    f_A2 = factorize(A2)
 
     # Time stepping
     time = 0.0
@@ -149,7 +149,7 @@ function run_unsteady_projection_method()
         Bcube.apply_homogeneous_dirichlet_to_vector!(L1, U_vel, V_vel, mesh)
 
         ## Compute tentative velocity
-        sol = luM1 \ L1
+        sol = f_M1 \ L1
 
         set_dof_values!(velocity, sol .+ Wd)
 
@@ -158,7 +158,7 @@ function run_unsteady_projection_method()
         Bcube.apply_homogeneous_dirichlet_to_vector!(L2, U_pre, V_pre, mesh)
 
         ## Compute pressure
-        sol = luA2 \ L2
+        sol = f_A2 \ L2
 
         set_dof_values!(pressure, sol)
 
@@ -171,7 +171,7 @@ function run_unsteady_projection_method()
         Bcube.apply_homogeneous_dirichlet_to_vector!(L3, U_vel, V_vel, mesh)
 
         ## Velocity correction step
-        sol = luM1 \ L3
+        sol = f_M1 \ L3
 
         set_dof_values!(velocity, sol .+ Wd)
 
@@ -238,7 +238,7 @@ function run_unsteady_mixed()
     Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
     Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
 
-    luMtime = lu(M .+ Δt * A)
+    f_Mtime = factorize(M .+ Δt * A)
 
     ϕ = FEFunction(V)
 
@@ -264,7 +264,7 @@ function run_unsteady_mixed()
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
 
         ## Compute solution
-        sol = luMtime \ (Δt * L + M * sol)
+        sol = f_Mtime \ (Δt * L + M * sol)
 
         set_dof_values!(ϕ, sol .+ Wd)
         velocity, pressure = ϕ
