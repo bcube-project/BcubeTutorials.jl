@@ -111,8 +111,8 @@ function run_steady()
     U = MultiFESpace(U_vel, U_pre)
     V = MultiFESpace(V_vel, V_pre)
 
-    velocity = FEFunction(U_vel, 0.0)
-    pressure = FEFunction(U_pre, 0.0)
+    velocity = FEFunction(U_vel)
+    pressure = FEFunction(U_pre)
 
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
@@ -220,19 +220,18 @@ end
 
 # Function that runs the unsteady case:
 function run_unsteady()
-    # Read 2D mesh
-    mesh_path = joinpath(outputpath, "mesh.msh")
-    gen_rectangle_mesh(
-        mesh_path,
-        :quad;
-        nx = 11,
-        ny = 51,
-        lx = 1.0e-1,
-        ly = 5.0e-1,
-        xc = 0.5e-1,
-        yc = 2.5e-1,
+    # Generate 2D mesh
+    mesh = rectangle_mesh(
+        11,
+        51;
+        type = :quad,
+        xmin = 0.0,
+        xmax = 1.0e-1,
+        ymin = 0.0,
+        ymax = 5.0e-1,
+        order = 1,
+        bnd_names = ("Left", "Right", "South", "North"),
     )
-    mesh = read_msh(mesh_path)
 
     # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
     fsu = FunctionSpace(fspace, degree_u)
@@ -252,8 +251,8 @@ function run_unsteady()
     U = MultiFESpace(U_vel, U_pre)
     V = MultiFESpace(V_vel, V_pre)
 
-    velocity = FEFunction(U_vel, 0.0)
-    pressure = FEFunction(U_pre, 0.0)
+    velocity = FEFunction(U_vel)
+    pressure = FEFunction(U_pre)
 
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
@@ -270,7 +269,6 @@ function run_unsteady()
     A = assemble_bilinear(a, U, V)
     L = assemble_linear(l, V)
 
-    M0 = copy(M)
     A0 = copy(A)
 
     Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
