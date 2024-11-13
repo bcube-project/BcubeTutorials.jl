@@ -274,7 +274,7 @@ function run_unsteady()
     Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
     Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
 
-    luMtime = lu(M .+ Δt * A)
+    f_Mtime = factorize(M .+ Δt * A)
 
     ϕ = FEFunction(V)
 
@@ -298,7 +298,7 @@ function run_unsteady()
         Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
 
         ## Solve time step
-        sol = luMtime \ (Δt * L + M * sol)
+        sol = f_Mtime \ (Δt * L + M * sol)
 
         ## Write results
         if itime % 10 == 0
