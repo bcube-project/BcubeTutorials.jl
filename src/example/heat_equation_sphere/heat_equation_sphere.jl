@@ -85,7 +85,7 @@ mutable struct VtkHandler
         ϕ_centers = var_on_centers(ϕ, mesh)
         ϕ_vertices = var_on_vertices(ϕ, mesh)
 
-        ν = Bcube.CellNormal(mesh)
+        ν = get_cell_normals(CellDomain(mesh))
         ν_centers = transpose(var_on_centers(ν, mesh))
         ν_vertices = transpose(var_on_vertices(ν, mesh))
 
