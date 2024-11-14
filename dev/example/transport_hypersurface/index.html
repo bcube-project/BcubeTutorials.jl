@@ -44,7 +44,7 @@ mutable struct VtkHandler
         θ_centers = var_on_centers(θ, mesh)
         θ_vertices = var_on_vertices(θ, mesh)
 
-        ν = Bcube.CellNormal(mesh)
+        ν = get_cell_normals(dΩ)
         ν_centers = transpose(var_on_centers(ν, mesh))
         ν_vertices = transpose(var_on_vertices(ν, mesh))
 
@@ -199,7 +199,7 @@ function scalar_circle(;
 
     # Transport velocity
     _c = PhysicalFunction(x -&gt; C * SA[-x[2], x[1]] / radius)
-    P = Bcube.tangential_projector(mesh)
+    P = Bcube.tangential_projector()
     c = (x -&gt; C * normalize(x)) ∘ (P * _c) ## useless in theory since velocity is already tangent
 
     # Find quadrature weight (mesh is composed of a unique &quot;shape&quot; so first element is enough)
@@ -344,7 +344,7 @@ function vector_circle(; degree, nite, CFL, nθ)
     nΓ = get_face_normals(Γ)
 
     # Operators
-    P = Bcube.tangential_projector(mesh)
+    P = Bcube.tangential_projector()
     R = Bcube.CoplanarRotation()
 
     # Transport velocity : it must be coplanar to each element, so we use the
@@ -465,8 +465,8 @@ function scalar_cylinder(;
             &quot;u_mean&quot; =&gt; Bcube.cell_mean(u, vtk.dΩ),
             &quot;lim_u&quot; =&gt; lim_u,
             &quot;c&quot; =&gt; vtk.c,
-            &quot;cellnormal&quot; =&gt; Bcube.CellNormal(vtk.mesh),
-            &quot;u_warp&quot; =&gt; u * Bcube.CellNormal(vtk.mesh),
+            &quot;cellnormal&quot; =&gt; vtk.ν,
+            &quot;u_warp&quot; =&gt; u * vtk.ν,
         )
         Bcube.write_vtk_lagrange(
             vtk.basename * &quot;_lag&quot;,
@@ -526,7 +526,7 @@ function scalar_cylinder(;
         _x = RmatInv * x
         Rmat * SA[-Cθ * _x[2] / radius, Cθ * _x[1] / radius, Cz]
     end)
-    P = Bcube.tangential_projector(mesh) ##Bcube.TangentialProjector()
+    P = Bcube.tangential_projector()
     c = (x -&gt; C * normalize(x)) ∘ (P * _c)
 
     # Find quadrature weight (mesh is composed of a unique &quot;shape&quot; so first element is enough)
@@ -738,7 +738,7 @@ function vector_cylinder(;
     V = TestFESpace(U)
 
     # Operators
-    P = Bcube.tangential_projector(mesh)
+    P = Bcube.tangential_projector()
     R = Bcube.CoplanarRotation()
 
     # Transport velocity
@@ -899,8 +899,8 @@ function scalar_torus(;
             &quot;u_mean&quot; =&gt; Bcube.cell_mean(u, vtk.dΩ),
             &quot;lim_u&quot; =&gt; lim_u,
             &quot;c&quot; =&gt; vtk.c,
-            &quot;cellnormal&quot; =&gt; Bcube.CellNormal(vtk.mesh),
-            &quot;u_warp&quot; =&gt; u * Bcube.CellNormal(vtk.mesh),
+            &quot;cellnormal&quot; =&gt; vtk.ν,
+            &quot;u_warp&quot; =&gt; u * vtk.ν,
         )
         Bcube.write_vtk_lagrange(
             vtk.basename * &quot;_lag&quot;,
@@ -1132,4 +1132,4 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     progressBar = true,
     meshOrder = 2,
 )
-</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Wednesday 13 November 2024 19:33">Wednesday 13 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Thursday 14 November 2024 10:14">Thursday 14 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
