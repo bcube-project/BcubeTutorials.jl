@@ -55,7 +55,7 @@ g(T) = (α / π) * atan(γ * (Te - T))
 
 # Read the mesh using `gmsh`
 const mesh_path = joinpath(@__DIR__, "../../input/mesh/domainPhaseField_tri.msh")
-const mesh = read_msh(mesh_path)
+const mesh = read_mesh(mesh_path)
 
 # Noise function : random between [-1/2,1/2]
 const χ = MeshCellData(rand(ncells(mesh)) .- 0.5)

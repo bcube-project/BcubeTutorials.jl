@@ -353,7 +353,7 @@ function run_simulation(stateInit)
         xc = 0.0,
         yc = 0.0,
     )
-    mesh = read_msh(tmp_path, 2) # '2' indicates the space dimension (3 by default)
+    mesh = read_mesh(tmp_path, 2) # '2' indicates the space dimension (3 by default)
     rm(tmp_path)
 
     dimcar = compute_dimcar(mesh)

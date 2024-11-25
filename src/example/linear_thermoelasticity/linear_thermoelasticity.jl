@@ -73,7 +73,7 @@ end
 
 # Function that runs the unsteady case:
 function run_unsteady()
-    mesh = read_msh(meshpath, 2)
+    mesh = read_mesh(meshpath, 2)
 
     fs = FunctionSpace(fspace, degree)
     U_scal = TrialFESpace(fs, mesh, Dict("West1" => 280.0, "East1" => 280.0); size = 1)

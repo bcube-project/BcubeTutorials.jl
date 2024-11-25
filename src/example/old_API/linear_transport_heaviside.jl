@@ -278,7 +278,7 @@ function run()
         xc = 0.0,
         yc = 0.0,
     )
-    mesh = read_msh(tmp_path)
+    mesh = read_mesh(tmp_path)
     rm(tmp_path)
 
     # Create a `CellVariable`

@@ -333,7 +333,7 @@ const ly = 2.0 # Domain height
 # Then generate the mesh of a rectangle using Gmsh and read it
 tmp_path = "tmp.msh"
 gen_rectangle_mesh(tmp_path, :quad; nx = nx, ny = ny, lx = lx, ly = ly, xc = 0.0, yc = 0.0)
-mesh = read_msh(tmp_path)
+mesh = read_mesh(tmp_path)
 rm(tmp_path)
 
 # Create a `Variable` : we choose to use the `Taylor` function space and hence a discontinuous Galerkin framework.

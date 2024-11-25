@@ -511,7 +511,7 @@ function scalar_cylinder(;
         transfinite = true,
         order = meshOrder,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = rand(rng, 3) .* 2π
     println("θx, θy, θz = $(rad2deg.(θ))")
@@ -729,7 +729,7 @@ function vector_cylinder(;
         recombine = true,
         transfinite = true,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = rand(rng, 3) .* 2π
     println("θx, θy, θz = $(rad2deg.(θ))")
@@ -942,7 +942,7 @@ function scalar_torus(;
         order = meshOrder,
         verbose = false,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = zeros(3)
     ## θ = rand(rng, 3) .* 2π

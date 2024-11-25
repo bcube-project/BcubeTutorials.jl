@@ -57,7 +57,7 @@ mkpath(outputpath)
 # Read 2D mesh
 mesh_path = joinpath(outputpath, "mesh.msh")
 gen_disk_mesh(mesh_path; lc = 3.2e-2)
-mesh = read_msh(mesh_path)
+mesh = read_mesh(mesh_path)
 
 # Choose degree and define function space, trial space and test space
 const degree = 2

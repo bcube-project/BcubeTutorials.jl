@@ -312,7 +312,7 @@ function run_covo()
             gen_rectangle_mesh(tmp_path, :quad; meshParam...) #hide
         end #hide
     end #hide
-    mesh = read_msh(tmp_path)
+    mesh = read_mesh(tmp_path)
     rm(tmp_path)
 
     # Define variables and test functions

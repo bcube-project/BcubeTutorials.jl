@@ -315,7 +315,7 @@ function main(stateInit, stateBcFarfield, degree)
     @show degree, degquad
 
     mesh =
-        read_msh(dir * "../../../input/mesh/naca0012_o" * string(mesh_degree) * ".msh", 2)
+        read_mesh(dir * "../../../input/mesh/naca0012_o" * string(mesh_degree) * ".msh", 2)
     scale!(mesh, 1.0 / 0.5334)
 
     dimcar = compute_dimcar(mesh)

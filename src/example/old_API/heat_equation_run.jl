@@ -84,7 +84,7 @@ function run_steady()
     println("Running steady single layer case")
 
     # Read mesh
-    mesh = read_msh(dir * "input/mesh/domainSquare_tri.msh", 2)
+    mesh = read_mesh(dir * "input/mesh/domainSquare_tri.msh", 2)
 
     # Build function space and associated Trial and Test FE spaces.
     # We impose a Dirichlet condition with a temperature of 260K
@@ -131,7 +131,7 @@ function run_unsteady()
     println("Running unsteady single layer case")
 
     # Read mesh
-    mesh = read_msh(dir * "input/mesh/domainSquare_tri_2.msh", 2)
+    mesh = read_mesh(dir * "input/mesh/domainSquare_tri_2.msh", 2)
 
     # Build function space and associated Trial and Test FE spaces.
     # We impose a Dirichlet condition with a temperature of 260K

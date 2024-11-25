@@ -131,7 +131,7 @@ function run(;
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
     Bcube.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = MersenneTwister(0)
     R = rotMat(rand(rng, 3)...)
     transform!(mesh, x -> R * x) # rotate to avoid being "aligned" with an axis
