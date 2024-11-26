@@ -51,105 +51,117 @@ const ny = 20
 const out_dir = joinpath(@__DIR__, "../../myout/phase_field_supercooled") # output directory
 mkpath(out_dir) #hide
 
-g(T) = (α / π) * atan(γ * (Te - T))
-
 # Read the mesh using `gmsh`
 const mesh_path = joinpath(@__DIR__, "../../input/mesh/domainPhaseField_tri.msh")
-const mesh = read_msh(mesh_path)
 
-# Noise function : random between [-1/2,1/2]
-const χ = MeshCellData(rand(ncells(mesh)) .- 0.5)
+# Here we define the main algorithm in a function
+# to avoid performance penalty (see [Performance Tips](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-tips))
+function main()
+    # read the mesh file
+    mesh = read_msh(mesh_path)
 
-# Build the function space and the FE Spaces. The two unknowns will share the
-# same FE spaces for this tutorial. Note the way we specify the Dirichlet condition
-# in the definition of `U`.
-fs = FunctionSpace(:Lagrange, degree)
-U = TrialFESpace(fs, mesh, Dict("West" => (x, t) -> 1.0))
-V = TestFESpace(U)
+    # Noise function : random between [-1/2,1/2]
+    χ = MeshCellData(rand(ncells(mesh)) .- 0.5)
 
-# Build FE functions
-ϕ = FEFunction(U)
-T = FEFunction(U)
+    # Build the function space and the FE Spaces. The two unknowns will share the
+    # same FE spaces for this tutorial. Note the way we specify the Dirichlet condition
+    # in the definition of `U`.
+    fs = FunctionSpace(:Lagrange, degree)
+    U = TrialFESpace(fs, mesh, Dict("West" => (x, t) -> 1.0))
+    V = TestFESpace(U)
 
-# Define measures for cell integration
-dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
+    # Build FE functions
+    ϕ = FEFunction(U)
+    T = FEFunction(U)
 
-# Define bilinear and linear forms
-a(u, v) = ∫(∇(u) ⋅ ∇(v))dΩ
-m(u, v) = ∫(u ⋅ v)dΩ
-l(v) = ∫(v * ϕ * (1.0 - ϕ) * (ϕ - 0.5 + g(T) + β * χ))dΩ
+    # Define measures for cell integration
+    dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
-# Assemble the two constant matrices
-A = assemble_bilinear(a, U, V)
-M = assemble_bilinear(m, U, V)
+    g(T) = (α / π) * atan(γ * (Te - T))
 
-# Create iterative matrices
-C_ϕ = M + Δt / τ * ε^2 * A
-C_T = M + Δt * A
+    # Define bilinear and linear forms.
+    # As the linear form is assembled at each step,
+    # we use the composition operator to exploit
+    # the full performance of Bcube.
+    a(u, v) = ∫(∇(u) ⋅ ∇(v))dΩ
+    m(u, v) = ∫(u ⋅ v)dΩ
+    f_l(ϕ, T, χ, v) = v * ϕ * (1.0 - ϕ) * (ϕ - 0.5 + g(T) + β * χ)
+    l(v) = ∫(f_l ∘ (ϕ, T, χ, v))dΩ
 
-# Apply Dirichlet conditions.
-# For this example, we don't use a lifting method to impose the Dirichlet, but `d`
-# is used to initialize the solution.
-d = assemble_dirichlet_vector(U, V, mesh)
-apply_dirichlet_to_matrix!((C_ϕ, C_T), U, V, mesh)
+    # Assemble the two constant matrices
+    A = assemble_bilinear(a, U, V)
+    M = assemble_bilinear(m, U, V)
 
-# Init solution and write it to a VTK file
-set_dof_values!(ϕ, d)
-set_dof_values!(T, d)
+    # Create iterative matrices
+    C_ϕ = M + Δt / τ * ε^2 * A
+    C_T = M + Δt * A
 
-dict_vars = Dict(
-    "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
-    "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
-)
-write_vtk(joinpath(out_dir, "result_phaseField_imex_1space"), 0, 0.0, mesh, dict_vars)
+    # Apply Dirichlet conditions.
+    # For this example, we don't use a lifting method to impose the Dirichlet, but `d`
+    # is used to initialize the solution.
+    d = assemble_dirichlet_vector(U, V, mesh)
+    apply_dirichlet_to_matrix!((C_ϕ, C_T), U, V, mesh)
 
-# Factorize and allocate some vectors to increase performance
-C_ϕ = factorize(C_ϕ)
-C_T = factorize(C_T)
-L = zero(d)
-rhs = zero(d)
-ϕ_new = zero(d)
+    # Init solution and write it to a VTK file
+    set_dof_values!(ϕ, d)
+    set_dof_values!(T, d)
 
-# Time loop (imex time integration)
-t = 0.0
-itime = 0
-while t <= totalTime
-    global t, itime
-    t += Δt
-    itime += 1
-    @show t, totalTime
+    dict_vars = Dict(
+        "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
+        "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
+    )
+    write_vtk(joinpath(out_dir, "result_phaseField_imex_1space"), 0, 0.0, mesh, dict_vars)
 
-    ## Integrate equation on ϕ
-    L .= 0.0 # reset L
-    assemble_linear!(L, l, V)
-    rhs .= M * get_dof_values(ϕ) .+ Δt / τ .* L
-    apply_dirichlet_to_vector!(rhs, U, V, mesh)
-    ϕ_new .= C_ϕ \ rhs
+    # Factorize and allocate some vectors to increase performance
+    C_ϕ = factorize(C_ϕ)
+    C_T = factorize(C_T)
+    L = zero(d)
+    rhs = zero(d)
+    ϕ_new = zero(d)
 
-    ## Integrate equation on T
-    rhs .= M * (get_dof_values(T) .+ K .* (ϕ_new .- get_dof_values(ϕ)))
-    apply_dirichlet_to_vector!(rhs, U, V, mesh)
+    # Time loop (imex time integration)
+    t = 0.0
+    itime = 0
+    while t <= totalTime
+        t += Δt
+        itime += 1
+        @show t, totalTime
 
-    ## Update solution
-    set_dof_values!(ϕ, ϕ_new)
-    set_dof_values!(T, C_T \ rhs)
+        ## Integrate equation on ϕ
+        L .= 0.0 # reset L
+        assemble_linear!(L, l, V)
+        rhs .= M * get_dof_values(ϕ) .+ (Δt / τ) .* L
+        apply_dirichlet_to_vector!(rhs, U, V, mesh)
+        ϕ_new .= C_ϕ \ rhs
 
-    ## write solution in vtk format
-    if itime % nout == 0
-        dict_vars = Dict(
-            "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
-            "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
-        )
-        write_vtk(
-            joinpath(out_dir, "result_phaseField_imex_1space"),
-            itime,
-            t,
-            mesh,
-            dict_vars;
-            append = true,
-        )
+        ## Integrate equation on T
+        rhs .= M * (get_dof_values(T) .+ K .* (ϕ_new .- get_dof_values(ϕ)))
+        apply_dirichlet_to_vector!(rhs, U, V, mesh)
+
+        ## Update solution
+        set_dof_values!(ϕ, ϕ_new)
+        set_dof_values!(T, C_T \ rhs)
+
+        ## write solution in vtk format
+        if itime % nout == 0
+            dict_vars = Dict(
+                "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
+                "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
+            )
+            write_vtk(
+                joinpath(out_dir, "result_phaseField_imex_1space"),
+                itime,
+                t,
+                mesh,
+                dict_vars;
+                append = true,
+            )
+        end
     end
 end
+
+# run simulation
+main()
 
 # And here is an animation of the result:
 # ![](../assets/phase-field-supercooled-rectangle.gif)
