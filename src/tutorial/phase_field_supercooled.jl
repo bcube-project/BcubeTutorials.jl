@@ -54,6 +54,8 @@ mkpath(out_dir) #hide
 # Read the mesh using `gmsh`
 const mesh_path = joinpath(@__DIR__, "../../input/mesh/domainPhaseField_tri.msh")
 
+# Here we define the main algorithm in a function
+# to avoid performance penalty (see [Performance Tips](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-tips))
 function main()
     # read the mesh file
     mesh = read_msh(mesh_path)
@@ -78,7 +80,7 @@ function main()
     g(T) = (α / π) * atan(γ * (Te - T))
 
     # Define bilinear and linear forms.
-    # As the linear form is assembled at each steps,
+    # As the linear form is assembled at each step,
     # we use the composition operator to exploit
     # the full performance of Bcube.
     a(u, v) = ∫(∇(u) ⋅ ∇(v))dΩ
@@ -158,6 +160,7 @@ function main()
     end
 end
 
+# run simulation
 main()
 
 # And here is an animation of the result:
