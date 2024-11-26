@@ -95,8 +95,8 @@ end
 
 # Function that runs the unsteady case:
 function run_unsteady()
-    # read mesh, the second argument specifies the spatial dimension
-    mesh = read_mesh(meshpath, 2)
+    # Read the mesh
+    mesh = read_mesh(meshpath)
 
     fs = FunctionSpace(fspace, degree)
     U_vec = TrialFESpace(fs, mesh, Dict("West" => SA[0.0, 0.0]); size = 2)

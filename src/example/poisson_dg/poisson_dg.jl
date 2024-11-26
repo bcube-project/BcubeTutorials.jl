@@ -6,6 +6,7 @@ println("Running poisson DG example...") #hide
 
 # import necessary packages
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using SparseArrays
@@ -31,7 +32,7 @@ function main()
     # Build mesh
     meshParam = (nx = n + 1, ny = n + 1, lx = Lx, ly = Lx, xc = 0.0, yc = 0.0)
     tmp_path = joinpath(tempdir(), "tmp.msh")
-    gen_rectangle_mesh(tmp_path, :quad; meshParam...)
+    BcubeGmsh.gen_rectangle_mesh(tmp_path, :quad; meshParam...)
     mesh = read_mesh(tmp_path)
 
     # Choose degree and define function space, trial space and test space

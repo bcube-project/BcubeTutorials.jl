@@ -19,6 +19,7 @@ println("Running heat equation tutorial...") #hide
 # # Steady case
 # As usual, start by importing the necessary packages.
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using Test #src

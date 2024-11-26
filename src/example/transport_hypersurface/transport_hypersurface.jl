@@ -17,10 +17,11 @@ module TransportHypersurface #hide
 # ![](../assets/transport-torus-mesh2-degree1.gif)
 using Plots
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using StaticArrays
 using LinearAlgebra
 using Printf
-using WriteVTK
 using DelimitedFiles
 using Random
 using ProgressMeter
@@ -167,28 +168,26 @@ function scalar_circle(;
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         ## Build animation
-        values_vertices = var_on_vertices(u, mesh)
         values_centers = var_on_centers(u, mesh)
         ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
         θ_centers = var_on_centers(vtk.θ, mesh)
-        θ_vertices = var_on_vertices(vtk.θ, mesh)
 
         ## Write
-        Bcube.write_vtk(
-            vtk.basename,
-            vtk.ite,
-            t,
+        write_file(
+            vtk.basename * ".pvd",
             vtk.mesh,
             Dict(
-                "u_centers" => (values_centers, VTKCellData()),
-                "u_vertices" => (values_vertices, VTKPointData()),
-                "lim_u" => (get_values(lim_u), VTKCellData()),
-                "u_mean" => (get_values(u_mean), VTKCellData()),
-                "θ_centers" => (θ_centers, VTKCellData()),
-                "θ_vertices" => (θ_vertices, VTKPointData()),
+                "u_centers" => MeshCellData(values_centers),
+                "u_vertices" => u,
+                "lim_u" => lim_u,
+                "u_mean" => u_mean,
+                "θ_centers" => MeshCellData(θ_centers),
+                "θ_vertices" => vtk.θ,
             ),
+            vtk.ite,
+            t,
             ;
-            append = vtk.ite > 0,
+            collection_append = vtk.ite > 0,
         )
 
         ## Update counter
@@ -484,11 +483,11 @@ function scalar_cylinder(;
             "cellnormal" => Bcube.CellNormal(vtk.mesh),
             "u_warp" => u * Bcube.CellNormal(vtk.mesh),
         )
-        Bcube.write_vtk_lagrange(
-            vtk.basename * "_lag",
-            vars,
+        write_file(
+            vtk.basename * "_lag.pvd",
             vtk.mesh,
             vtk.U,
+            vars,
             vtk.ite,
             t;
             collection_append = vtk.ite > 0,
@@ -500,7 +499,7 @@ function scalar_cylinder(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_cylinder_shell_mesh(
+    BcubeGmsh.gen_cylinder_shell_mesh(
         mesh_path,
         nθ,
         nz;
@@ -687,28 +686,28 @@ function vector_cylinder(;
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         ## Build animation
-        values_vertices = transpose(var_on_vertices(u, mesh))
+        # values_vertices = transpose(var_on_vertices(u, mesh))
         values_centers = transpose(var_on_centers(u, mesh))
         ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
 
         ## Write
-        Bcube.write_vtk(
-            vtk.basename,
-            vtk.ite,
-            t,
+        write_file(
+            vtk.basename * ".pvd",
             vtk.mesh,
             Dict(
-                "u_centers" => (values_centers, VTKCellData()),
-                "u_vertices" => (values_vertices, VTKPointData()),
-                "lim_u" => (get_values(lim_u), VTKCellData()),
-                "u_mean" => (get_values(u_mean), VTKCellData()),
-                "θ_centers" => (vtk.θ_centers, VTKCellData()),
-                "θ_vertices" => (vtk.θ_vertices, VTKPointData()),
-                "c_centers" => (vtk.c_centers, VTKCellData()),
-                "c_vertices" => (vtk.c_vertices, VTKPointData()),
-                "ν_centers" => (vtk.ν_centers, VTKCellData()),
-                "ν_vertices" => (vtk.ν_vertices, VTKPointData()),
+                "u_centers" => MeshCellData(values_centers),
+                "u_vertices" => values_vertices,
+                "lim_u" => lim_u,
+                "u_mean" => u_mean,
+                "θ_centers" => MeshCellData(vtk.θ_centers),
+                "θ_vertices" => vtk.θ_vertices,
+                "c_centers" => MeshCellData(vtk.c_centers),
+                "c_vertices" => vtk.c_vertices,
+                "ν_centers" => MeshCellData(vtk.ν_centers),
+                "ν_vertices" => vtk.ν_vertices,
             ),
+            vtk.ite,
+            t,
             ;
             append = vtk.ite > 0,
         )
@@ -719,7 +718,7 @@ function vector_cylinder(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_cylinder_shell_mesh(
+    BcubeGmsh.gen_cylinder_shell_mesh(
         mesh_path,
         nθ,
         nz;
@@ -918,11 +917,11 @@ function scalar_torus(;
             "cellnormal" => Bcube.CellNormal(vtk.mesh),
             "u_warp" => u * Bcube.CellNormal(vtk.mesh),
         )
-        Bcube.write_vtk_lagrange(
-            vtk.basename * "_lag",
-            vars,
+        write_file(
+            vtk.basename * "_lag.pvd",
             vtk.mesh,
             vtk.U,
+            vars,
             vtk.ite,
             t;
             collection_append = vtk.ite > 0,
@@ -934,7 +933,7 @@ function scalar_torus(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_torus_shell_mesh(
+    BcubeGmsh.gen_torus_shell_mesh(
         mesh_path,
         rint,
         rext;

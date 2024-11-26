@@ -36,6 +36,7 @@ println("Running linear transport example...") #hide
 # Start by importing the necessary packages:
 # Load the necessary packages
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 
@@ -53,7 +54,7 @@ end
 
 function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
     ## Write
-    Bcube.write_file(
+    write_file(
         vtk.basename,
         vtk.mesh,
         Dict("u" => u),
@@ -80,7 +81,16 @@ const Δt = CFL * min(lx / nx, ly / ny) / norm(c) # Time step
 
 # Then generate the mesh of a rectangle using Gmsh and read it
 tmp_path = joinpath(@__DIR__, "..", "..", "myout", "tmp.msh")
-gen_rectangle_mesh(tmp_path, :quad; nx = nx, ny = ny, lx = lx, ly = ly, xc = 0.0, yc = 0.0)
+BcubeGmsh.gen_rectangle_mesh(
+    tmp_path,
+    :quad;
+    nx = nx,
+    ny = ny,
+    lx = lx,
+    ly = ly,
+    xc = 0.0,
+    yc = 0.0,
+)
 mesh = read_mesh(tmp_path)
 rm(tmp_path)
 

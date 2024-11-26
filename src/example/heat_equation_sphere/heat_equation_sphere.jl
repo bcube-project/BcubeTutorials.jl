@@ -19,6 +19,7 @@ module HeatEquationSphere #hide
 #
 using Bcube
 using BcubeVTK
+using BcubeGmsh
 using LinearAlgebra
 using StaticArrays
 using FastTransforms
@@ -130,7 +131,7 @@ function run(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
+    BcubeGmsh.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
     mesh = read_mesh(mesh_path)
     rng = MersenneTwister(0)
     R = rotMat(rand(rng, 3)...)

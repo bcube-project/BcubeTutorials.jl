@@ -3,6 +3,7 @@ println("Running covo example...") #hide
 
 const dir = string(@__DIR__, "/")
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using StaticArrays
@@ -304,12 +305,12 @@ function run_covo()
     meshParam = (nx = nx, ny = ny, lx = 2l, ly = 2l, xc = 0.0, yc = 0.0)
     tmp_path = "tmp.msh"
     if get(ENV, "BenchmarkMode", "false") == "false" #hide
-        gen_rectangle_mesh(tmp_path, :quad; meshParam...)
+        BcubeGmsh.gen_rectangle_mesh(tmp_path, :quad; meshParam...)
     else #hide
         if get(ENV, "MeshConfig", "quad") == "triquad" #hide
-            gen_rectangle_mesh_with_tri_and_quad(tmp_path; meshParam...) #hide
+            BcubeGmsh.gen_rectangle_mesh_with_tri_and_quad(tmp_path; meshParam...) #hide
         else #hide
-            gen_rectangle_mesh(tmp_path, :quad; meshParam...) #hide
+            BcubeGmsh.gen_rectangle_mesh(tmp_path, :quad; meshParam...) #hide
         end #hide
     end #hide
     mesh = read_mesh(tmp_path)
