@@ -25,6 +25,7 @@ println("Running phase field supercooled equation example...") #hide
 # # Code
 # Load the necessary packages
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using Random
@@ -58,7 +59,7 @@ const mesh_path = joinpath(@__DIR__, "../../input/mesh/domainPhaseField_tri.msh"
 # to avoid performance penalty (see [Performance Tips](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-tips))
 function main()
     # read the mesh file
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
 
     # Noise function : random between [-1/2,1/2]
     χ = MeshCellData(rand(ncells(mesh)) .- 0.5)
@@ -142,7 +143,7 @@ function main()
 
         ## write solution in vtk format
         if itime % nout == 0
-            write_vtk(filepath, mesh, dict_vars; itime, t, collection_append = true)
+            write_file(filepath, mesh, dict_vars, itime, t; collection_append = true)
         end
     end
 end

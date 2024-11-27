@@ -46,45 +46,25 @@ mutable struct VtkHandler
     U::Any
     θ::Any
     θ_centers::Any
-    θ_vertices::Any
     c::Any
     c_centers::Any
-    c_vertices::Any
     ν::Any
     ν_centers::Any
-    ν_vertices::Any
     function VtkHandler(basename, dΩ, U, c)
         @info "Writing to $basename.vtu"
 
         mesh = get_mesh(get_domain(dΩ))
         θ = PhysicalFunction(x -> atan(x[2], x[1]))
-        θ_centers = var_on_centers(θ, mesh)
-        θ_vertices = var_on_vertices(θ, mesh)
+        θ_centers = MeshCellData(var_on_centers(θ, mesh))
 
         ν = get_cell_normals(dΩ)
-        ν_centers = transpose(var_on_centers(ν, mesh))
-        ν_vertices = transpose(var_on_vertices(ν, mesh))
+        ν_centers = var_on_centers(ν, mesh)
+        _ν_centers = MeshCellData([SA[ν_centers[i, :]...] for i in 1:ncells(mesh)])
 
-        c_centers = transpose(var_on_centers(c, mesh))
-        c_vertices = transpose(var_on_vertices(c, mesh))
+        c_centers = var_on_centers(c, mesh)
+        _c_centers = MeshCellData([SA[c_centers[i, :]...] for i in 1:ncells(mesh)])
 
-        new(
-            basename,
-            0,
-            mesh,
-            dΩ,
-            U,
-            θ,
-            θ_centers,
-            θ_vertices,
-            c,
-            c_centers,
-            c_vertices,
-            ν,
-            ν_centers,
-            ν_vertices,
-        )
-        ## new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
+        new(basename, 0, mesh, dΩ, U, θ, θ_centers, c, _c_centers, ν, _ν_centers)
     end
 end
 
@@ -169,8 +149,6 @@ function scalar_circle(;
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         ## Build animation
         values_centers = var_on_centers(u, mesh)
-        ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
-        θ_centers = var_on_centers(vtk.θ, mesh)
 
         ## Write
         write_file(
@@ -181,7 +159,7 @@ function scalar_circle(;
                 "u_vertices" => u,
                 "lim_u" => lim_u,
                 "u_mean" => u_mean,
-                "θ_centers" => MeshCellData(θ_centers),
+                "θ_centers" => vtk.θ_centers,
                 "θ_vertices" => vtk.θ,
             ),
             vtk.ite,
@@ -686,30 +664,29 @@ function vector_cylinder(;
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         ## Build animation
-        # values_vertices = transpose(var_on_vertices(u, mesh))
-        values_centers = transpose(var_on_centers(u, mesh))
-        ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
+        u_centers = var_on_centers(u, mesh)
+        _u_centers = MeshCellData([SA[u_centers[i, :]...] for i in 1:ncells(vtk.mesh)])
 
         ## Write
         write_file(
             vtk.basename * ".pvd",
             vtk.mesh,
             Dict(
-                "u_centers" => MeshCellData(values_centers),
-                "u_vertices" => values_vertices,
+                "u_centers" => _u_centers,
+                "u_vertices" => u,
                 "lim_u" => lim_u,
                 "u_mean" => u_mean,
-                "θ_centers" => MeshCellData(vtk.θ_centers),
-                "θ_vertices" => vtk.θ_vertices,
-                "c_centers" => MeshCellData(vtk.c_centers),
-                "c_vertices" => vtk.c_vertices,
-                "ν_centers" => MeshCellData(vtk.ν_centers),
-                "ν_vertices" => vtk.ν_vertices,
+                "θ_centers" => vtk.θ_centers,
+                "θ_vertices" => vtk.θ,
+                "c_centers" => vtk.c_centers,
+                "c_vertices" => vtk.c,
+                "ν_centers" => vtk.ν_centers,
+                "ν_vertices" => vtk.ν,
             ),
             vtk.ite,
             t,
             ;
-            append = vtk.ite > 0,
+            collection_append = vtk.ite > 0,
         )
 
         ## Update counter
