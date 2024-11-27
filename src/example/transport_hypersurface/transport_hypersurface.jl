@@ -61,7 +61,7 @@ mutable struct VtkHandler
         θ_centers = var_on_centers(θ, mesh)
         θ_vertices = var_on_vertices(θ, mesh)
 
-        ν = Bcube.CellNormal(mesh)
+        ν = get_cell_normals(dΩ)
         ν_centers = transpose(var_on_centers(ν, mesh))
         ν_vertices = transpose(var_on_vertices(ν, mesh))
 
@@ -214,7 +214,7 @@ function scalar_circle(;
 
     ## Transport velocity
     _c = PhysicalFunction(x -> C * SA[-x[2], x[1]] / radius)
-    P = Bcube.tangential_projector(mesh)
+    P = Bcube.tangential_projector()
     c = (x -> C * normalize(x)) ∘ (P * _c) ## useless in theory since velocity is already tangent
 
     ## Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
@@ -359,7 +359,7 @@ function vector_circle(; degree, nite, CFL, nθ)
     nΓ = get_face_normals(Γ)
 
     ## Operators
-    P = Bcube.tangential_projector(mesh)
+    P = Bcube.tangential_projector()
     R = Bcube.CoplanarRotation()
 
     ## Transport velocity : it must be coplanar to each element, so we use the
@@ -480,8 +480,8 @@ function scalar_cylinder(;
             "u_mean" => cell_mean(u, vtk.dΩ),
             "lim_u" => lim_u,
             "c" => vtk.c,
-            "cellnormal" => Bcube.CellNormal(vtk.mesh),
-            "u_warp" => u * Bcube.CellNormal(vtk.mesh),
+            "cellnormal" => vtk.ν,
+            "u_warp" => u * vtk.ν,
         )
         write_file(
             vtk.basename * "_lag.pvd",
@@ -541,7 +541,7 @@ function scalar_cylinder(;
         _x = RmatInv * x
         Rmat * SA[-Cθ * _x[2] / radius, Cθ * _x[1] / radius, Cz]
     end)
-    P = Bcube.tangential_projector(mesh) ##Bcube.TangentialProjector()
+    P = Bcube.tangential_projector()
     c = (x -> C * normalize(x)) ∘ (P * _c)
 
     ## Find quadrature weight (mesh is composed of a unique "shape" so first element is enough)
@@ -753,7 +753,7 @@ function vector_cylinder(;
     V = TestFESpace(U)
 
     ## Operators
-    P = Bcube.tangential_projector(mesh)
+    P = Bcube.tangential_projector()
     R = Bcube.CoplanarRotation()
 
     ## Transport velocity
@@ -914,8 +914,8 @@ function scalar_torus(;
             "u_mean" => cell_mean(u, vtk.dΩ),
             "lim_u" => lim_u,
             "c" => vtk.c,
-            "cellnormal" => Bcube.CellNormal(vtk.mesh),
-            "u_warp" => u * Bcube.CellNormal(vtk.mesh),
+            "cellnormal" => vtk.ν,
+            "u_warp" => u * vtk.ν,
         )
         write_file(
             vtk.basename * "_lag.pvd",

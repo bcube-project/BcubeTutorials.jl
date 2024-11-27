@@ -81,11 +81,10 @@ mutable struct VtkHandler
         ϕ = PhysicalFunction(x -> cart2sphere(x)[3])
         ϕ_centers = MeshCellData(var_on_centers(ϕ, mesh))
 
-        ν = Bcube.CellNormal(mesh)
-        ν_centers = var_on_centers(ν, mesh)
-        _ν_centers = MeshCellData([SA[ν_centers[i, :]...] for i in 1:ncells(mesh)])
+        ν = get_cell_normals(CellDomain(mesh))
+        ν_centers = MeshCellData(var_on_centers(ν, mesh))
 
-        new(basename, 0, mesh, θ, θ_centers, ϕ, ϕ_centers, ν, _ν_centers)
+        new(basename, 0, mesh, θ, θ_centers, ϕ, ϕ_centers, ν, ν_centers)
     end
 end
 
