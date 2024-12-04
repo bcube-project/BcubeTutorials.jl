@@ -3,8 +3,9 @@ println("Running euler_naca_steady example...") #hide
 # # Solve Euler equation around a NACA0012 airfoil
 
 using Bcube
+using BcubeGmsh
 using BcubeVTK
-using WriteVTK # for write_vtk_bnd_discontinuous
+using WriteVTK # for write_vtk_bnd_discontinuous (VTKPointData, VTKCellData)
 using LinearAlgebra
 using StaticArrays
 using BenchmarkTools
@@ -12,7 +13,6 @@ using Roots
 using SparseArrays
 using Profile
 using InteractiveUtils
-using WriteVTK
 using DifferentialEquations
 using Symbolics
 using SparseDiffTools
@@ -314,8 +314,7 @@ end
 function main(stateInit, stateBcFarfield, degree)
     @show degree, degquad
 
-    mesh =
-        read_msh(dir * "../../../input/mesh/naca0012_o" * string(mesh_degree) * ".msh", 2)
+    mesh = read_mesh(dir * "../../../input/mesh/naca0012_o" * string(mesh_degree) * ".msh")
     scale!(mesh, 1.0 / 0.5334)
 
     dimcar = compute_dimcar(mesh)

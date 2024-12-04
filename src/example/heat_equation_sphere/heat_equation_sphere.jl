@@ -19,6 +19,7 @@ module HeatEquationSphere #hide
 #
 using Bcube
 using BcubeVTK
+using BcubeGmsh
 using LinearAlgebra
 using StaticArrays
 using FastTransforms
@@ -80,7 +81,7 @@ mutable struct VtkHandler
         ϕ = PhysicalFunction(x -> cart2sphere(x)[3])
         ϕ_centers = MeshCellData(var_on_centers(ϕ, mesh))
 
-        ν = Bcube.CellNormal(mesh)
+        ν = get_cell_normals(CellDomain(mesh))
         ν_centers = var_on_centers(ν, mesh)
         _ν_centers = MeshCellData([SA[ν_centers[i, :]...] for i in 1:ncells(mesh)])
 
@@ -130,8 +131,8 @@ function run(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
-    mesh = read_msh(mesh_path)
+    BcubeGmsh.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
+    mesh = read_mesh(mesh_path)
     rng = MersenneTwister(0)
     R = rotMat(rand(rng, 3)...)
     transform!(mesh, x -> R * x) # rotate to avoid being "aligned" with an axis

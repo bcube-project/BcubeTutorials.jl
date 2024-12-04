@@ -47,6 +47,7 @@ println("Running constrained poisson API example...") #hide
 
 # import necessary packages
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using SparseArrays
@@ -56,8 +57,8 @@ mkpath(outputpath)
 
 # Read 2D mesh
 mesh_path = joinpath(outputpath, "mesh.msh")
-gen_disk_mesh(mesh_path; lc = 3.2e-2)
-mesh = read_msh(mesh_path)
+BcubeGmsh.gen_disk_mesh(mesh_path; lc = 3.2e-2)
+mesh = read_mesh(mesh_path)
 
 # Choose degree and define function space, trial space and test space
 const degree = 2

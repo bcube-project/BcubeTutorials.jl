@@ -19,6 +19,7 @@ println("Running heat equation tutorial...") #hide
 # # Steady case
 # As usual, start by importing the necessary packages.
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using Test #src
@@ -37,7 +38,7 @@ mkpath(outputpath) #hide
 
 # Read 2D mesh
 mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri.msh")
-mesh = read_msh(mesh_path)
+mesh = read_mesh(mesh_path)
 
 # Build function space and associated Trial and Test FE spaces.
 # We impose a Dirichlet condition with a temperature of 260K
@@ -89,7 +90,7 @@ totalTime = 100.0
 
 # Read a slightly different mesh
 mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri_2.msh")
-mesh = read_msh(mesh_path)
+mesh = read_mesh(mesh_path)
 
 # The rest is similar to the steady case
 fs = FunctionSpace(:Lagrange, degree)

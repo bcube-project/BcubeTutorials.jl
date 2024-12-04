@@ -89,6 +89,8 @@ for name in (
     "transport_supg",
     "heat_equation_sphere",
     "transport_hypersurface",
+    "stokes_flow",
+    "incompressible_navier_stokes",
 )
     gen_markdown_with_literate(joinpath(example_src, name), "$(name).jl", example_dir)
 end
@@ -119,6 +121,8 @@ makedocs(;
             "example/heat_equation_sphere.md",
             "example/heat_equation_two_layers.md",
             "example/transport_hypersurface.md",
+            "example/stokes_flow.md",
+            "example/incompressible_navier_stokes.md",
         ],
     ],
     # remotes = nothing, # tmp fix for bmxam windows

@@ -120,6 +120,7 @@ println("Running shallow_water example...") #hide
 
 const dir = string(@__DIR__, "/")
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using StaticArrays
@@ -343,7 +344,7 @@ function run_simulation(stateInit)
     # Then generate the mesh of a rectangle using Gmsh and read it
     tmp_path = "tmp.msh"
     nx, ny, lx, ly = stateInit.nx, stateInit.ny, stateInit.lx, stateInit.ly
-    gen_rectangle_mesh(
+    BcubeGmsh.gen_rectangle_mesh(
         tmp_path,
         :quad;
         nx = nx,
@@ -353,7 +354,7 @@ function run_simulation(stateInit)
         xc = 0.0,
         yc = 0.0,
     )
-    mesh = read_msh(tmp_path, 2) # '2' indicates the space dimension (3 by default)
+    mesh = read_mesh(tmp_path)
     rm(tmp_path)
 
     dimcar = compute_dimcar(mesh)

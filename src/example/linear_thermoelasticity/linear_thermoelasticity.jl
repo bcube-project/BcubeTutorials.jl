@@ -5,6 +5,7 @@ println("Running linear thermo-elasticity API example...") #hide
 
 const dir = string(@__DIR__, "/") # Bcube dir
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using StaticArrays
@@ -73,7 +74,7 @@ end
 
 # Function that runs the unsteady case:
 function run_unsteady()
-    mesh = read_msh(meshpath, 2)
+    mesh = read_mesh(meshpath)
 
     fs = FunctionSpace(fspace, degree)
     U_scal = TrialFESpace(fs, mesh, Dict("West1" => 280.0, "East1" => 280.0); size = 1)
