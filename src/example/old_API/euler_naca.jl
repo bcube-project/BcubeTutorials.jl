@@ -414,9 +414,9 @@ function run(stateInit, stateBcFarfield, degree)
             xc = 0.0,
             yc = 0.0,
         )
-        mesh = read_msh(tmp_path)
+        mesh = read_mesh(tmp_path)
     else
-        mesh = read_msh(dir * "../input/mesh/naca0012_o" * string(mesh_degree) * ".msh")
+        mesh = read_mesh(dir * "../input/mesh/naca0012_o" * string(mesh_degree) * ".msh")
     end
 
     dimcar = compute_dimcar(mesh)

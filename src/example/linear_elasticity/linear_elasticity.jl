@@ -5,8 +5,8 @@ println("Running linear elasticity API example...") #hide
 
 const dir = string(@__DIR__, "/") # bcube/example dir
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using StaticArrays
 
 # function space (here we shall use Lagrange P1 elements) and quadrature degree.
@@ -15,7 +15,7 @@ const degree = 1 # FunctionSpace degree
 const degquad = 2 * degree + 1
 
 # Input and output paths
-const outputpath = dir * "../../../myout/elasticity/"
+const outputpath = dir * "../../../myout/linear_elasticity/"
 const meshpath = dir * "../../../input/mesh/domainElast_tri.msh"
 
 # Time stepping scheme params
@@ -42,7 +42,7 @@ Bcube.materialize(A::LinearAlgebra.UniformScaling, B) = A
 # Function that runs the steady case:
 function run_steady()
     # read mesh, the second argument specifies the spatial dimension
-    mesh = read_msh(meshpath, 2)
+    mesh = read_mesh(meshpath, 2)
 
     fs = FunctionSpace(fspace, degree)
     U_vec = TrialFESpace(
@@ -67,11 +67,10 @@ function run_steady()
     sys = Bcube.AffineFESystem(a, l, U_vec, V_vec)
     ϕ = Bcube.solve(sys)
 
-    Un = var_on_vertices(ϕ, mesh)
     # Write the obtained FE solution
-    dict_vars = Dict("Displacement" => (transpose(Un), VTKPointData()))
+    dict_vars = Dict("Displacement" => ϕ)
     mkpath(outputpath)
-    write_vtk(outputpath * "result_elasticity", itime, t, mesh, dict_vars; append = false)
+    write_file(outputpath * "result_elasticity.pvd", mesh, dict_vars)
 end
 
 # Function that performs a time step using a Newmark α-HHT scheme
@@ -96,8 +95,8 @@ end
 
 # Function that runs the unsteady case:
 function run_unsteady()
-    # read mesh, the second argument specifies the spatial dimension
-    mesh = read_msh(meshpath, 2)
+    # Read the mesh
+    mesh = read_mesh(meshpath)
 
     fs = FunctionSpace(fspace, degree)
     U_vec = TrialFESpace(fs, mesh, Dict("West" => SA[0.0, 0.0]); size = 2)
@@ -132,11 +131,10 @@ function run_unsteady()
     G0 = zeros(Bcube.get_ndofs(U_vec))
 
     # Write initial solution
-    Un = var_on_vertices(ϕ, mesh)
     # Write the obtained FE solution
-    dict_vars = Dict("Displacement" => (transpose(Un), VTKPointData()))
+    dict_vars = Dict("Displacement" => ϕ)
     mkpath(outputpath)
-    write_vtk(outputpath * "result_elasticity", 0, 0.0, mesh, dict_vars; append = false)
+    write_file(outputpath * "result_elasticity.pvd", mesh, dict_vars, 0, 0.0)
 
     # Time loop
     totalTime = 1.0e-3
@@ -164,16 +162,15 @@ function run_unsteady()
 
         # Write solution
         if itime % 10 == 0
-            Un = var_on_vertices(ϕ, mesh)
             # Write the obtained FE solution
-            dict_vars = Dict("Displacement" => (transpose(Un), VTKPointData()))
-            write_vtk(
-                outputpath * "result_elasticity",
-                itime,
-                t,
+            dict_vars = Dict("Displacement" => ϕ)
+            write_file(
+                outputpath * "result_elasticity.pvd",
                 mesh,
-                dict_vars;
-                append = true,
+                dict_vars,
+                itime,
+                t;
+                collection_append = true,
             )
             # In order to use the warp function in paraview (solid is deformed using the displacement field)
             # the calculator filter has to be used with the following formula to reconstruct a 3D displacement field

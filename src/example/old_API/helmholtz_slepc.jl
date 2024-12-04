@@ -61,7 +61,7 @@ isRoot && gen_cylinder_mesh(mesh_path, 10.0, 30; npartitions = nprocs)
 
 # Read mesh and partitions
 MPI.Barrier(comm) # all procs must wait for the mesh to be built (otherwise they start reading a wrong mesh)
-mesh = read_msh(mesh_path)
+mesh = read_mesh(mesh_path)
 cell2part = read_partitions(mesh_path, topoDim)
 
 # Next, create a scalar variable named `:u`. The Lagrange polynomial space is used here. By default,

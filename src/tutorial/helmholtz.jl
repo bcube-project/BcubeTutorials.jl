@@ -91,24 +91,19 @@ vp, vecp = eigen(Matrix(A), Matrix(B))
 # Display the "first" five eigenvalues:
 @show sqrt.(abs.(vp[3:8]))
 
-# Now we can export the solution (the eigenvectors) at nodes of the mesh for several eigenvalues.   #md
+# Now we can export the solution (the eigenvectors) at nodes (or, eventually, at centers) of the mesh for several eigenvalues.   #md
 # We will restrict to the first 20 eigenvectors. To do so, we will create a `FEFunction` for each   #md
 # eigenvector. This `FEFunction` can then be evaluated on the mesh centers, nodes, etc.             #md
-ϕ = FEFunction(U)                               #md
-nvecs = min(20, get_ndofs(U))                   #md
-values = zeros(nnodes(mesh), nvecs)             #md
-for ivec in 1:nvecs                             #md
-    set_dof_values!(ϕ, vecp[:, ivec])           #md
-    values[:, ivec] = var_on_vertices(ϕ, mesh)  #md
-end                                             #md
+nvecs = min(20, get_ndofs(U))                                                                       #md
+eigenvectors = map(ivec -> FEFunction(U, vecp[:, ivec]), 1:nvecs)                                   #md
 
-# To write a VTK file, we need to build a dictionnary linking the variable name with its #md
-# values and type #md
-using WriteVTK #md
-outputvtk = "../../myout/helmholtz/rectangle_mesh"                          #md
+# To write a VTK file, we need to build a dictionnary with the variable name #md
+# and the values. By default, `write_file` writes the solution on mesh vertices. #md
+using BcubeVTK #md
+outputvtk = "../../myout/helmholtz/rectangle_mesh.pvd"                      #md
 mkpath(dirname(joinpath(@__DIR__, outputvtk)))                              #src
-dict_vars = Dict("u_$i" => (values[:, i], VTKPointData()) for i in 1:nvecs) #md
-write_vtk(joinpath(@__DIR__, outputvtk), 0, 0.0, mesh, dict_vars)           #md
+dict_vars = Dict("u_$i" => eigenvectors[i] for i in 1:nvecs)                #md
+write_file(joinpath(@__DIR__, outputvtk), mesh, dict_vars)                  #md
 
 # And here is the eigenvector corresponding to the 4th eigenvalue:
 # ![](../assets/helmholtz_x21_y21_vp6.png)

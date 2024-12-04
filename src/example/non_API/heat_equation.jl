@@ -32,7 +32,7 @@ using WriteVTK
 using Printf
 
 # Read mesh
-mesh = read_msh(dir * "input/mesh/domainSquare_tri.msh", 2)
+mesh = read_mesh(dir * "input/mesh/domainSquare_tri.msh", 2)
 
 # Function space
 fs = FunctionSpace(:Lagrange, 2)

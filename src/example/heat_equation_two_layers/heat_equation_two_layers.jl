@@ -16,8 +16,8 @@ println("Running heat equation two layers example...") #hide
 
 const dir = joinpath(@__DIR__, "..", "..", "..") # BcubeTutorials dir
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using Test #src
 
 function T_analytical_two_layers(x, λ1, λ2, T0, T1, L)
@@ -44,8 +44,7 @@ function run_steady_two_layers_method1(; degree)
     λ2 = 10.0
 
     # Read mesh
-    mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices =
-        read_msh_with_cell_names(joinpath(dir, "input", "mesh", "domainTwoLayer_tri.msh"))
+    mesh = read_mesh(joinpath(dir, "input", "mesh", "domainTwoLayer_tri.msh"))
 
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, Dict("West" => T0, "East" => T1))
@@ -54,17 +53,12 @@ function run_steady_two_layers_method1(; degree)
     # Define measures for cell integration
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
-    material_1 = el_cells[el_names_inv["Domain_1"]]
-    material_2 = el_cells[el_names_inv["Domain_2"]]
+    material_1 = Bcube.get_zone_element_indices(mesh, "Domain_1")
+    material_2 = Bcube.get_zone_element_indices(mesh, "Domain_2")
 
     λ = zeros(ncells(mesh))
-
-    for i in material_1
-        λ[glo2loc_cell_indices[i]] = λ1
-    end
-    for i in material_2
-        λ[glo2loc_cell_indices[i]] = λ2
-    end
+    λ[material_1] .= λ1
+    λ[material_2] .= λ2
 
     qtmp = zeros(ncells(mesh))
 
@@ -83,11 +77,9 @@ function run_steady_two_layers_method1(; degree)
     Tcn = var_on_centers(ϕ, mesh)
     Tca = var_on_centers(T_analytical, mesh)
     dict_vars =
-        Dict("Temperature" => (Tcn, VTKCellData()), "Temperature_a" => (Tca, VTKCellData()))
-    write_vtk(
-        joinpath(outputpath, "result_steady_heat_equation_two_layers_method1"),
-        0,
-        0.0,
+        Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
+    write_file(
+        joinpath(outputpath, "result_steady_heat_equation_two_layers_method1.pvd"),
         mesh,
         dict_vars,
     )
@@ -111,23 +103,20 @@ function run_steady_two_layers_method2(; degree)
     λ2 = 10.0
 
     # Read mesh
-    mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices =
-        read_msh_with_cell_names(joinpath(dir, "input", "mesh", "domainTwoLayer_tri.msh"))
+    mesh = read_mesh(joinpath(dir, "input", "mesh", "domainTwoLayer_tri.msh"))
 
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, Dict("West" => T0, "East" => T1))
     V = TestFESpace(U)
 
-    material_1 = el_cells[el_names_inv["Domain_1"]]
-    material_2 = el_cells[el_names_inv["Domain_2"]]
+    material_1 = Bcube.get_zone_element_indices(mesh, "Domain_1")
+    material_2 = Bcube.get_zone_element_indices(mesh, "Domain_2")
 
     # Define measures for cell and interior face integrations
-    ind_Ω1 = [glo2loc_cell_indices[i] for i in material_1]
-    ind_Ω2 = [glo2loc_cell_indices[i] for i in material_2]
 
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
-    dΩ1 = Measure(CellDomain(mesh, ind_Ω1), 2 * degree + 1)
-    dΩ2 = Measure(CellDomain(mesh, ind_Ω2), 2 * degree + 1)
+    dΩ1 = Measure(CellDomain(mesh, material_1), 2 * degree + 1)
+    dΩ2 = Measure(CellDomain(mesh, material_2), 2 * degree + 1)
 
     qtmp = zeros(ncells(mesh))
 
@@ -145,11 +134,9 @@ function run_steady_two_layers_method2(; degree)
     Tcn = var_on_centers(ϕ, mesh)
     Tca = var_on_centers(T_analytical, mesh)
     dict_vars =
-        Dict("Temperature" => (Tcn, VTKCellData()), "Temperature_a" => (Tca, VTKCellData()))
-    write_vtk(
-        joinpath(outputpath, "result_steady_heat_equation_two_layers_method2"),
-        0,
-        0.0,
+        Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
+    write_file(
+        joinpath(outputpath, "result_steady_heat_equation_two_layers_method2.pvd"),
         mesh,
         dict_vars,
     )

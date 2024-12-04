@@ -6,8 +6,8 @@ println("Running Stokes flow API example...") #hide
 #
 # ## Steady case - Moffat vortices
 # ### Theory
-# Let's first consider a Stokes flow within a wedge of angle $\theta = 28^\circ$ and height $H=1m$. A velocity of $1m/s$ is imposed on the top boundary (the lid) as well as zero pressure. 
-# On the left and right edges a no-slip boundary condition is applied. 
+# Let's first consider a Stokes flow within a wedge of angle $\theta = 28^\circ$ and height $H=1m$. A velocity of $1m/s$ is imposed on the top boundary (the lid) as well as zero pressure.
+# On the left and right edges a no-slip boundary condition is applied.
 #
 # ![](../assets/Stokes_steady_Moffat_vortices_1.png)
 #
@@ -26,7 +26,7 @@ println("Running Stokes flow API example...") #hide
 # \begin{cases}
 #   \textrm{ Find } u \in V \textrm{ and } p \in Q \textrm{ such that } \forall v \in V, \, \forall q \in Q\\
 #   \int_\Omega \left( \mu \nabla u : \nabla v - p \nabla \cdot v \right) \, dx  = \int_\Omega f \cdot v \, dx  \\
-#   \int_\Omega q \nabla \cdot u\, dx  = 0  
+#   \int_\Omega q \nabla \cdot u\, dx  = 0
 # \end{cases}
 # ```
 # where $V$ and $Q$ are suitable function spaces. This can be recast in "mixed" formalism:
@@ -35,29 +35,30 @@ println("Running Stokes flow API example...") #hide
 #   \textrm{ Find } (u,p) \in W=V \times Q  \textrm{ such that } \forall (v,q) \in W\\
 #   a((u,p),(v,q)) = l((v,q))
 # \end{cases}
-# ``` 
+# ```
 # where $a((u,p),(v,q)) = \int_\Omega \left( \mu \nabla u : \nabla v - p \nabla \cdot v +q \nabla \cdot u \right)\, dx$ and
 # $l((v,q))=\int_\Omega f \cdot v \, dx$
-# 
+#
 # Taylor-Hood ($\mathbb{P2}-\mathbb{P1}$) elements are used to discretize the weak form of the problem which leads to the linear system:
 # ```math
 # \begin{bmatrix}
 #  A & B^T \\
-#  B & 0 
-# \end{bmatrix} 
-# \begin{bmatrix} 
+#  B & 0
+# \end{bmatrix}
+# \begin{bmatrix}
 # U \\
 # P
 # \end{bmatrix}
 # = L
-# ``` 
+# ```
 #
 # ### Commented code
 
 # import necessary packages
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using StaticArrays
 using SpecialFunctions
 
@@ -87,7 +88,7 @@ function run_steady()
     # Read 2D mesh
     mesh_path =
         joinpath(@__DIR__, "..", "..", "..", "input", "mesh", "domainTriangle_tri.msh")
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
 
     # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
     fsu = FunctionSpace(fspace, degree_u)
@@ -149,15 +150,15 @@ function run_steady()
     velocity, pressure = ϕ
 
     vars = Dict("Velocity" => velocity, "Pressure" => pressure)
-    Bcube.write_vtk_lagrange(joinpath(outputpath, "output_steady"), vars, mesh)
+    write_file(joinpath(outputpath, "output_steady.pvd"), mesh, vars)
 end
 # The obtained solution captures the Moffat vortices topology of the flow
 # ![](../assets/Stokes_flow_Moffat_vortices.png)
 
 # ## Unsteady case - oscillating plate
 # ### Theory
-# Let's now consider a Stokes flow over an oscillating flat plate of length $0.1m$ and height $0.5m$. An oscillating velocity $(\sin(2\pi f t),0)$ is imposed on the bottom boundary as well as zero pressure. 
-# On all the other boundaries a "do nothing" condition is applied: $-pn + \mu \frac{\partial u}{\partial n} = 0$. 
+# Let's now consider a Stokes flow over an oscillating flat plate of length $0.1m$ and height $0.5m$. An oscillating velocity $(\sin(2\pi f t),0)$ is imposed on the bottom boundary as well as zero pressure.
+# On all the other boundaries a "do nothing" condition is applied: $-pn + \mu \frac{\partial u}{\partial n} = 0$.
 # The set of equations are:
 # ```math
 # \begin{cases}
@@ -173,7 +174,7 @@ end
 #   \textrm{ Find } (u,p) \in W=V \times Q  \textrm{ such that } \forall (v,q) \in W\\
 #   m((u,p),(v,q))+a((u,p),(v,q)) = l((v,q))
 # \end{cases}
-# ``` 
+# ```
 # where $m((u,p),(v,q)) = \int_\Omega \rho u \cdot v \, dx$ and
 # $l((v,q))=\int_\Omega f \cdot v \, dx$
 #
@@ -181,27 +182,27 @@ end
 # ```math
 # \begin{bmatrix}
 #  M & 0 \\
-#  0 & 0 
-# \end{bmatrix} 
-# \begin{bmatrix} 
+#  0 & 0
+# \end{bmatrix}
+# \begin{bmatrix}
 # \dot{U} \\
 # \dot{P}
 # \end{bmatrix} +
 # \begin{bmatrix}
 #  A & B^T \\
-#  B & 0 
-# \end{bmatrix} 
-# \begin{bmatrix} 
+#  B & 0
+# \end{bmatrix}
+# \begin{bmatrix}
 # U \\
 # P
 # \end{bmatrix}
 # = L
-# ``` 
+# ```
 #
 # ### Commented code
 
 # Reference solution for unsteady case (Panton, R. L. (2013). Incompressible Flow, 4th edition, pages 228-236)
-# This solution is valid for a semi-infinite domain.  
+# This solution is valid for a semi-infinite domain.
 function reference_solution(t, x)
     Uₛ = exp(-k * x[2]) * sin(2.0 * π * f * t - k * x[2])
     T = 2.0 * π * f * t
@@ -278,6 +279,19 @@ function run_unsteady()
 
     ϕ = FEFunction(V)
 
+    velocity_ref(t) = PhysicalFunction(x -> SA[reference_solution(t, x), 0.0])
+
+    # Write initial solution
+    filepath = joinpath(outputpath, "output_unsteady.pvd")
+    err = velocity - velocity_ref(0.0)
+    vars = Dict(
+        "Velocity" => velocity,
+        "Velocity_ref" => velocity_ref(0.0),
+        "error" => err,
+        "Pressure" => pressure,
+    )
+    write_file(filepath, mesh, vars, 0, 0.0; collection_append = false)
+
     # Time loop
     time = 0.0
     itime = 0
@@ -305,22 +319,15 @@ function run_unsteady()
             set_dof_values!(ϕ, sol .+ Wd)
             velocity, pressure = ϕ
 
-            velocity_ref = PhysicalFunction(x -> SA[reference_solution(time, x), 0.0])
-            error = velocity - velocity_ref
+            err = velocity - velocity_ref(time)
 
             vars = Dict(
                 "Velocity" => velocity,
-                "Velocity_ref" => velocity_ref,
-                "error" => error,
+                "Velocity_ref" => velocity_ref(time),
+                "error" => err,
                 "Pressure" => pressure,
             )
-            Bcube.write_vtk_lagrange(
-                joinpath(outputpath, "output_unsteady"),
-                vars,
-                mesh,
-                itime,
-                time,
-            )
+            write_file(filepath, mesh, vars, itime, time; collection_append = true)
         end
     end
 end

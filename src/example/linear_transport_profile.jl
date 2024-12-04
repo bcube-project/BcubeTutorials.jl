@@ -22,7 +22,7 @@ function run_linear_transport()
 
     # tmp_path = "tmp.msh"
     # gen_rectangle_mesh(tmp_path, :quad; nx = nx, ny = ny, lx = lx, ly = ly, xc = 0., yc = 0.)
-    # mesh = read_msh(tmp_path)
+    # mesh = read_mesh(tmp_path)
     # rm(tmp_path)
     # mesh = line_mesh(nx; xmin=-lx / 2, xmax=lx / 2)
     mesh =

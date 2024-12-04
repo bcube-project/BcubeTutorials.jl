@@ -47,17 +47,18 @@ println("Running constrained poisson API example...") #hide
 
 # import necessary packages
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using LinearAlgebra
 using SparseArrays
-using WriteVTK
 
 const outputpath = joinpath(@__DIR__, "../../../myout/constrained_poisson/")
 mkpath(outputpath)
 
 # Read 2D mesh
 mesh_path = joinpath(outputpath, "mesh.msh")
-gen_disk_mesh(mesh_path; lc = 3.2e-2)
-mesh = read_msh(mesh_path)
+BcubeGmsh.gen_disk_mesh(mesh_path; lc = 3.2e-2)
+mesh = read_mesh(mesh_path)
 
 # Choose degree and define function space, trial space and test space
 const degree = 2
@@ -115,8 +116,8 @@ u_ref = PhysicalFunction(x -> cos(4.0 * π * (x[1]^2 + x[2]^2)))
 error = u_ref - u
 
 vars = Dict("Numerical solution" => u, "Analytical solution" => u_ref, "error" => error)
-filename = joinpath(outputpath, "output")
-Bcube.write_vtk_lagrange(filename, vars, mesh, U)
+filename = joinpath(outputpath, "output.pvd")
+write_file(filename, mesh, U, vars)
 
 l2(u) = sqrt(sum(Bcube.compute(∫(u ⋅ u)dΩ)))
 el2 = l2(error) / l2(u_ref)

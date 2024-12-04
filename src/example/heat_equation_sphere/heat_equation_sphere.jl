@@ -18,7 +18,8 @@ module HeatEquationSphere #hide
 # ![](../assets/heat_equation_sphere.gif)
 #
 using Bcube
-using WriteVTK
+using BcubeVTK
+using BcubeGmsh
 using LinearAlgebra
 using StaticArrays
 using FastTransforms
@@ -69,65 +70,45 @@ mutable struct VtkHandler
     mesh::Any
     θ::Any
     θ_centers::Any
-    θ_vertices::Any
     ϕ::Any
     ϕ_centers::Any
-    ϕ_vertices::Any
     ν::Any
     ν_centers::Any
-    ν_vertices::Any
     function VtkHandler(basename, mesh)
         θ = PhysicalFunction(x -> cart2sphere(x)[2])
-        θ_centers = var_on_centers(θ, mesh)
-        θ_vertices = var_on_vertices(θ, mesh)
+        θ_centers = MeshCellData(var_on_centers(θ, mesh))
 
         ϕ = PhysicalFunction(x -> cart2sphere(x)[3])
-        ϕ_centers = var_on_centers(ϕ, mesh)
-        ϕ_vertices = var_on_vertices(ϕ, mesh)
+        ϕ_centers = MeshCellData(var_on_centers(ϕ, mesh))
 
         ν = get_cell_normals(CellDomain(mesh))
-        ν_centers = transpose(var_on_centers(ν, mesh))
-        ν_vertices = transpose(var_on_vertices(ν, mesh))
+        ν_centers = var_on_centers(ν, mesh)
+        _ν_centers = MeshCellData([SA[ν_centers[i, :]...] for i in 1:ncells(mesh)])
 
-        new(
-            basename,
-            0,
-            mesh,
-            θ,
-            θ_centers,
-            θ_vertices,
-            ϕ,
-            ϕ_centers,
-            ϕ_vertices,
-            ν,
-            ν_centers,
-            ν_vertices,
-        )
+        new(basename, 0, mesh, θ, θ_centers, ϕ, ϕ_centers, ν, _ν_centers)
     end
 end
 
 function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
-    values_vertices = var_on_vertices(u, vtk.mesh)
-    values_centers = var_on_centers(u, vtk.mesh)
+    values_centers = MeshCellData(var_on_centers(u, vtk.mesh))
 
     ## Write
-    Bcube.write_vtk(
+    write_file(
         vtk.basename,
-        vtk.ite,
-        t,
         vtk.mesh,
         Dict(
-            "u_centers" => (values_centers, VTKCellData()),
-            "u_vertices" => (values_vertices, VTKPointData()),
-            "θ_centers" => (vtk.θ_centers, VTKCellData()),
-            "θ_vertices" => (vtk.θ_vertices, VTKPointData()),
-            "ϕ_centers" => (vtk.ϕ_centers, VTKCellData()),
-            "ϕ_vertices" => (vtk.ϕ_vertices, VTKPointData()),
-            "ν_centers" => (vtk.ν_centers, VTKCellData()),
-            "ν_vertices" => (vtk.ν_vertices, VTKPointData()),
+            "u_centers" => values_centers,
+            "u_vertices" => u,
+            "θ_centers" => vtk.θ_centers,
+            "θ_vertices" => vtk.θ,
+            "ϕ_centers" => vtk.ϕ_centers,
+            "ϕ_vertices" => vtk.ϕ,
+            "ν_centers" => vtk.ν_centers,
+            "ν_vertices" => vtk.ν,
         ),
-        ;
-        append = vtk.ite > 0,
+        vtk.ite,
+        t;
+        collection_append = vtk.ite > 0,
     )
 
     ## Update counter
@@ -145,13 +126,13 @@ function run(;
 )
 
     ## Settings
-    out_dir = joinpath(@__DIR__, "../../../myout/heat_eqn_sphere")
+    out_dir = joinpath(@__DIR__, "..", "..", "..", "myout", "heat_eqn_sphere")
     mkpath(out_dir)
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
-    mesh = read_msh(mesh_path)
+    BcubeGmsh.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
+    mesh = read_mesh(mesh_path)
     rng = MersenneTwister(0)
     R = rotMat(rand(rng, 3)...)
     transform!(mesh, x -> R * x) # rotate to avoid being "aligned" with an axis
@@ -160,7 +141,7 @@ function run(;
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
     ## Prepare output
-    vtk = VtkHandler(joinpath(out_dir, "result_d$(degree)"), mesh)
+    vtk = VtkHandler(joinpath(out_dir, "result_d$(degree).pvd"), mesh)
 
     ## Discretization
     U = TrialFESpace(FunctionSpace(:Lagrange, degree), mesh)

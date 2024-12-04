@@ -25,8 +25,9 @@ println("Running phase field supercooled equation example...") #hide
 # # Code
 # Load the necessary packages
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using Random
 
 Random.seed!(1234) # to obtain reproductible results
@@ -58,7 +59,7 @@ const mesh_path = joinpath(@__DIR__, "../../input/mesh/domainPhaseField_tri.msh"
 # to avoid performance penalty (see [Performance Tips](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-tips))
 function main()
     # read the mesh file
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
 
     # Noise function : random between [-1/2,1/2]
     χ = MeshCellData(rand(ncells(mesh)) .- 0.5)
@@ -106,11 +107,9 @@ function main()
     set_dof_values!(ϕ, d)
     set_dof_values!(T, d)
 
-    dict_vars = Dict(
-        "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
-        "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
-    )
-    write_vtk(joinpath(out_dir, "result_phaseField_imex_1space"), 0, 0.0, mesh, dict_vars)
+    filepath = joinpath(out_dir, "result_phaseField_imex_1space.pvd")
+    dict_vars = Dict("Temperature" => T, "Phi" => ϕ)
+    write_file(filepath, mesh, dict_vars, 0, 0.0)
 
     # Factorize and allocate some vectors to increase performance
     C_ϕ = factorize(C_ϕ)
@@ -144,18 +143,7 @@ function main()
 
         ## write solution in vtk format
         if itime % nout == 0
-            dict_vars = Dict(
-                "Temperature" => (var_on_vertices(T, mesh), VTKPointData()),
-                "Phi" => (var_on_vertices(ϕ, mesh), VTKPointData()),
-            )
-            write_vtk(
-                joinpath(out_dir, "result_phaseField_imex_1space"),
-                itime,
-                t,
-                mesh,
-                dict_vars;
-                append = true,
-            )
+            write_file(filepath, mesh, dict_vars, itime, t; collection_append = true)
         end
     end
 end

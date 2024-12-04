@@ -3,9 +3,10 @@ println("Running covo example...") #hide
 
 const dir = string(@__DIR__, "/")
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using LinearAlgebra
 using StaticArrays
-using WriteVTK # only for 'VTKCellData'
 using Profile
 using StaticArrays
 using InteractiveUtils
@@ -240,27 +241,18 @@ function append_vtk(vtk, mesh, vars, t, params)
     vtk_degree = maximum(x -> get_degree(Bcube.get_function_space(get_fespace(x))), vars)
     vtk_degree = max(1, mesh_degree, vtk_degree)
 
-    _ρ = var_on_nodes_discontinuous(ρ, mesh, vtk_degree)
-    _ρu = var_on_nodes_discontinuous(ρu, mesh, vtk_degree)
-    _ρE = var_on_nodes_discontinuous(ρE, mesh, vtk_degree)
-    _ϕ = var_on_nodes_discontinuous(ϕ, mesh, vtk_degree)
-
-    _p = pressure.(_ρ, _ρu, _ρE, γ)
-    dict_vars_dg = Dict(
-        "rho" => (_ρ, VTKPointData()),
-        "rhou" => (_ρu, VTKPointData()),
-        "rhoE" => (_ρE, VTKPointData()),
-        "phi" => (_ϕ, VTKPointData()),
-        "p" => (_p, VTKPointData()),
-    )
-    Bcube.write_vtk_discontinuous(
-        vtk.basename * "_DG",
-        vtk.ite,
-        t,
+    # p = pressure(ρ, ρu, ρE, γ)
+    p = pressure ∘ (ρ, ρu, ρE, γ)
+    dict_vars_dg = Dict("rho" => ρ, "rhou" => ρu, "rhoE" => ρE, "phi" => ϕ, "p" => p)
+    write_file(
+        vtk.basename * "_DG.pvd",
         mesh,
         dict_vars_dg,
-        vtk_degree;
-        append = vtk.ite > 0,
+        vtk.ite,
+        t;
+        discontinuous = true,
+        mesh_degree = vtk_degree,
+        collection_append = vtk.ite > 0,
     )
 
     # Update counter
@@ -313,15 +305,15 @@ function run_covo()
     meshParam = (nx = nx, ny = ny, lx = 2l, ly = 2l, xc = 0.0, yc = 0.0)
     tmp_path = "tmp.msh"
     if get(ENV, "BenchmarkMode", "false") == "false" #hide
-        gen_rectangle_mesh(tmp_path, :quad; meshParam...)
+        BcubeGmsh.gen_rectangle_mesh(tmp_path, :quad; meshParam...)
     else #hide
         if get(ENV, "MeshConfig", "quad") == "triquad" #hide
-            gen_rectangle_mesh_with_tri_and_quad(tmp_path; meshParam...) #hide
+            BcubeGmsh.gen_rectangle_mesh_with_tri_and_quad(tmp_path; meshParam...) #hide
         else #hide
-            gen_rectangle_mesh(tmp_path, :quad; meshParam...) #hide
+            BcubeGmsh.gen_rectangle_mesh(tmp_path, :quad; meshParam...) #hide
         end #hide
     end #hide
-    mesh = read_msh(tmp_path)
+    mesh = read_mesh(tmp_path)
     rm(tmp_path)
 
     # Define variables and test functions
