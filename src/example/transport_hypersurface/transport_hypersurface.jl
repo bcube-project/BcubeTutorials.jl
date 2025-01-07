@@ -17,10 +17,11 @@ module TransportHypersurface #hide
 # ![](../assets/transport-torus-mesh2-degree1.gif)
 using Plots
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using StaticArrays
 using LinearAlgebra
 using Printf
-using WriteVTK
 using DelimitedFiles
 using Random
 using ProgressMeter
@@ -45,45 +46,25 @@ mutable struct VtkHandler
     U::Any
     θ::Any
     θ_centers::Any
-    θ_vertices::Any
     c::Any
     c_centers::Any
-    c_vertices::Any
     ν::Any
     ν_centers::Any
-    ν_vertices::Any
     function VtkHandler(basename, dΩ, U, c)
         @info "Writing to $basename.vtu"
 
         mesh = get_mesh(get_domain(dΩ))
         θ = PhysicalFunction(x -> atan(x[2], x[1]))
-        θ_centers = var_on_centers(θ, mesh)
-        θ_vertices = var_on_vertices(θ, mesh)
+        θ_centers = MeshCellData(var_on_centers(θ, mesh))
 
         ν = get_cell_normals(dΩ)
-        ν_centers = transpose(var_on_centers(ν, mesh))
-        ν_vertices = transpose(var_on_vertices(ν, mesh))
+        ν_centers = var_on_centers(ν, mesh)
+        _ν_centers = MeshCellData([SA[ν_centers[i, :]...] for i in 1:ncells(mesh)])
 
-        c_centers = transpose(var_on_centers(c, mesh))
-        c_vertices = transpose(var_on_vertices(c, mesh))
+        c_centers = var_on_centers(c, mesh)
+        _c_centers = MeshCellData([SA[c_centers[i, :]...] for i in 1:ncells(mesh)])
 
-        new(
-            basename,
-            0,
-            mesh,
-            dΩ,
-            U,
-            θ,
-            θ_centers,
-            θ_vertices,
-            c,
-            c_centers,
-            c_vertices,
-            ν,
-            ν_centers,
-            ν_vertices,
-        )
-        ## new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
+        new(basename, 0, mesh, dΩ, U, θ, θ_centers, c, _c_centers, ν, _ν_centers)
     end
 end
 
@@ -167,28 +148,24 @@ function scalar_circle(;
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         ## Build animation
-        values_vertices = var_on_vertices(u, mesh)
         values_centers = var_on_centers(u, mesh)
-        ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
-        θ_centers = var_on_centers(vtk.θ, mesh)
-        θ_vertices = var_on_vertices(vtk.θ, mesh)
 
         ## Write
-        Bcube.write_vtk(
-            vtk.basename,
-            vtk.ite,
-            t,
+        write_file(
+            vtk.basename * ".pvd",
             vtk.mesh,
             Dict(
-                "u_centers" => (values_centers, VTKCellData()),
-                "u_vertices" => (values_vertices, VTKPointData()),
-                "lim_u" => (get_values(lim_u), VTKCellData()),
-                "u_mean" => (get_values(u_mean), VTKCellData()),
-                "θ_centers" => (θ_centers, VTKCellData()),
-                "θ_vertices" => (θ_vertices, VTKPointData()),
+                "u_centers" => MeshCellData(values_centers),
+                "u_vertices" => u,
+                "lim_u" => lim_u,
+                "u_mean" => u_mean,
+                "θ_centers" => vtk.θ_centers,
+                "θ_vertices" => vtk.θ,
             ),
+            vtk.ite,
+            t,
             ;
-            append = vtk.ite > 0,
+            collection_append = vtk.ite > 0,
         )
 
         ## Update counter
@@ -287,7 +264,7 @@ function scalar_circle(;
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
     isLimiterActive && (u.dofValues .= _u.dofValues)
 
-    u_mean = Bcube.cell_mean(u, dΩ)
+    u_mean = cell_mean(u, dΩ)
     t = 0.0
     plt = plot_solution(0, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
     append_vtk(vtk, u, lim_u, u_mean, t)
@@ -324,7 +301,7 @@ function scalar_circle(;
 
         ## Output results
         if ite % (nite ÷ _nout) == 0
-            u_mean = Bcube.cell_mean(u, dΩ)
+            u_mean = cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
             plt = plot_solution(vtk.ite, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
             frame(anim, plt)
@@ -478,17 +455,17 @@ function scalar_cylinder(;
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
         vars = Dict(
             "u" => u,
-            "u_mean" => Bcube.cell_mean(u, vtk.dΩ),
+            "u_mean" => cell_mean(u, vtk.dΩ),
             "lim_u" => lim_u,
             "c" => vtk.c,
             "cellnormal" => vtk.ν,
             "u_warp" => u * vtk.ν,
         )
-        Bcube.write_vtk_lagrange(
-            vtk.basename * "_lag",
-            vars,
+        write_file(
+            vtk.basename * "_lag.pvd",
             vtk.mesh,
             vtk.U,
+            vars,
             vtk.ite,
             t;
             collection_append = vtk.ite > 0,
@@ -500,7 +477,7 @@ function scalar_cylinder(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_cylinder_shell_mesh(
+    BcubeGmsh.gen_cylinder_shell_mesh(
         mesh_path,
         nθ,
         nz;
@@ -511,7 +488,7 @@ function scalar_cylinder(;
         transfinite = true,
         order = meshOrder,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = rand(rng, 3) .* 2π
     println("θx, θy, θz = $(rad2deg.(θ))")
@@ -687,30 +664,29 @@ function vector_cylinder(;
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         ## Build animation
-        values_vertices = transpose(var_on_vertices(u, mesh))
-        values_centers = transpose(var_on_centers(u, mesh))
-        ## values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
+        u_centers = var_on_centers(u, mesh)
+        _u_centers = MeshCellData([SA[u_centers[i, :]...] for i in 1:ncells(vtk.mesh)])
 
         ## Write
-        Bcube.write_vtk(
-            vtk.basename,
-            vtk.ite,
-            t,
+        write_file(
+            vtk.basename * ".pvd",
             vtk.mesh,
             Dict(
-                "u_centers" => (values_centers, VTKCellData()),
-                "u_vertices" => (values_vertices, VTKPointData()),
-                "lim_u" => (get_values(lim_u), VTKCellData()),
-                "u_mean" => (get_values(u_mean), VTKCellData()),
-                "θ_centers" => (vtk.θ_centers, VTKCellData()),
-                "θ_vertices" => (vtk.θ_vertices, VTKPointData()),
-                "c_centers" => (vtk.c_centers, VTKCellData()),
-                "c_vertices" => (vtk.c_vertices, VTKPointData()),
-                "ν_centers" => (vtk.ν_centers, VTKCellData()),
-                "ν_vertices" => (vtk.ν_vertices, VTKPointData()),
+                "u_centers" => _u_centers,
+                "u_vertices" => u,
+                "lim_u" => lim_u,
+                "u_mean" => u_mean,
+                "θ_centers" => vtk.θ_centers,
+                "θ_vertices" => vtk.θ,
+                "c_centers" => vtk.c_centers,
+                "c_vertices" => vtk.c,
+                "ν_centers" => vtk.ν_centers,
+                "ν_vertices" => vtk.ν,
             ),
+            vtk.ite,
+            t,
             ;
-            append = vtk.ite > 0,
+            collection_append = vtk.ite > 0,
         )
 
         ## Update counter
@@ -719,7 +695,7 @@ function vector_cylinder(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_cylinder_shell_mesh(
+    BcubeGmsh.gen_cylinder_shell_mesh(
         mesh_path,
         nθ,
         nz;
@@ -729,7 +705,7 @@ function vector_cylinder(;
         recombine = true,
         transfinite = true,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = rand(rng, 3) .* 2π
     println("θx, θy, θz = $(rad2deg.(θ))")
@@ -853,7 +829,7 @@ function vector_cylinder(;
         lim_u = MeshCellData(zero(get_dof_values(u))) ## dummy, just for the output
     end
 
-    u_mean = Bcube.cell_mean(u, dΩ)
+    u_mean = cell_mean(u, dΩ)
     t = 0.0
     append_vtk(vtk, u, lim_u, u_mean, t)
 
@@ -885,7 +861,7 @@ function vector_cylinder(;
 
         ## Output results
         if ite % (nitemax ÷ _nout) == 0
-            u_mean = Bcube.cell_mean(u, dΩ)
+            u_mean = cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
         end
     end
@@ -912,17 +888,17 @@ function scalar_torus(;
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
         vars = Dict(
             "u" => u,
-            "u_mean" => Bcube.cell_mean(u, vtk.dΩ),
+            "u_mean" => cell_mean(u, vtk.dΩ),
             "lim_u" => lim_u,
             "c" => vtk.c,
             "cellnormal" => vtk.ν,
             "u_warp" => u * vtk.ν,
         )
-        Bcube.write_vtk_lagrange(
-            vtk.basename * "_lag",
-            vars,
+        write_file(
+            vtk.basename * "_lag.pvd",
             vtk.mesh,
             vtk.U,
+            vars,
             vtk.ite,
             t;
             collection_append = vtk.ite > 0,
@@ -934,7 +910,7 @@ function scalar_torus(;
 
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
-    Bcube.gen_torus_shell_mesh(
+    BcubeGmsh.gen_torus_shell_mesh(
         mesh_path,
         rint,
         rext;
@@ -942,7 +918,7 @@ function scalar_torus(;
         order = meshOrder,
         verbose = false,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = zeros(3)
     ## θ = rand(rng, 3) .* 2π

@@ -53,7 +53,7 @@ g(T) = (α / π) * atan(γ * (Te - T))
 # const mesh_path = dir * "myout/tmp.msh"
 const mesh_path = dir * "input/mesh/domainPhaseField_tri.msh"
 # gen_rectangle_mesh(mesh_path, :tri; transfinite=true, nx=nx, ny=ny, lx=lx, ly=ly)
-const mesh = read_msh(mesh_path, 2)
+const mesh = read_mesh(mesh_path, 2)
 # const mesh = line_mesh(10; names=("West", "East"))
 
 # Noise function : random between [-1/2,1/2]

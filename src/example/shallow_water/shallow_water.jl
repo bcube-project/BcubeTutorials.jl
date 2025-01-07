@@ -120,8 +120,9 @@ println("Running shallow_water example...") #hide
 
 const dir = string(@__DIR__, "/")
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using StaticArrays
 using BenchmarkTools
 using Roots
@@ -298,29 +299,27 @@ function append_vtk(vtk, mesh, vars, t, params)
     vtk_degree = maximum(x -> get_degree(Bcube.get_function_space(get_fespace(x))), vars)
     vtk_degree = max(1, mesh_degree, vtk_degree)
 
-    _h  = var_on_nodes_discontinuous(h, mesh, vtk_degree)
-    _hu = var_on_nodes_discontinuous(hu, mesh, vtk_degree)
-    _u  = velocity.(_h, _hu)
+    u = velocity ∘ (h, hu)
 
     # Write
     dict_vars_dg = Dict(
-        "h" => (_h, VTKPointData()),
-        "hu" => (_hu, VTKPointData()),
-        "u" => (_u, VTKPointData()),
-        "h_mean" => (get_values(Bcube.cell_mean(h, params.dΩ)), VTKCellData()),
-        "hu_mean" => (get_values(Bcube.cell_mean(hu, params.dΩ)), VTKCellData()),
-        "lim_h" => (get_values(params.limh), VTKCellData()),
-        "centers" => (params.xc, VTKCellData()),
+        "h" => h,
+        "hu" => hu,
+        "u" => u,
+        "h_mean" => cell_mean(h, params.dΩ),
+        "hu_mean" => cell_mean(hu, params.dΩ),
+        "lim_h" => params.limh,
+        "centers" => MeshCellData(params.xc),
     )
 
-    Bcube.write_vtk_discontinuous(
-        vtk.basename * "_DG",
-        vtk.ite,
-        t,
+    write_file(
+        vtk.basename * "_DG.pvd",
         mesh,
         dict_vars_dg,
-        vtk_degree;
-        append = vtk.ite > 0,
+        vtk.ite,
+        t;
+        mesh_degree = vtk_degree,
+        collection_append = vtk.ite > 0,
     )
 
     # Update counter
@@ -345,7 +344,7 @@ function run_simulation(stateInit)
     # Then generate the mesh of a rectangle using Gmsh and read it
     tmp_path = "tmp.msh"
     nx, ny, lx, ly = stateInit.nx, stateInit.ny, stateInit.lx, stateInit.ly
-    gen_rectangle_mesh(
+    BcubeGmsh.gen_rectangle_mesh(
         tmp_path,
         :quad;
         nx = nx,
@@ -355,7 +354,7 @@ function run_simulation(stateInit)
         xc = 0.0,
         yc = 0.0,
     )
-    mesh = read_msh(tmp_path, 2) # '2' indicates the space dimension (3 by default)
+    mesh = read_mesh(tmp_path)
     rm(tmp_path)
 
     dimcar = compute_dimcar(mesh)
@@ -404,8 +403,8 @@ function run_simulation(stateInit)
     )
 
     # create CellData to store limiter values
-    limh = Bcube.MeshCellData(ones(ncells(mesh)))
-    limAll = Bcube.MeshCellData(ones(ncells(mesh)))
+    limh = MeshCellData(ones(ncells(mesh)))
+    limAll = MeshCellData(ones(ncells(mesh)))
     params = (params..., limh = limh, limAll = limAll)
 
     # Init vtk handler
@@ -481,7 +480,7 @@ function run_simulation(stateInit)
 end
 
 function compute_timestep!(q, dΩ, dimcar, CFL)
-    q_mean = map(Base.Fix2(Bcube.cell_mean, dΩ), get_fe_functions(q))
+    q_mean = map(Base.Fix2(cell_mean, dΩ), get_fe_functions(q))
     λ(x...) = shallow_water_maxeigval(x, stateInit.gravity)
     λmax = map(λ, get_values.(q_mean)...)
     Δt = CFL * minimum(dimcar ./ λmax)
@@ -530,7 +529,7 @@ function apply_limitation!(q, params, cache)
     h, hu = q
     dΩ = params.dΩ
 
-    q_mean = Bcube.cell_mean(q, cache.cacheCellMean)
+    q_mean = cell_mean(q, cache.cacheCellMean)
 
     _limh, _h_proj = linear_scaling_limiter(
         h,

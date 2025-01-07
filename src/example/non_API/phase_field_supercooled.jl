@@ -41,7 +41,7 @@ m = T -> (alp / pi) * atan(gam * (Te - T))
 
 # Read mesh
 #mesh = rectangle_mesh(nx, ny, xmin = 0, xmax = l, ymin = 0, ymax = l)
-mesh = read_msh(dir * "input/mesh/domainPhaseField_tri.msh", 2)
+mesh = read_mesh(dir * "input/mesh/domainPhaseField_tri.msh", 2)
 # Function space
 fs = FunctionSpace(:Lagrange, 1)
 

@@ -6,12 +6,13 @@ println("Running poisson DG example...") #hide
 
 # import necessary packages
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using LinearAlgebra
 using SparseArrays
-using WriteVTK
 using StaticArrays
 
-const outputpath = joinpath(@__DIR__, "../myout/poisson_dg/")
+const outputpath = joinpath(@__DIR__, "..", "..", "..", "myout", "poisson_dg")
 isdir(outputpath) || mkpath(outputpath)
 const degree = 3
 const degree_quad = 2 * degree + 1
@@ -31,8 +32,8 @@ function main()
     # Build mesh
     meshParam = (nx = n + 1, ny = n + 1, lx = Lx, ly = Lx, xc = 0.0, yc = 0.0)
     tmp_path = joinpath(tempdir(), "tmp.msh")
-    gen_rectangle_mesh(tmp_path, :quad; meshParam...)
-    mesh = read_msh(tmp_path)
+    BcubeGmsh.gen_rectangle_mesh(tmp_path, :quad; meshParam...)
+    mesh = read_mesh(tmp_path)
 
     # Choose degree and define function space, trial space and test space
     fs = FunctionSpace(:Lagrange, degree)
@@ -73,7 +74,7 @@ function main()
     e = uₐ - uh
 
     vars = Dict("uh" => uh, "u_ref" => uₐ, "error" => e)
-    Bcube.write_vtk_lagrange(joinpath(outputpath, "output"), vars, mesh, U)
+    write_file(joinpath(outputpath, "output.pvd"), mesh, U, vars)
 
     el2 = l2(e)
     eh1 = h1(e)

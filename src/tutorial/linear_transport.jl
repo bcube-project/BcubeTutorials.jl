@@ -36,8 +36,9 @@ println("Running linear transport example...") #hide
 # Start by importing the necessary packages:
 # Load the necessary packages
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 
 # Before all, to ease to ease the solution VTK output we will write a
 # structure to store the vtk filename and the number of iteration; and a function
@@ -52,18 +53,15 @@ mutable struct VtkHandler
 end
 
 function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
-    ## Values on center
-    values = var_on_nodes_discontinuous(u, vtk.mesh)
-
     ## Write
-    Bcube.write_vtk_discontinuous(
+    write_file(
         vtk.basename,
-        vtk.ite,
-        t,
         vtk.mesh,
-        Dict("u" => (values, VTKPointData())),
-        1;
-        append = vtk.ite > 0,
+        Dict("u" => u),
+        vtk.ite,
+        t;
+        discontinuous = true,
+        collection_append = vtk.ite > 0,
     )
 
     ## Update counter
@@ -83,14 +81,23 @@ const Δt = CFL * min(lx / nx, ly / ny) / norm(c) # Time step
 
 # Then generate the mesh of a rectangle using Gmsh and read it
 tmp_path = joinpath(@__DIR__, "..", "..", "myout", "tmp.msh")
-gen_rectangle_mesh(tmp_path, :quad; nx = nx, ny = ny, lx = lx, ly = ly, xc = 0.0, yc = 0.0)
-mesh = read_msh(tmp_path)
+BcubeGmsh.gen_rectangle_mesh(
+    tmp_path,
+    :quad;
+    nx = nx,
+    ny = ny,
+    lx = lx,
+    ly = ly,
+    xc = 0.0,
+    yc = 0.0,
+)
+mesh = read_mesh(tmp_path)
 rm(tmp_path)
 
 # We can now init our `VtkHandler`
 out_dir = joinpath(@__DIR__, "..", "..", "myout", "linear_transport")
 mkpath(out_dir) #hide
-vtk = VtkHandler(joinpath(out_dir, "linear_transport"), mesh)
+vtk = VtkHandler(joinpath(out_dir, "linear_transport.pvd"), mesh)
 
 # As seen in the previous tutorial, the definition of trial and test spaces needs a mesh and
 # a function space. Here, we select Taylor space, and build discontinuous FE spaces with it.
