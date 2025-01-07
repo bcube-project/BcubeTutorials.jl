@@ -6,8 +6,8 @@ println(&quot;Running linear elasticity API example...&quot;) #hide
 
 const dir = string(@__DIR__, &quot;/&quot;) # bcube/example dir
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using StaticArrays
 
 # function space (here we shall use Lagrange P1 elements) and quadrature degree.
@@ -16,7 +16,7 @@ const degree = 1 # FunctionSpace degree
 const degquad = 2 * degree + 1
 
 # Input and output paths
-const outputpath = dir * &quot;../../../myout/elasticity/&quot;
+const outputpath = dir * &quot;../../../myout/linear_elasticity/&quot;
 const meshpath = dir * &quot;../../../input/mesh/domainElast_tri.msh&quot;
 
 # Time stepping scheme params
@@ -43,7 +43,7 @@ Bcube.materialize(A::LinearAlgebra.UniformScaling, B) = A
 # Function that runs the steady case:
 function run_steady()
     # read mesh, the second argument specifies the spatial dimension
-    mesh = read_msh(meshpath, 2)
+    mesh = read_mesh(meshpath, 2)
 
     fs = FunctionSpace(fspace, degree)
     U_vec = TrialFESpace(
@@ -68,11 +68,10 @@ function run_steady()
     sys = Bcube.AffineFESystem(a, l, U_vec, V_vec)
     ϕ = Bcube.solve(sys)
 
-    Un = var_on_vertices(ϕ, mesh)
     # Write the obtained FE solution
-    dict_vars = Dict(&quot;Displacement&quot; =&gt; (transpose(Un), VTKPointData()))
+    dict_vars = Dict(&quot;Displacement&quot; =&gt; ϕ)
     mkpath(outputpath)
-    write_vtk(outputpath * &quot;result_elasticity&quot;, itime, t, mesh, dict_vars; append = false)
+    write_file(outputpath * &quot;result_elasticity.pvd&quot;, mesh, dict_vars)
 end
 
 # Function that performs a time step using a Newmark α-HHT scheme
@@ -97,8 +96,8 @@ end
 
 # Function that runs the unsteady case:
 function run_unsteady()
-    # read mesh, the second argument specifies the spatial dimension
-    mesh = read_msh(meshpath, 2)
+    # Read the mesh
+    mesh = read_mesh(meshpath)
 
     fs = FunctionSpace(fspace, degree)
     U_vec = TrialFESpace(fs, mesh, Dict(&quot;West&quot; =&gt; SA[0.0, 0.0]); size = 2)
@@ -133,11 +132,10 @@ function run_unsteady()
     G0 = zeros(Bcube.get_ndofs(U_vec))
 
     # Write initial solution
-    Un = var_on_vertices(ϕ, mesh)
     # Write the obtained FE solution
-    dict_vars = Dict(&quot;Displacement&quot; =&gt; (transpose(Un), VTKPointData()))
+    dict_vars = Dict(&quot;Displacement&quot; =&gt; ϕ)
     mkpath(outputpath)
-    write_vtk(outputpath * &quot;result_elasticity&quot;, 0, 0.0, mesh, dict_vars; append = false)
+    write_file(outputpath * &quot;result_elasticity.pvd&quot;, mesh, dict_vars, 0, 0.0)
 
     # Time loop
     totalTime = 1.0e-3
@@ -165,16 +163,15 @@ function run_unsteady()
 
         # Write solution
         if itime % 10 == 0
-            Un = var_on_vertices(ϕ, mesh)
             # Write the obtained FE solution
-            dict_vars = Dict(&quot;Displacement&quot; =&gt; (transpose(Un), VTKPointData()))
-            write_vtk(
-                outputpath * &quot;result_elasticity&quot;,
-                itime,
-                t,
+            dict_vars = Dict(&quot;Displacement&quot; =&gt; ϕ)
+            write_file(
+                outputpath * &quot;result_elasticity.pvd&quot;,
                 mesh,
-                dict_vars;
-                append = true,
+                dict_vars,
+                itime,
+                t;
+                collection_append = true,
             )
             # In order to use the warp function in paraview (solid is deformed using the displacement field)
             # the calculator filter has to be used with the following formula to reconstruct a 3D displacement field
@@ -186,4 +183,4 @@ end
 #run_steady()
 run_unsteady()
 
-end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../euler_naca_steady/">« Euler equations on a NACA0012</a><a class="docs-footer-nextpage" href="../linear_thermoelasticity/">Thermo-elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 26 November 2024 13:47">Tuesday 26 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../euler_naca_steady/">« Euler equations on a NACA0012</a><a class="docs-footer-nextpage" href="../linear_thermoelasticity/">Thermo-elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 7 January 2025 16:53">Tuesday 7 January 2025</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

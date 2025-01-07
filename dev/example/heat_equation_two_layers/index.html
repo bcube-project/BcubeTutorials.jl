@@ -17,8 +17,8 @@ println(&quot;Running heat equation two layers example...&quot;) #hide
 
 const dir = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;..&quot;) # BcubeTutorials dir
 using Bcube
+using BcubeVTK
 using LinearAlgebra
-using WriteVTK
 using Test #src
 
 function T_analytical_two_layers(x, λ1, λ2, T0, T1, L)
@@ -45,8 +45,7 @@ function run_steady_two_layers_method1(; degree)
     λ2 = 10.0
 
     # Read mesh
-    mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices =
-        read_msh_with_cell_names(joinpath(dir, &quot;input&quot;, &quot;mesh&quot;, &quot;domainTwoLayer_tri.msh&quot;))
+    mesh = read_mesh(joinpath(dir, &quot;input&quot;, &quot;mesh&quot;, &quot;domainTwoLayer_tri.msh&quot;))
 
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, Dict(&quot;West&quot; =&gt; T0, &quot;East&quot; =&gt; T1))
@@ -55,17 +54,12 @@ function run_steady_two_layers_method1(; degree)
     # Define measures for cell integration
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
-    material_1 = el_cells[el_names_inv[&quot;Domain_1&quot;]]
-    material_2 = el_cells[el_names_inv[&quot;Domain_2&quot;]]
+    material_1 = Bcube.get_zone_element_indices(mesh, &quot;Domain_1&quot;)
+    material_2 = Bcube.get_zone_element_indices(mesh, &quot;Domain_2&quot;)
 
     λ = zeros(ncells(mesh))
-
-    for i in material_1
-        λ[glo2loc_cell_indices[i]] = λ1
-    end
-    for i in material_2
-        λ[glo2loc_cell_indices[i]] = λ2
-    end
+    λ[material_1] .= λ1
+    λ[material_2] .= λ2
 
     qtmp = zeros(ncells(mesh))
 
@@ -84,11 +78,9 @@ function run_steady_two_layers_method1(; degree)
     Tcn = var_on_centers(ϕ, mesh)
     Tca = var_on_centers(T_analytical, mesh)
     dict_vars =
-        Dict(&quot;Temperature&quot; =&gt; (Tcn, VTKCellData()), &quot;Temperature_a&quot; =&gt; (Tca, VTKCellData()))
-    write_vtk(
-        joinpath(outputpath, &quot;result_steady_heat_equation_two_layers_method1&quot;),
-        0,
-        0.0,
+        Dict(&quot;Temperature&quot; =&gt; MeshCellData(Tcn), &quot;Temperature_a&quot; =&gt; MeshCellData(Tca))
+    write_file(
+        joinpath(outputpath, &quot;result_steady_heat_equation_two_layers_method1.pvd&quot;),
         mesh,
         dict_vars,
     )
@@ -112,23 +104,20 @@ function run_steady_two_layers_method2(; degree)
     λ2 = 10.0
 
     # Read mesh
-    mesh, el_names, el_names_inv, el_cells, glo2loc_cell_indices =
-        read_msh_with_cell_names(joinpath(dir, &quot;input&quot;, &quot;mesh&quot;, &quot;domainTwoLayer_tri.msh&quot;))
+    mesh = read_mesh(joinpath(dir, &quot;input&quot;, &quot;mesh&quot;, &quot;domainTwoLayer_tri.msh&quot;))
 
     fs = FunctionSpace(:Lagrange, degree)
     U = TrialFESpace(fs, mesh, Dict(&quot;West&quot; =&gt; T0, &quot;East&quot; =&gt; T1))
     V = TestFESpace(U)
 
-    material_1 = el_cells[el_names_inv[&quot;Domain_1&quot;]]
-    material_2 = el_cells[el_names_inv[&quot;Domain_2&quot;]]
+    material_1 = Bcube.get_zone_element_indices(mesh, &quot;Domain_1&quot;)
+    material_2 = Bcube.get_zone_element_indices(mesh, &quot;Domain_2&quot;)
 
     # Define measures for cell and interior face integrations
-    ind_Ω1 = [glo2loc_cell_indices[i] for i in material_1]
-    ind_Ω2 = [glo2loc_cell_indices[i] for i in material_2]
 
     dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
-    dΩ1 = Measure(CellDomain(mesh, ind_Ω1), 2 * degree + 1)
-    dΩ2 = Measure(CellDomain(mesh, ind_Ω2), 2 * degree + 1)
+    dΩ1 = Measure(CellDomain(mesh, material_1), 2 * degree + 1)
+    dΩ2 = Measure(CellDomain(mesh, material_2), 2 * degree + 1)
 
     qtmp = zeros(ncells(mesh))
 
@@ -146,11 +135,9 @@ function run_steady_two_layers_method2(; degree)
     Tcn = var_on_centers(ϕ, mesh)
     Tca = var_on_centers(T_analytical, mesh)
     dict_vars =
-        Dict(&quot;Temperature&quot; =&gt; (Tcn, VTKCellData()), &quot;Temperature_a&quot; =&gt; (Tca, VTKCellData()))
-    write_vtk(
-        joinpath(outputpath, &quot;result_steady_heat_equation_two_layers_method2&quot;),
-        0,
-        0.0,
+        Dict(&quot;Temperature&quot; =&gt; MeshCellData(Tcn), &quot;Temperature_a&quot; =&gt; MeshCellData(Tca))
+    write_file(
+        joinpath(outputpath, &quot;result_steady_heat_equation_two_layers_method2.pvd&quot;),
         mesh,
         dict_vars,
     )
@@ -166,4 +153,4 @@ end
 run_steady_two_layers_method1(; degree = 2)
 run_steady_two_layers_method2(; degree = 2)
 
-end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_sphere/">« Heat equation on a sphere</a><a class="docs-footer-nextpage" href="../transport_hypersurface/">Transport equation on hypersurfaces »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 26 November 2024 13:47">Tuesday 26 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_sphere/">« Heat equation on a sphere</a><a class="docs-footer-nextpage" href="../transport_hypersurface/">Transport equation on hypersurfaces »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 7 January 2025 16:53">Tuesday 7 January 2025</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

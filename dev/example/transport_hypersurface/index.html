@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Transport equation on hypersurfaces · BcubeTutorials</title><meta name="title" content="Transport equation on hypersurfaces · BcubeTutorials"/><meta property="og:title" content="Transport equation on hypersurfaces · BcubeTutorials"/><meta property="twitter:title" content="Transport equation on hypersurfaces · BcubeTutorials"/><meta name="description" content="Documentation for BcubeTutorials."/><meta property="og:description" content="Documentation for BcubeTutorials."/><meta property="twitter:description" content="Documentation for BcubeTutorials."/><meta property="og:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/transport_hypersurface/"/><meta property="twitter:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/transport_hypersurface/"/><link rel="canonical" href="https://bcube-project.github.io/BcubeTutorials.jl/example/transport_hypersurface/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.jpg" alt="BcubeTutorials logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">BcubeTutorials</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorial/helmholtz/">Helmholtz equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/heat_equation/">Heat equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/linear_transport/">Linear transport (DG)</a></li><li><a class="tocitem" href="../../tutorial/phase_field_supercooled/">Phase field model - solidification of a liquid in supercooled state</a></li></ul></li><li><span class="tocitem">Advanced examples</span><ul><li><a class="tocitem" href="../covo/">Euler equations - covo</a></li><li><a class="tocitem" href="../euler_naca_steady/">Euler equations on a NACA0012</a></li><li><a class="tocitem" href="../linear_elasticity/">Linear elasticity</a></li><li><a class="tocitem" href="../linear_thermoelasticity/">Thermo-elasticity</a></li><li><a class="tocitem" href="../constrained_poisson/">Constrained Poisson equation (FE)</a></li><li><a class="tocitem" href="../transport_supg/">Linear transport (FEM-SUPG)</a></li><li><a class="tocitem" href="../poisson_dg/">Poisson equation (DG)</a></li><li><a class="tocitem" href="../heat_equation_sphere/">Heat equation on a sphere</a></li><li><a class="tocitem" href="../heat_equation_two_layers/">Heat equation with two layers</a></li><li class="is-active"><a class="tocitem" href>Transport equation on hypersurfaces</a></li><li><a class="tocitem" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements)</a></li><li><a class="tocitem" href="../incompressible_navier_stokes/">Incompressible Navier-Stokes (FEM) - flow around a cylinder</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced examples</a></li><li class="is-active"><a href>Transport equation on hypersurfaces</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Transport equation on hypersurfaces</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl/blob/main/docs/src/example/transport_hypersurface.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Transport-equation-on-hypersurfaces"><a class="docs-heading-anchor" href="#Transport-equation-on-hypersurfaces">Transport equation on hypersurfaces</a><a id="Transport-equation-on-hypersurfaces-1"></a><a class="docs-heading-anchor-permalink" href="#Transport-equation-on-hypersurfaces" title="Permalink"></a></h1><p>In this file, a linear transport equation is solved on several hypersurfaces. The scalar transport equation is</p><p class="math-container">\[  \partial_t u + c \cdot \nabla_\Gamma u = 0\]</p><p>where <span>$c$</span> is the (tangential) transport velocity (always divergent-free in these examples); and <span>$\nabla_\Gamma$</span> is the tangential gradient. The vector transport equation is</p><p class="math-container">\[ \partial_t u + \nabla_\Gamma (c \otimes u) = 0\]</p><p>Here is an example of the transport of a scalar bump on a torus meshed with P2 triangles:</p><p><img src="../../assets/transport-torus-mesh2-degree1.gif" alt/></p><pre><code class="language-julia hljs">using Plots
 using Bcube
+using BcubeGmsh
+using BcubeVTK
 using StaticArrays
 using LinearAlgebra
 using Printf
-using WriteVTK
 using DelimitedFiles
 using Random
 using ProgressMeter
@@ -29,45 +30,25 @@ mutable struct VtkHandler
     U::Any
     θ::Any
     θ_centers::Any
-    θ_vertices::Any
     c::Any
     c_centers::Any
-    c_vertices::Any
     ν::Any
     ν_centers::Any
-    ν_vertices::Any
     function VtkHandler(basename, dΩ, U, c)
         @info &quot;Writing to $basename.vtu&quot;
 
         mesh = get_mesh(get_domain(dΩ))
         θ = PhysicalFunction(x -&gt; atan(x[2], x[1]))
-        θ_centers = var_on_centers(θ, mesh)
-        θ_vertices = var_on_vertices(θ, mesh)
+        θ_centers = MeshCellData(var_on_centers(θ, mesh))
 
         ν = get_cell_normals(dΩ)
-        ν_centers = transpose(var_on_centers(ν, mesh))
-        ν_vertices = transpose(var_on_vertices(ν, mesh))
+        ν_centers = var_on_centers(ν, mesh)
+        _ν_centers = MeshCellData([SA[ν_centers[i, :]...] for i in 1:ncells(mesh)])
 
-        c_centers = transpose(var_on_centers(c, mesh))
-        c_vertices = transpose(var_on_vertices(c, mesh))
+        c_centers = var_on_centers(c, mesh)
+        _c_centers = MeshCellData([SA[c_centers[i, :]...] for i in 1:ncells(mesh)])
 
-        new(
-            basename,
-            0,
-            mesh,
-            dΩ,
-            U,
-            θ,
-            θ_centers,
-            θ_vertices,
-            c,
-            c_centers,
-            c_vertices,
-            ν,
-            ν_centers,
-            ν_vertices,
-        )
-        # new(basename, 0, mesh, [atan(n.x[2], n.x[1]) for n in Bcube.get_nodes(mesh)])
+        new(basename, 0, mesh, dΩ, U, θ, θ_centers, c, _c_centers, ν, _ν_centers)
     end
 end
 
@@ -151,28 +132,24 @@ function scalar_circle(;
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         # Build animation
-        values_vertices = var_on_vertices(u, mesh)
         values_centers = var_on_centers(u, mesh)
-        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
-        θ_centers = var_on_centers(vtk.θ, mesh)
-        θ_vertices = var_on_vertices(vtk.θ, mesh)
 
         # Write
-        Bcube.write_vtk(
-            vtk.basename,
-            vtk.ite,
-            t,
+        write_file(
+            vtk.basename * &quot;.pvd&quot;,
             vtk.mesh,
             Dict(
-                &quot;u_centers&quot; =&gt; (values_centers, VTKCellData()),
-                &quot;u_vertices&quot; =&gt; (values_vertices, VTKPointData()),
-                &quot;lim_u&quot; =&gt; (get_values(lim_u), VTKCellData()),
-                &quot;u_mean&quot; =&gt; (get_values(u_mean), VTKCellData()),
-                &quot;θ_centers&quot; =&gt; (θ_centers, VTKCellData()),
-                &quot;θ_vertices&quot; =&gt; (θ_vertices, VTKPointData()),
+                &quot;u_centers&quot; =&gt; MeshCellData(values_centers),
+                &quot;u_vertices&quot; =&gt; u,
+                &quot;lim_u&quot; =&gt; lim_u,
+                &quot;u_mean&quot; =&gt; u_mean,
+                &quot;θ_centers&quot; =&gt; vtk.θ_centers,
+                &quot;θ_vertices&quot; =&gt; vtk.θ,
             ),
+            vtk.ite,
+            t,
             ;
-            append = vtk.ite &gt; 0,
+            collection_append = vtk.ite &gt; 0,
         )
 
         # Update counter
@@ -271,7 +248,7 @@ function scalar_circle(;
     lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
     isLimiterActive &amp;&amp; (u.dofValues .= _u.dofValues)
 
-    u_mean = Bcube.cell_mean(u, dΩ)
+    u_mean = cell_mean(u, dΩ)
     t = 0.0
     plt = plot_solution(0, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
     append_vtk(vtk, u, lim_u, u_mean, t)
@@ -308,7 +285,7 @@ function scalar_circle(;
 
         # Output results
         if ite % (nite ÷ _nout) == 0
-            u_mean = Bcube.cell_mean(u, dΩ)
+            u_mean = cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
             plt = plot_solution(vtk.ite, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
             frame(anim, plt)
@@ -462,17 +439,17 @@ function scalar_cylinder(;
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
         vars = Dict(
             &quot;u&quot; =&gt; u,
-            &quot;u_mean&quot; =&gt; Bcube.cell_mean(u, vtk.dΩ),
+            &quot;u_mean&quot; =&gt; cell_mean(u, vtk.dΩ),
             &quot;lim_u&quot; =&gt; lim_u,
             &quot;c&quot; =&gt; vtk.c,
             &quot;cellnormal&quot; =&gt; vtk.ν,
             &quot;u_warp&quot; =&gt; u * vtk.ν,
         )
-        Bcube.write_vtk_lagrange(
-            vtk.basename * &quot;_lag&quot;,
-            vars,
+        write_file(
+            vtk.basename * &quot;_lag.pvd&quot;,
             vtk.mesh,
             vtk.U,
+            vars,
             vtk.ite,
             t;
             collection_append = vtk.ite &gt; 0,
@@ -484,7 +461,7 @@ function scalar_cylinder(;
 
     # Mesh
     mesh_path = joinpath(out_dir, &quot;mesh.msh&quot;)
-    Bcube.gen_cylinder_shell_mesh(
+    BcubeGmsh.gen_cylinder_shell_mesh(
         mesh_path,
         nθ,
         nz;
@@ -495,7 +472,7 @@ function scalar_cylinder(;
         transfinite = true,
         order = meshOrder,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = rand(rng, 3) .* 2π
     println(&quot;θx, θy, θz = $(rad2deg.(θ))&quot;)
@@ -671,30 +648,29 @@ function vector_cylinder(;
 )
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, u_mean, t)
         # Build animation
-        values_vertices = transpose(var_on_vertices(u, mesh))
-        values_centers = transpose(var_on_centers(u, mesh))
-        # values_nodes = var_on_nodes_discontinuous(u, mesh, degree)
+        u_centers = var_on_centers(u, mesh)
+        _u_centers = MeshCellData([SA[u_centers[i, :]...] for i in 1:ncells(vtk.mesh)])
 
         # Write
-        Bcube.write_vtk(
-            vtk.basename,
-            vtk.ite,
-            t,
+        write_file(
+            vtk.basename * &quot;.pvd&quot;,
             vtk.mesh,
             Dict(
-                &quot;u_centers&quot; =&gt; (values_centers, VTKCellData()),
-                &quot;u_vertices&quot; =&gt; (values_vertices, VTKPointData()),
-                &quot;lim_u&quot; =&gt; (get_values(lim_u), VTKCellData()),
-                &quot;u_mean&quot; =&gt; (get_values(u_mean), VTKCellData()),
-                &quot;θ_centers&quot; =&gt; (vtk.θ_centers, VTKCellData()),
-                &quot;θ_vertices&quot; =&gt; (vtk.θ_vertices, VTKPointData()),
-                &quot;c_centers&quot; =&gt; (vtk.c_centers, VTKCellData()),
-                &quot;c_vertices&quot; =&gt; (vtk.c_vertices, VTKPointData()),
-                &quot;ν_centers&quot; =&gt; (vtk.ν_centers, VTKCellData()),
-                &quot;ν_vertices&quot; =&gt; (vtk.ν_vertices, VTKPointData()),
+                &quot;u_centers&quot; =&gt; _u_centers,
+                &quot;u_vertices&quot; =&gt; u,
+                &quot;lim_u&quot; =&gt; lim_u,
+                &quot;u_mean&quot; =&gt; u_mean,
+                &quot;θ_centers&quot; =&gt; vtk.θ_centers,
+                &quot;θ_vertices&quot; =&gt; vtk.θ,
+                &quot;c_centers&quot; =&gt; vtk.c_centers,
+                &quot;c_vertices&quot; =&gt; vtk.c,
+                &quot;ν_centers&quot; =&gt; vtk.ν_centers,
+                &quot;ν_vertices&quot; =&gt; vtk.ν,
             ),
+            vtk.ite,
+            t,
             ;
-            append = vtk.ite &gt; 0,
+            collection_append = vtk.ite &gt; 0,
         )
 
         # Update counter
@@ -703,7 +679,7 @@ function vector_cylinder(;
 
     # Mesh
     mesh_path = joinpath(out_dir, &quot;mesh.msh&quot;)
-    Bcube.gen_cylinder_shell_mesh(
+    BcubeGmsh.gen_cylinder_shell_mesh(
         mesh_path,
         nθ,
         nz;
@@ -713,7 +689,7 @@ function vector_cylinder(;
         recombine = true,
         transfinite = true,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = rand(rng, 3) .* 2π
     println(&quot;θx, θy, θz = $(rad2deg.(θ))&quot;)
@@ -837,7 +813,7 @@ function vector_cylinder(;
         lim_u = MeshCellData(zero(get_dof_values(u))) ## dummy, just for the output
     end
 
-    u_mean = Bcube.cell_mean(u, dΩ)
+    u_mean = cell_mean(u, dΩ)
     t = 0.0
     append_vtk(vtk, u, lim_u, u_mean, t)
 
@@ -869,7 +845,7 @@ function vector_cylinder(;
 
         # Output results
         if ite % (nitemax ÷ _nout) == 0
-            u_mean = Bcube.cell_mean(u, dΩ)
+            u_mean = cell_mean(u, dΩ)
             append_vtk(vtk, u, lim_u, u_mean, t)
         end
     end
@@ -896,17 +872,17 @@ function scalar_torus(;
     function append_vtk(vtk, u::Bcube.AbstractFEFunction, lim_u, t)
         vars = Dict(
             &quot;u&quot; =&gt; u,
-            &quot;u_mean&quot; =&gt; Bcube.cell_mean(u, vtk.dΩ),
+            &quot;u_mean&quot; =&gt; cell_mean(u, vtk.dΩ),
             &quot;lim_u&quot; =&gt; lim_u,
             &quot;c&quot; =&gt; vtk.c,
             &quot;cellnormal&quot; =&gt; vtk.ν,
             &quot;u_warp&quot; =&gt; u * vtk.ν,
         )
-        Bcube.write_vtk_lagrange(
-            vtk.basename * &quot;_lag&quot;,
-            vars,
+        write_file(
+            vtk.basename * &quot;_lag.pvd&quot;,
             vtk.mesh,
             vtk.U,
+            vars,
             vtk.ite,
             t;
             collection_append = vtk.ite &gt; 0,
@@ -918,7 +894,7 @@ function scalar_torus(;
 
     # Mesh
     mesh_path = joinpath(out_dir, &quot;mesh.msh&quot;)
-    Bcube.gen_torus_shell_mesh(
+    BcubeGmsh.gen_torus_shell_mesh(
         mesh_path,
         rint,
         rext;
@@ -926,7 +902,7 @@ function scalar_torus(;
         order = meshOrder,
         verbose = false,
     )
-    mesh = read_msh(mesh_path)
+    mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
     θ = zeros(3)
     # θ = rand(rng, 3) .* 2π
@@ -1132,4 +1108,4 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     progressBar = true,
     meshOrder = 2,
 )
-</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 26 November 2024 13:47">Tuesday 26 November 2024</span>. Using Julia version 1.10.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.8.0 on <span class="colophon-date" title="Tuesday 7 January 2025 16:53">Tuesday 7 January 2025</span>. Using Julia version 1.10.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
