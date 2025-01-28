@@ -135,6 +135,7 @@ function run_unsteady()
     ## except on dofs lying on a Dirichlet boundary, where they
     ## take the Dirichlet value
     Td = Bcube.assemble_dirichlet_vector(U_scal, V_scal, mesh)
+    Td = collect(Td)
 
     ## Apply lift
     LT = LT - AT * Td

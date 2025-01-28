@@ -149,6 +149,7 @@ function run_unsteady_projection_method()
         ## assemble l1
         L1 = assemble_linear(l1, V_vel)
         Wd = Bcube.assemble_dirichlet_vector(U_vel, V_vel, mesh, time)
+        Wd = collect(Wd)
         ## Apply lift
         L1 = L1 - M0 * Wd
 
@@ -261,6 +262,7 @@ function run_unsteady_mixed()
         L = assemble_linear(l, V)
 
         Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
+        Wd = collect(Wd)
 
         ## Apply lift
         L = L - A0 * Wd

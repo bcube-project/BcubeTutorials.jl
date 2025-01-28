@@ -101,6 +101,7 @@ function main()
     # For this example, we don't use a lifting method to impose the Dirichlet, but `d`
     # is used to initialize the solution.
     d = assemble_dirichlet_vector(U, V, mesh)
+    d = collect(d) # SparseVector -> Vector
     apply_dirichlet_to_matrix!((C_ϕ, C_T), U, V, mesh)
 
     # Init solution and write it to a VTK file
