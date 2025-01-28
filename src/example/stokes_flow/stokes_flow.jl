@@ -131,6 +131,7 @@ function run_steady()
 
     # build Dirichlet vector to apply lift
     Wd = Bcube.assemble_dirichlet_vector(U, V, mesh)
+    Wd = collect(Wd) # SparseVector -> Vector
 
     # Apply lift
     L = L - A * Wd
@@ -304,6 +305,7 @@ function run_unsteady()
         println("Time stepping : time = ", time, " / ", finalTime)
 
         Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
+        Wd = collect(Wd) # SparseVector -> Vector
 
         ## Apply lift
         L = -A0 * Wd
