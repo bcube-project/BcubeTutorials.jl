@@ -37,7 +37,6 @@ Regarding the **examples**, some of them require additionnal dependencies. Hence
 julia> cd("src/example/covo")
 julia> using Pkg
 julia> Pkg.activate(".")
-julia> Pkg.add(PackageSpec(url="https://github.com/bcube-project/Bcube.jl"))
 julia> Pkg.instantiate()
 julia> include("covo.jl")
 ```
