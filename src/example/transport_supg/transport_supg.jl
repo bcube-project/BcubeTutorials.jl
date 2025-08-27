@@ -5,7 +5,7 @@ println("Running transport SUPG example...") #hide
 #
 # ## Maths
 # There are several ways to present the method, here is one adapted from the [book](https://doi.org/10.1016/C2009-0-26328-8) of
-# Zienkiwicz _et al._ (The Finite Element Method for Fluid Dynamics).
+# Zienkiewicz _et al._ (The Finite Element Method for Fluid Dynamics).
 #
 # We consider the following transport equation:
 # ```math
