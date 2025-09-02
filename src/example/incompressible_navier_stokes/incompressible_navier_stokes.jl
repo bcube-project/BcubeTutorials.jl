@@ -57,139 +57,12 @@ const ν = 0.001
 
 # Time step and simulation time
 const Δt = 1.0e-3
-const finalTime = 6.0
+const finalTime = 3.0
 
 # Function that defines the inlet velocity profile
 function inlet_velocity(x, t)
     SA[4.0 * clamp(t, 0.0, 1.5) * x[2] * (0.41 - x[2]) / (0.41 * 0.41), 0.0]
 end
-
-# Function that solves the problem using the projection method
-function run_unsteady_projection_method()
-    # Read mesh
-    mesh = read_mesh(meshpath)
-
-    # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
-    fsu = FunctionSpace(fspace, degree_u)
-    U_vel = TrialFESpace(
-        fsu,
-        mesh,
-        Dict(
-            "left" => inlet_velocity,
-            "top" => SA[0.0, 0.0],
-            "bottom" => SA[0.0, 0.0],
-            "cylinder" => SA[0.0, 0.0],
-        ); #
-        size = 2,
-    )
-    V_vel = TestFESpace(U_vel)
-
-    fsp = FunctionSpace(fspace, degree_p)
-    U_pre = TrialFESpace(fsp, mesh, Dict("right" => SA[0.0]); size = 1)
-    V_pre = TestFESpace(U_pre)
-
-    velocity = FEFunction(U_vel)
-    pressure = FEFunction(U_pre)
-
-    # Define measures for cell
-    dΩ = Measure(CellDomain(mesh), degquad)
-
-    # Definition of bilinear and linear forms
-    # Tentative velocity forms
-    m1(u, v) = ∫(u ⋅ v)dΩ
-    ## function l1(v)
-    ##     ∫(velocity ⋅ v)dΩ - Δt * ∫(ν * ∇(velocity) ⊡ ∇(v) + (∇(velocity) * velocity) ⋅ v)dΩ
-    ## end
-    ## Below is an equivalent définition of l1(v) that yields better performance thanks to the use of composition
-    function l1(v)
-        f(u, ∇u, v, ∇v) = u ⋅ v - Δt * (ν * ∇u ⊡ ∇v + (∇u * u) ⋅ v)
-        ∫(f ∘ (velocity, ∇(velocity), v, ∇(v)))dΩ
-    end
-    # Pressure forms
-    a2(p, q) = ∫(∇(p) ⋅ ∇(q))dΩ
-    ## l2(q) = (-1.0 / Δt) * ∫(tr(∇(velocity)) ⋅ q)dΩ
-    ## Below is an equivalent définition of l2(v) that yields better performance thanks to the use of composition
-    function l2(q)
-        f(∇u, q) = (-1.0 / Δt) * (tr(∇u) ⋅ q)
-        ∫(f ∘ (∇(velocity), q))dΩ
-    end
-    # Velocity correction forms
-    ## l3(v) = ∫(velocity ⋅ v)dΩ - Δt * ∫(∇(pressure) ⋅ v)dΩ
-    ## Below is an equivalent définition of l3(v) that yields better performance thanks to the use of composition
-    function l3(v)
-        f(u, ∇p, v) = u ⋅ v - Δt * ∇p ⋅ v
-        ∫(f ∘ (velocity, ∇(pressure), v))dΩ
-    end
-
-    # Assemble and factorize matrices
-    M1 = assemble_bilinear(m1, U_vel, V_vel)
-    M0 = copy(M1)
-    Bcube.apply_dirichlet_to_matrix!(M1, U_vel, V_vel, mesh)
-    f_M1 = factorize(M1)
-
-    A2 = assemble_bilinear(a2, U_pre, V_pre)
-    Bcube.apply_dirichlet_to_matrix!(A2, U_pre, V_pre, mesh)
-    f_A2 = factorize(A2)
-
-    # Write initial solution
-    vars = Dict("Velocity" => velocity, "Pressure" => pressure)
-    filepath = joinpath(outputpath, "output_projection.pvd")
-    write_file(filepath, mesh, vars, 0, 0.0; collection_append = false)
-
-    # Time stepping
-    time = 0.0
-    itime = 0
-
-    while time <= finalTime
-        time += Δt
-        itime += 1
-
-        println("Time stepping : time = ", time, " / ", finalTime)
-
-        ## assemble l1
-        L1 = assemble_linear(l1, V_vel)
-        Wd = Bcube.assemble_dirichlet_vector(U_vel, V_vel, mesh, time)
-        ## Apply lift
-        L1 = L1 - M0 * Wd
-
-        ## Apply homogeneous Dirichlet condition
-        Bcube.apply_homogeneous_dirichlet_to_vector!(L1, U_vel, V_vel, mesh)
-
-        ## Compute tentative velocity
-        sol = f_M1 \ L1
-
-        set_dof_values!(velocity, sol .+ Wd)
-
-        ## Assemble l2
-        L2 = assemble_linear(l2, V_pre)
-        Bcube.apply_homogeneous_dirichlet_to_vector!(L2, U_pre, V_pre, mesh)
-
-        ## Compute pressure
-        sol = f_A2 \ L2
-
-        set_dof_values!(pressure, sol)
-
-        ## Assemble l3
-        L3 = assemble_linear(l3, V_vel)
-        ## Apply lift
-        L3 = L3 - M0 * Wd
-
-        ## Apply homogeneous Dirichlet condition
-        Bcube.apply_homogeneous_dirichlet_to_vector!(L3, U_vel, V_vel, mesh)
-
-        ## Velocity correction step
-        sol = f_M1 \ L3
-
-        set_dof_values!(velocity, sol .+ Wd)
-
-        ## Write outputs
-        if itime % 100 == 0
-            write_file(filepath, mesh, vars, itime, time; collection_append = true)
-        end
-    end
-end
-# The animation below shows the result of simulation with the projection method:
-# ![](../assets/navier_stokes_projection.gif)
 
 # Function that solves the problem using a mixed formalism
 function run_unsteady_mixed()
@@ -218,8 +91,80 @@ function run_unsteady_mixed()
     U = MultiFESpace(U_vel, U_pre)
     V = MultiFESpace(V_vel, V_pre)
 
-    velocity = FEFunction(U_vel)
-    pressure = FEFunction(U_pre)
+    # Define measures for cell
+    dΩ = Measure(CellDomain(mesh), degquad)
+
+    # Definition of bilinear and linear forms
+    m((u, p), (v, q)) = ∫(u ⋅ v)dΩ
+    a((u, p), (v, q)) = ∫(ν * ∇(u) ⊡ ∇(v) - tr(∇(v)) * p + tr(∇(u)) * q)dΩ
+
+    # Assemble and factorize matrices
+    M = assemble_bilinear(m, U, V)
+    A = assemble_bilinear(a, U, V)
+
+    f_Mtime = M .+ Δt * A
+    Bcube.apply_dirichlet_to_matrix!(f_Mtime, U, V, mesh)
+    f_Mtime = factorize(f_Mtime)
+
+    ϕ = FEFunction(U)
+
+    # Initial output
+    velocity, pressure = ϕ
+    vars = Dict("Velocity" => velocity, "Pressure" => pressure)
+    filepath = joinpath(outputpath, "output_mixed.pvd")
+    write_file(filepath, mesh, vars, 0, 0.0; collection_append = false)
+
+    # Time stepping
+    t = 0.0
+    itime = 0
+
+    while t <= finalTime
+        t += Δt
+        itime += 1
+
+        println("Time stepping : time = ", t, " / ", finalTime)
+
+        velocity, pressure = ϕ
+        l((v, q)) = -∫((∇(velocity) * velocity) ⋅ v)dΩ
+        L = assemble_linear(l, V)
+
+        b = Δt * L + M * get_dof_values(ϕ)
+        Bcube.apply_dirichlet_to_vector!(b, U, V, mesh, t)
+
+        ## Compute solution
+        sol = f_Mtime \ b
+
+        set_dof_values!(ϕ, sol)
+
+        ## Write outputs
+        if itime % 100 == 0
+            velocity, pressure = ϕ
+            vars = Dict("Velocity" => velocity, "Pressure" => pressure)
+            write_file(filepath, mesh, vars, itime, t; collection_append = true)
+        end
+    end
+end
+
+function run_tc_channel()
+    # Read mesh
+    mesh = rectangle_mesh(20, 20; xmin = 0.0, xmax = 8, ymin = -1.0, ymax = 1.0)
+
+    # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)
+    fsu = FunctionSpace(fspace, degree_u)
+    U_vel = TrialFESpace(
+        fsu,
+        mesh,
+        Dict("ymin" => SA[0.0, 1.0], "ymax" => SA[0.0, -1.0], "xmin" => SA[0.0, 0.0]);
+        size = 2,
+    )
+    V_vel = TestFESpace(U_vel)
+
+    fsp = FunctionSpace(fspace, degree_p)
+    U_pre = TrialFESpace(fsp, mesh; size = 1)
+    V_pre = TestFESpace(U_pre)
+
+    U = MultiFESpace(U_vel, U_pre)
+    V = MultiFESpace(V_vel, V_pre)
 
     # Define measures for cell
     dΩ = Measure(CellDomain(mesh), degquad)
@@ -227,77 +172,54 @@ function run_unsteady_mixed()
     # Definition of bilinear and linear forms
     m((u, p), (v, q)) = ∫(u ⋅ v)dΩ
     a((u, p), (v, q)) = ∫(ν * ∇(u) ⊡ ∇(v) - tr(∇(v)) * p + tr(∇(u)) * q)dΩ
-    l((v, q)) = -∫((∇(velocity) * velocity) ⋅ v)dΩ
 
     # Assemble and factorize matrices
     M = assemble_bilinear(m, U, V)
     A = assemble_bilinear(a, U, V)
-    L = assemble_linear(l, V)
-    A0 = copy(A)
 
-    Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
-    Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
+    f_Mtime = M .+ Δt * A
+    Bcube.apply_dirichlet_to_matrix!(f_Mtime, U, V, mesh)
+    f_Mtime = factorize(f_Mtime)
 
-    f_Mtime = factorize(M .+ Δt * A)
-
-    ϕ = FEFunction(V)
+    ϕ = FEFunction(U)
 
     # Initial output
+    velocity, pressure = ϕ
     vars = Dict("Velocity" => velocity, "Pressure" => pressure)
-    filepath = joinpath(outputpath, "output_mixed.pvd")
+    filepath = joinpath(outputpath, "tc_channel.pvd")
     write_file(filepath, mesh, vars, 0, 0.0; collection_append = false)
 
     # Time stepping
-    time = 0.0
+    t = 0.0
     itime = 0
-    sol = zero(L)
 
-    while time <= finalTime
-        time += Δt
+    while t <= finalTime
+        t += Δt
         itime += 1
 
-        println("Time stepping : time = ", time, " / ", finalTime)
+        println("Time stepping : time = ", t, " / ", finalTime)
 
+        velocity, pressure = ϕ
+        l((v, q)) = -∫((∇(velocity) * velocity) ⋅ v)dΩ
         L = assemble_linear(l, V)
 
-        Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
-
-        ## Apply lift
-        L = L - A0 * Wd
-
-        ## Apply homogeneous Dirichlet condition
-        Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
+        b = Δt * L + M * get_dof_values(ϕ)
+        Bcube.apply_dirichlet_to_vector!(b, U, V, mesh, t)
 
         ## Compute solution
-        sol = f_Mtime \ (Δt * L + M * sol)
+        sol = f_Mtime \ b
 
-        set_dof_values!(ϕ, sol .+ Wd)
-        velocity, pressure = ϕ
+        set_dof_values!(ϕ, sol)
 
         ## Write outputs
         if itime % 100 == 0
+            velocity, pressure = ϕ
             vars = Dict("Velocity" => velocity, "Pressure" => pressure)
-            write_file(filepath, mesh, vars, itime, time; collection_append = true)
+            write_file(filepath, mesh, vars, itime, t; collection_append = true)
         end
     end
 end
 
-# The animation below shows the result of simulation with the "mixed form" method:
-# ![](../assets/navier_stokes_mixed.gif)
-
-println(" ")
-println("---------------------------------------------------")
-println("--------- solving with projection method ----------")
-@time begin
-    run_unsteady_projection_method()
-end
-println("---------------------------------------------------")
-println(" ")
-println("---------------------------------------------------")
-println("--------- solving with mixed form method ----------")
-@time begin
-    run_unsteady_mixed()
-end
-println("---------------------------------------------------")
-println(" ")
+run_tc_channel()
+# run_unsteady_mixed()
 end #hide
