@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Heat equation on a sphere · BcubeTutorials</title><meta name="title" content="Heat equation on a sphere · BcubeTutorials"/><meta property="og:title" content="Heat equation on a sphere · BcubeTutorials"/><meta property="twitter:title" content="Heat equation on a sphere · BcubeTutorials"/><meta name="description" content="Documentation for BcubeTutorials."/><meta property="og:description" content="Documentation for BcubeTutorials."/><meta property="twitter:description" content="Documentation for BcubeTutorials."/><meta property="og:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/heat_equation_sphere/"/><meta property="twitter:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/heat_equation_sphere/"/><link rel="canonical" href="https://bcube-project.github.io/BcubeTutorials.jl/example/heat_equation_sphere/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.jpg" alt="BcubeTutorials logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">BcubeTutorials</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorial/helmholtz/">Helmholtz equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/heat_equation/">Heat equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/linear_transport/">Linear transport (DG)</a></li><li><a class="tocitem" href="../../tutorial/phase_field_supercooled/">Phase field model - solidification of a liquid in supercooled state</a></li></ul></li><li><span class="tocitem">Advanced examples</span><ul><li><a class="tocitem" href="../covo/">Euler equations - covo</a></li><li><a class="tocitem" href="../euler_naca_steady/">Euler equations on a NACA0012</a></li><li><a class="tocitem" href="../linear_elasticity/">Linear elasticity</a></li><li><a class="tocitem" href="../linear_thermoelasticity/">Thermo-elasticity</a></li><li><a class="tocitem" href="../constrained_poisson/">Constrained Poisson equation (FE)</a></li><li><a class="tocitem" href="../transport_supg/">Linear transport (FEM-SUPG)</a></li><li><a class="tocitem" href="../poisson_dg/">Poisson equation (DG)</a></li><li class="is-active"><a class="tocitem" href>Heat equation on a sphere</a></li><li><a class="tocitem" href="../heat_equation_two_layers/">Heat equation with two layers</a></li><li><a class="tocitem" href="../transport_hypersurface/">Transport equation on hypersurfaces</a></li><li><a class="tocitem" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements)</a></li><li><a class="tocitem" href="../incompressible_navier_stokes/">Incompressible Navier-Stokes (FEM) - flow around a cylinder</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced examples</a></li><li class="is-active"><a href>Heat equation on a sphere</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Heat equation on a sphere</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl/blob/main/docs/src/example/heat_equation_sphere.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Heat-equation-on-a-sphere"><a class="docs-heading-anchor" href="#Heat-equation-on-a-sphere">Heat equation on a sphere</a><a id="Heat-equation-on-a-sphere-1"></a><a class="docs-heading-anchor-permalink" href="#Heat-equation-on-a-sphere" title="Permalink"></a></h1><p>Adapted from https://www.chebfun.org/examples/sphere/SphereHeatConduction.html. The equation solved on the sphere is</p><p class="math-container">\[  \partial_t T = \alpha \Delta_\Gamma T\]</p><p>The temperature is initialized by the following sum of spherical harmonic:</p><p class="math-container">\[  u(\lambda, \theta) = Y^0_6(\lambda, \theta) + \sqrt{14/11}Y^6_6(\lambda,\theta)\]</p><p>where <span>$\lambda$</span> and <span>$\theta$</span> are two angles parametrizing the sphere. Hence an analytical solution can be found : <span>$u(\lambda,\theta, t) = e^{-42 \alpha t} u_0(\lambda, \theta)$</span>.</p><p>The following animation is obtained after running the simulation:</p><p><img src="../../assets/heat_equation_sphere.gif" alt/></p><pre><code class="language-julia hljs">using Bcube
+using BcubeVTK
+using BcubeGmsh
+using LinearAlgebra
+using StaticArrays
+using FastTransforms
+using Random
+using ProgressMeter
+
+&quot;&quot;&quot;
+From wikipedia (physics)
+
+Other mathematical valid possibilites:
+* CoordinateTransformations: https://github.com/JuliaGeometry/CoordinateTransformations.jl/blob/b97c74a35c6835f6b015440cb4af6298824dbe1d/src/coordinatesystems.jl#L161
+* Custom : θ = atan(z, sqrt(x^2 + y^2)), ϕ = atan(y, x)
+&quot;&quot;&quot;
+function cart2sphere(xyz)
+    x, y, z = xyz
+
+    r = norm(xyz)
+
+    θ = acos(z / r)
+    ϕ = sign(y) * acos(x / sqrt(x^2 + y^2))
+
+    return SA[r, θ, ϕ]
+end
+
+function rotMat(θx, θy, θz)
+    Rx = @SMatrix[
+        1.0 0.0 0.0
+        0.0 cos(θx) sin(θx)
+        0.0 (-sin(θx)) cos(θx)
+    ]
+    Ry = @SMatrix[
+        cos(θy) 0.0 (-sin(θy))
+        0.0 1.0 0.0
+        sin(θy) 0.0 cos(θy)
+    ]
+    Rz = @SMatrix[
+        cos(θz) sin(θz) 0.0
+        -sin(θz) cos(θz) 0.0
+        0.0 0.0 1.0
+    ]
+    return Rx * Ry * Rz
+end
+
+mutable struct VtkHandler
+    basename::Any
+    ite::Any
+    mesh::Any
+    θ::Any
+    θ_centers::Any
+    ϕ::Any
+    ϕ_centers::Any
+    ν::Any
+    ν_centers::Any
+    function VtkHandler(basename, mesh)
+        θ = PhysicalFunction(x -&gt; cart2sphere(x)[2])
+        θ_centers = MeshCellData(var_on_centers(θ, mesh))
+
+        ϕ = PhysicalFunction(x -&gt; cart2sphere(x)[3])
+        ϕ_centers = MeshCellData(var_on_centers(ϕ, mesh))
+
+        ν = get_cell_normals(CellDomain(mesh))
+        ν_centers = var_on_centers(ν, mesh)
+        _ν_centers = MeshCellData([SA[ν_centers[i, :]...] for i in 1:ncells(mesh)])
+
+        new(basename, 0, mesh, θ, θ_centers, ϕ, ϕ_centers, ν, _ν_centers)
+    end
+end
+
+function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
+    values_centers = MeshCellData(var_on_centers(u, vtk.mesh))
+
+    # Write
+    write_file(
+        vtk.basename,
+        vtk.mesh,
+        Dict(
+            &quot;u_centers&quot; =&gt; values_centers,
+            &quot;u_vertices&quot; =&gt; u,
+            &quot;θ_centers&quot; =&gt; vtk.θ_centers,
+            &quot;θ_vertices&quot; =&gt; vtk.θ,
+            &quot;ϕ_centers&quot; =&gt; vtk.ϕ_centers,
+            &quot;ϕ_vertices&quot; =&gt; vtk.ϕ,
+            &quot;ν_centers&quot; =&gt; vtk.ν_centers,
+            &quot;ν_vertices&quot; =&gt; vtk.ν,
+        ),
+        vtk.ite,
+        t;
+        collection_append = vtk.ite &gt; 0,
+    )
+
+    # Update counter
+    vtk.ite += 1
+end
+
+function run(;
+    α = 1.0 / 42,
+    degree = 1,
+    tfinal = 1,
+    nout = 100,
+    lc = 1e-1,
+    CFL = 0.5,
+    vtk_output = true,
+)
+
+    # Settings
+    out_dir = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;heat_eqn_sphere&quot;)
+    mkpath(out_dir)
+
+    # Mesh
+    mesh_path = joinpath(out_dir, &quot;mesh.msh&quot;)
+    BcubeGmsh.gen_sphere_mesh(mesh_path; radius = 1.0, lc = lc)
+    mesh = read_mesh(mesh_path)
+    rng = MersenneTwister(0)
+    R = rotMat(rand(rng, 3)...)
+    transform!(mesh, x -&gt; R * x) # rotate to avoid being &quot;aligned&quot; with an axis
+
+    # Domain
+    dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
+
+    # Prepare output
+    vtk = VtkHandler(joinpath(out_dir, &quot;result_d$(degree).pvd&quot;), mesh)
+
+    # Discretization
+    U = TrialFESpace(FunctionSpace(:Lagrange, degree), mesh)
+    V = TestFESpace(U)
+    u = FEFunction(U)
+
+    # Display infos
+    println(&quot;degree = $degree, CFL = $CFL, lc = $lc, ndofs = $(get_ndofs(U))&quot;)
+
+    # Init
+    u0 = PhysicalFunction(
+        x -&gt; begin
+            _r, _θ, _ϕ = cart2sphere(x)
+            return sphevaluate(_θ, _ϕ, 6, 0) + √(14 / 11) * sphevaluate(_θ, _ϕ, 6, 5)
+        end,
+    )
+    projection_l2!(u, u0, mesh)
+
+    # Bilinear forms
+    m(u, v) = ∫(u ⋅ v)dΩ
+    a(u, v) = ∫(∇ₛ(u) ⋅ ∇ₛ(v))dΩ
+
+    # Assemble
+    M = assemble_bilinear(m, U, V)
+    K = assemble_bilinear(a, U, V)
+
+    # Time loop
+    Δt = CFL * lc^2 / α
+    nite = floor(Int, tfinal / Δt)
+    _nout = min(nite, nout)
+    t = 0.0
+    b = Bcube.allocate_dofs(U)
+    vtk_output &amp;&amp; append_vtk(vtk, u, t)
+    progress = Progress(nite)
+    for ite in 1:nite
+        b .= (M + Δt * α * K) \ (M * get_dof_values(u))
+        set_dof_values!(u, b)
+
+        t += Δt
+        next!(progress)
+
+        # Output results
+        if ite % (nite ÷ _nout) == 0
+            vtk_output &amp;&amp; append_vtk(vtk, u, t)
+        end
+    end
+
+    # Compute L2 error with the analytical solution
+    utrue = exp(-42 * α * t) * u0
+    errL2 = sum(Bcube.compute(∫((utrue - u)^2)dΩ))
+    return get_ndofs(U), errL2
+end
+
+ndofs, errL2 = run(;
+    degree = 1,
+    α = 1.0 / 42,
+    tfinal = 1,
+    CFL = 0.5,
+    nout = 100,
+    lc = 4e-2,
+    vtk_output = true,
+)
+@show errL2
+
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../poisson_dg/">« Poisson equation (DG)</a><a class="docs-footer-nextpage" href="../heat_equation_two_layers/">Heat equation with two layers »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.14.1 on <span class="colophon-date" title="Monday 15 September 2025 18:58">Monday 15 September 2025</span>. Using Julia version 1.10.10.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
