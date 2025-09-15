@@ -6,4 +6,4 @@ BcubeVTK = "f7a61acb-f482-4505-b2eb-e9cadd76b6b4"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [compat]
-Bcube = "0.2.0"
+Bcube = "0.2, 0.3"
