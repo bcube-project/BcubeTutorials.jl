@@ -1,7 +1,7 @@
 name = "BcubeTutorials"
 uuid = "96b9ee7b-4a19-4ce3-a39f-9fbf54b5b072"
 authors = ["Ghislain Blanchard, Lokman Bennani and Maxime Bouyges"]
-version = "0.1.3"
+version = "0.1.4"
 
 [deps]
 Bcube = "cf06320b-b7f3-4748-8003-81a6b6979792"
@@ -22,7 +22,7 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
-Bcube = "0.2"
+Bcube = "0.2, 0.3"
 
 [extras]
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
