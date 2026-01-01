@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Incompressible Navier-Stokes (FEM) - flow around a cylinder · BcubeTutorials</title><meta name="title" content="Incompressible Navier-Stokes (FEM) - flow around a cylinder · BcubeTutorials"/><meta property="og:title" content="Incompressible Navier-Stokes (FEM) - flow around a cylinder · BcubeTutorials"/><meta property="twitter:title" content="Incompressible Navier-Stokes (FEM) - flow around a cylinder · BcubeTutorials"/><meta name="description" content="Documentation for BcubeTutorials."/><meta property="og:description" content="Documentation for BcubeTutorials."/><meta property="twitter:description" content="Documentation for BcubeTutorials."/><meta property="og:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/incompressible_navier_stokes/"/><meta property="twitter:url" content="https://bcube-project.github.io/BcubeTutorials.jl/example/incompressible_navier_stokes/"/><link rel="canonical" href="https://bcube-project.github.io/BcubeTutorials.jl/example/incompressible_navier_stokes/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.jpg" alt="BcubeTutorials logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">BcubeTutorials</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Tutorials</span><ul><li><a class="tocitem" href="../../tutorial/helmholtz/">Helmholtz equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/heat_equation/">Heat equation (FE)</a></li><li><a class="tocitem" href="../../tutorial/linear_transport/">Linear transport (DG)</a></li><li><a class="tocitem" href="../../tutorial/phase_field_supercooled/">Phase field model - solidification of a liquid in supercooled state</a></li></ul></li><li><span class="tocitem">Advanced examples</span><ul><li><a class="tocitem" href="../covo/">Euler equations - covo</a></li><li><a class="tocitem" href="../euler_naca_steady/">Euler equations on a NACA0012</a></li><li><a class="tocitem" href="../linear_elasticity/">Linear elasticity</a></li><li><a class="tocitem" href="../linear_thermoelasticity/">Thermo-elasticity</a></li><li><a class="tocitem" href="../constrained_poisson/">Constrained Poisson equation (FE)</a></li><li><a class="tocitem" href="../transport_supg/">Linear transport (FEM-SUPG)</a></li><li><a class="tocitem" href="../poisson_dg/">Poisson equation (DG)</a></li><li><a class="tocitem" href="../heat_equation_sphere/">Heat equation on a sphere</a></li><li><a class="tocitem" href="../heat_equation_two_layers/">Heat equation with two layers</a></li><li><a class="tocitem" href="../transport_hypersurface/">Transport equation on hypersurfaces</a></li><li><a class="tocitem" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements)</a></li><li class="is-active"><a class="tocitem" href>Incompressible Navier-Stokes (FEM) - flow around a cylinder</a><ul class="internal"><li class="toplevel"><a class="tocitem" href="#Description-of-the-case"><span>Description of the case</span></a></li><li class="toplevel"><a class="tocitem" href="#Code"><span>Code</span></a></li></ul></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Advanced examples</a></li><li class="is-active"><a href>Incompressible Navier-Stokes (FEM) - flow around a cylinder</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Incompressible Navier-Stokes (FEM) - flow around a cylinder</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/bcube-project/BcubeTutorials.jl/blob/main/docs/src/example/incompressible_navier_stokes.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Incompressible-Navier-Stokes-(FEM)-flow-around-a-cylinder"><a class="docs-heading-anchor" href="#Incompressible-Navier-Stokes-(FEM)-flow-around-a-cylinder">Incompressible Navier-Stokes (FEM) - flow around a cylinder</a><a id="Incompressible-Navier-Stokes-(FEM)-flow-around-a-cylinder-1"></a><a class="docs-heading-anchor-permalink" href="#Incompressible-Navier-Stokes-(FEM)-flow-around-a-cylinder" title="Permalink"></a></h1><p>In this example, the laminar flow around a cylinder is simulated by solving the incompressible Navier-Stokes equations. The equations are discretized and solved using two methods, the projection method and the &quot;mixed form&quot; method. This tutorial is based on a <a href="https://wwwold.mathematik.tu-dortmund.de/~featflow/en/benchmarks/cfdbenchmarking/flow/dfg_benchmark2_re100.html">DFG Benchmark</a> and is also an example in <a href="https://ferrite-fem.github.io/Ferrite.jl/stable/tutorials/ns_vs_diffeq/">Ferrite.jl</a>.</p><h1 id="Description-of-the-case"><a class="docs-heading-anchor" href="#Description-of-the-case">Description of the case</a><a id="Description-of-the-case-1"></a><a class="docs-heading-anchor-permalink" href="#Description-of-the-case" title="Permalink"></a></h1><p>The simulation domain consists in a channel bounded above and below by two walls and within which a cylinder is placed. The geometrical parameters of the case are shown in the Figure below.</p><p><img src="../../assets/navier_stokes_cylindre.png" alt/></p><p>The flow around the cylinder is governed by the incompressible Navier-Stokes equations (here <span>$\rho=1$</span>):</p><p class="math-container">\[  \partial_t u + u \cdot \nabla u = - \nabla p + \nu \Delta u\]</p><p class="math-container">\[  \nabla \cdot u = 0\]</p><p>To discretize the equations <span>$\mathbb{P}_2$</span>-<span>$\mathbb{P}_1$</span> elements are used (Taylor-Hood).</p><p>No-slip boundary conditions are applied on all walls. The inlet is given by an imposed parabolic velocity profile which is ramped up in time:</p><p class="math-container">\[  u(t,x,y) = u_{in}(t) \times \left( 4  y (0.41-y)/0.41^2 , 0 \right)\]</p><p>where <span>$u_{in}(t) = \textrm{clamp}(t,0.0,1.5)$</span>.</p><p>At the outlet, <span>$p=0$</span> is imposed when using the projection method and a &quot;do-nothing&quot; (<span>$-pn + \nu \nabla u \cdot n = 0$</span>) condition is applied when using the &quot;mixed form&quot; method.</p><h1 id="Code"><a class="docs-heading-anchor" href="#Code">Code</a><a id="Code-1"></a><a class="docs-heading-anchor-permalink" href="#Code" title="Permalink"></a></h1><p>Load the necessary packages</p><pre><code class="language-julia hljs">const dir = string(@__DIR__, &quot;/&quot;) # bcube/example dir
+using Bcube
+using LinearAlgebra
+using BcubeVTK
+using BcubeGmsh
+using StaticArrays</code></pre><p>Function space (here we shall use Taylor-Hood P2-P1 elements) and quadrature degree.</p><pre><code class="language-julia hljs">const fspace = :Lagrange
+const degree_u = 2
+const degquad = 2 * degree_u + 1
+const degree_p = 1</code></pre><p>Input and output paths</p><pre><code class="language-julia hljs">const outputpath = joinpath(dir, &quot;..&quot;, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;navier_stokes/&quot;)
+const meshpath = joinpath(dir, &quot;../../../input/mesh/cylinder_navier_stokes_tri.msh&quot;)
+mkpath(outputpath)</code></pre><p>Kinematic viscosity</p><pre><code class="language-julia hljs">const ν = 0.001</code></pre><p>Time step and simulation time</p><pre><code class="language-julia hljs">const Δt = 1.0e-3
+const finalTime = 6.0</code></pre><p>Function that defines the inlet velocity profile</p><pre><code class="language-julia hljs">function inlet_velocity(x, t)
+    SA[4.0 * clamp(t, 0.0, 1.5) * x[2] * (0.41 - x[2]) / (0.41 * 0.41), 0.0]
+end</code></pre><p>Function that solves the problem using the projection method</p><pre><code class="language-julia hljs">function run_unsteady_projection_method()</code></pre><p>Read mesh</p><pre><code class="language-julia hljs">    mesh = read_mesh(meshpath)</code></pre><p>Definition of trial and test function spaces (with associated Dirichlet boundary conditions)</p><pre><code class="language-julia hljs">    fsu = FunctionSpace(fspace, degree_u)
+    U_vel = TrialFESpace(
+        fsu,
+        mesh,
+        Dict(
+            &quot;left&quot; =&gt; inlet_velocity,
+            &quot;top&quot; =&gt; SA[0.0, 0.0],
+            &quot;bottom&quot; =&gt; SA[0.0, 0.0],
+            &quot;cylinder&quot; =&gt; SA[0.0, 0.0],
+        ); #
+        size = 2,
+    )
+    V_vel = TestFESpace(U_vel)
+
+    fsp = FunctionSpace(fspace, degree_p)
+    U_pre = TrialFESpace(fsp, mesh, Dict(&quot;right&quot; =&gt; SA[0.0]); size = 1)
+    V_pre = TestFESpace(U_pre)
+
+    velocity = FEFunction(U_vel)
+    pressure = FEFunction(U_pre)</code></pre><p>Define measures for cell</p><pre><code class="language-julia hljs">    dΩ = Measure(CellDomain(mesh), degquad)</code></pre><p>Definition of bilinear and linear forms Tentative velocity forms</p><pre><code class="language-julia hljs">    m1(u, v) = ∫(u ⋅ v)dΩ
+    # function l1(v)
+    #     ∫(velocity ⋅ v)dΩ - Δt * ∫(ν * ∇(velocity) ⊡ ∇(v) + (∇(velocity) * velocity) ⋅ v)dΩ
+    # end
+    # Below is an equivalent définition of l1(v) that yields better performance thanks to the use of composition
+    function l1(v)
+        f(u, ∇u, v, ∇v) = u ⋅ v - Δt * (ν * ∇u ⊡ ∇v + (∇u * u) ⋅ v)
+        ∫(f ∘ (velocity, ∇(velocity), v, ∇(v)))dΩ
+    end</code></pre><p>Pressure forms</p><pre><code class="language-julia hljs">    a2(p, q) = ∫(∇(p) ⋅ ∇(q))dΩ
+    # l2(q) = (-1.0 / Δt) * ∫(tr(∇(velocity)) ⋅ q)dΩ
+    # Below is an equivalent définition of l2(v) that yields better performance thanks to the use of composition
+    function l2(q)
+        f(∇u, q) = (-1.0 / Δt) * (tr(∇u) ⋅ q)
+        ∫(f ∘ (∇(velocity), q))dΩ
+    end</code></pre><p>Velocity correction forms</p><pre><code class="language-julia hljs">    # l3(v) = ∫(velocity ⋅ v)dΩ - Δt * ∫(∇(pressure) ⋅ v)dΩ
+    # Below is an equivalent définition of l3(v) that yields better performance thanks to the use of composition
+    function l3(v)
+        f(u, ∇p, v) = u ⋅ v - Δt * ∇p ⋅ v
+        ∫(f ∘ (velocity, ∇(pressure), v))dΩ
+    end</code></pre><p>Assemble and factorize matrices</p><pre><code class="language-julia hljs">    M1 = assemble_bilinear(m1, U_vel, V_vel)
+    M0 = copy(M1)
+    Bcube.apply_dirichlet_to_matrix!(M1, U_vel, V_vel, mesh)
+    f_M1 = factorize(M1)
+
+    A2 = assemble_bilinear(a2, U_pre, V_pre)
+    Bcube.apply_dirichlet_to_matrix!(A2, U_pre, V_pre, mesh)
+    f_A2 = factorize(A2)</code></pre><p>Write initial solution</p><pre><code class="language-julia hljs">    vars = Dict(&quot;Velocity&quot; =&gt; velocity, &quot;Pressure&quot; =&gt; pressure)
+    filepath = joinpath(outputpath, &quot;output_projection.pvd&quot;)
+    write_file(filepath, mesh, vars, 0, 0.0; collection_append = false)</code></pre><p>Time stepping</p><pre><code class="language-julia hljs">    time = 0.0
+    itime = 0
+
+    while time &lt;= finalTime
+        time += Δt
+        itime += 1
+
+        println(&quot;Time stepping : time = &quot;, time, &quot; / &quot;, finalTime)
+
+        # assemble l1
+        L1 = assemble_linear(l1, V_vel)
+        Wd = Bcube.assemble_dirichlet_vector(U_vel, V_vel, mesh, time)
+        # Apply lift
+        L1 = L1 - M0 * Wd
+
+        # Apply homogeneous Dirichlet condition
+        Bcube.apply_homogeneous_dirichlet_to_vector!(L1, U_vel, V_vel, mesh)
+
+        # Compute tentative velocity
+        sol = f_M1 \ L1
+
+        set_dof_values!(velocity, sol .+ Wd)
+
+        # Assemble l2
+        L2 = assemble_linear(l2, V_pre)
+        Bcube.apply_homogeneous_dirichlet_to_vector!(L2, U_pre, V_pre, mesh)
+
+        # Compute pressure
+        sol = f_A2 \ L2
+
+        set_dof_values!(pressure, sol)
+
+        # Assemble l3
+        L3 = assemble_linear(l3, V_vel)
+        # Apply lift
+        L3 = L3 - M0 * Wd
+
+        # Apply homogeneous Dirichlet condition
+        Bcube.apply_homogeneous_dirichlet_to_vector!(L3, U_vel, V_vel, mesh)
+
+        # Velocity correction step
+        sol = f_M1 \ L3
+
+        set_dof_values!(velocity, sol .+ Wd)
+
+        # Write outputs
+        if itime % 100 == 0
+            write_file(filepath, mesh, vars, itime, time; collection_append = true)
+        end
+    end
+end</code></pre><p>The animation below shows the result of simulation with the projection method: <img src="../../assets/navier_stokes_projection.gif" alt/></p><p>Function that solves the problem using a mixed formalism</p><pre><code class="language-julia hljs">function run_unsteady_mixed()</code></pre><p>Read mesh</p><pre><code class="language-julia hljs">    mesh = read_mesh(meshpath)</code></pre><p>Definition of trial and test function spaces (with associated Dirichlet boundary conditions)</p><pre><code class="language-julia hljs">    fsu = FunctionSpace(fspace, degree_u)
+    U_vel = TrialFESpace(
+        fsu,
+        mesh,
+        Dict(
+            &quot;left&quot; =&gt; inlet_velocity,
+            &quot;top&quot; =&gt; SA[0.0, 0.0],
+            &quot;bottom&quot; =&gt; SA[0.0, 0.0],
+            &quot;cylinder&quot; =&gt; SA[0.0, 0.0],
+        );
+        size = 2,
+    )
+    V_vel = TestFESpace(U_vel)
+
+    fsp = FunctionSpace(fspace, degree_p)
+    U_pre = TrialFESpace(fsp, mesh; size = 1)
+    V_pre = TestFESpace(U_pre)
+
+    U = MultiFESpace(U_vel, U_pre)
+    V = MultiFESpace(V_vel, V_pre)
+
+    velocity = FEFunction(U_vel)
+    pressure = FEFunction(U_pre)</code></pre><p>Define measures for cell</p><pre><code class="language-julia hljs">    dΩ = Measure(CellDomain(mesh), degquad)</code></pre><p>Definition of bilinear and linear forms</p><pre><code class="language-julia hljs">    m((u, p), (v, q)) = ∫(u ⋅ v)dΩ
+    a((u, p), (v, q)) = ∫(ν * ∇(u) ⊡ ∇(v) - tr(∇(v)) * p + tr(∇(u)) * q)dΩ
+    l((v, q)) = -∫((∇(velocity) * velocity) ⋅ v)dΩ</code></pre><p>Assemble and factorize matrices</p><pre><code class="language-julia hljs">    M = assemble_bilinear(m, U, V)
+    A = assemble_bilinear(a, U, V)
+    L = assemble_linear(l, V)
+    A0 = copy(A)
+
+    Bcube.apply_dirichlet_to_matrix!(A, U, V, mesh)
+    Bcube.apply_dirichlet_to_matrix!(M, U, V, mesh)
+
+    f_Mtime = factorize(M .+ Δt * A)
+
+    ϕ = FEFunction(V)</code></pre><p>Initial output</p><pre><code class="language-julia hljs">    vars = Dict(&quot;Velocity&quot; =&gt; velocity, &quot;Pressure&quot; =&gt; pressure)
+    filepath = joinpath(outputpath, &quot;output_mixed.pvd&quot;)
+    write_file(filepath, mesh, vars, 0, 0.0; collection_append = false)</code></pre><p>Time stepping</p><pre><code class="language-julia hljs">    time = 0.0
+    itime = 0
+    sol = zero(L)
+
+    while time &lt;= finalTime
+        time += Δt
+        itime += 1
+
+        println(&quot;Time stepping : time = &quot;, time, &quot; / &quot;, finalTime)
+
+        L = assemble_linear(l, V)
+
+        Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
+
+        # Apply lift
+        L = L - A0 * Wd
+
+        # Apply homogeneous Dirichlet condition
+        Bcube.apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
+
+        # Compute solution
+        sol = f_Mtime \ (Δt * L + M * sol)
+
+        set_dof_values!(ϕ, sol .+ Wd)
+        velocity, pressure = ϕ
+
+        # Write outputs
+        if itime % 100 == 0
+            vars = Dict(&quot;Velocity&quot; =&gt; velocity, &quot;Pressure&quot; =&gt; pressure)
+            write_file(filepath, mesh, vars, itime, time; collection_append = true)
+        end
+    end
+end</code></pre><p>The animation below shows the result of simulation with the &quot;mixed form&quot; method: <img src="../../assets/navier_stokes_mixed.gif" alt/></p><pre><code class="language-julia hljs">println(&quot; &quot;)
+println(&quot;---------------------------------------------------&quot;)
+println(&quot;--------- solving with projection method ----------&quot;)
+@time begin
+    run_unsteady_projection_method()
+end
+println(&quot;---------------------------------------------------&quot;)
+println(&quot; &quot;)
+println(&quot;---------------------------------------------------&quot;)
+println(&quot;--------- solving with mixed form method ----------&quot;)
+@time begin
+    run_unsteady_mixed()
+end
+println(&quot;---------------------------------------------------&quot;)
+println(&quot; &quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../stokes_flow/">« Stokes flow example (FE with Taylor-Hood elements)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.16.1 on <span class="colophon-date" title="Thursday 1 January 2026 17:45">Thursday 1 January 2026</span>. Using Julia version 1.10.10.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
