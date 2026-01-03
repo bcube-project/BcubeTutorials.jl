@@ -13,6 +13,10 @@ using InteractiveUtils
 using BenchmarkTools
 using UnPack
 
+if get(ENV, "TestMode", "false") == "true"
+    import ..BcubeTutorialsTests: test_ref
+end
+
 function compute_residual(_u, V, params, cache)
     u = get_fe_functions(_u)
 
@@ -389,23 +393,28 @@ function run_covo()
         end
     end
 
-    # Summary and benchmark                                 # ndofs total = 20480
-    _rhs(u, t) = compute_residual(u, V, params, cache)
-    @btime forward_euler($u, $_rhs, $time, $Δt)  # 5.639 ms (1574 allocations: 2.08 MiB)
-    # stepper = w -> explicit_step(w, params, cache, Δt)
-    # RK3_SSP(stepper, (u, v), cache)
-    # @btime RK3_SSP($stepper, ($u, $v), $cache)
-    println("ndofs total = ", Bcube.get_ndofs(U))
-    Profile.init(; n = 10^7) # returns the current settings
-    Profile.clear()
-    Profile.clear_malloc_data()
-    @profile begin
-        for i in 1:100
-            forward_euler(u, _rhs, time, Δt)
+    # Summary and benchmark (except if "tests" are asked)                                # ndofs total = 20480
+    if get(ENV, "TestMode", "false") == "false"
+        _rhs(u, t) = compute_residual(u, V, params, cache)
+        @btime forward_euler($u, $_rhs, $time, $Δt)  # 5.639 ms (1574 allocations: 2.08 MiB)
+        # stepper = w -> explicit_step(w, params, cache, Δt)
+        # RK3_SSP(stepper, (u, v), cache)
+        # @btime RK3_SSP($stepper, ($u, $v), $cache)
+        println("ndofs total = ", Bcube.get_ndofs(U))
+        Profile.init(; n = 10^7) # returns the current settings
+        Profile.clear()
+        Profile.clear_malloc_data()
+        @profile begin
+            for i in 1:100
+                forward_euler(u, _rhs, time, Δt)
+            end
         end
+        @show Δt, U₀, U₀ * t
+        @show boundary_names(mesh)
+    else # running test
+        test_ref("covo.jld2", get_dof_values(u))
     end
-    @show Δt, U₀, U₀ * t
-    @show boundary_names(mesh)
+
     return nothing
 end
 

@@ -149,6 +149,7 @@ If `data` is not a valid subtype for the defaut test strategy, one could :
 The function must have the same signature as `Base.isequal` function.
 """
 function test_ref(filename_ref::String, data, comp::Function = compare())
+    println("Testing against $(filename_ref)")
     @test_reference refpath(filename_ref) _as_dict(data) by = comp
 end
 _as_dict(a::Dict) = a
