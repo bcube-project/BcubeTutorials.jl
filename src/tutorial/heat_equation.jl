@@ -109,8 +109,10 @@ L = assemble_linear(l, V)
 
 # Compute a vector of dofs whose values are zeros everywhere
 # except on dofs lying on a Dirichlet boundary, where they
-# take the Dirichlet value
-Ud = assemble_dirichlet_vector(U, V, mesh)
+# take the Dirichlet value. The returned vector is a "SparseVector".
+# Since we will use it in a linear system inversion, we must convert it
+# to a "regular" vector.
+Ud = collect(assemble_dirichlet_vector(U, V, mesh))
 
 # Apply lift
 L = L - A * Ud
