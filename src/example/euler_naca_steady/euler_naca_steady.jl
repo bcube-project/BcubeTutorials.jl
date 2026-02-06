@@ -571,11 +571,12 @@ function compute_dimcar(mesh)
 
     f1 = PhysicalFunction(x -> 1.0)
     l(v) = ∫(f1 ⋅ v)dΩ
-    l_face(v, dω) = ∫(side⁻(f1) ⋅ side⁻(v) + side⁺(f1) ⋅ side⁺(v))dω
+    function l_face(v)
+        ∫(side⁻(f1) ⋅ side⁻(v) + side⁺(f1) ⋅ side⁺(v))dΓ + ∫(side⁻(f1) ⋅ side⁻(v))dΓ_bc
+    end
 
     vol = assemble_linear(l, V)
-    surf = assemble_linear(Base.Fix2(l_face, dΓ), V)
-    surf += assemble_linear(Base.Fix2(l_face, dΓ_bc), V)
+    surf = assemble_linear(l_face, V)
     return vol ./ surf
 end
 
