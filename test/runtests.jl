@@ -1,10 +1,6 @@
 module BcubeTutorialsTests
-using BcubeTutorials
+using Pkg
 using Test
-using SHA: sha256
-using DelimitedFiles
-using Printf: Format, format
-using FileIO, JLD2
 using ReferenceTests
 using SparseArrays
 
@@ -15,19 +11,27 @@ include("./utils.jl")
 
 ENV["TestMode"] = "true"
 
+SRC_DIR = joinpath(@__DIR__, "..", "src")
+names = (
+    "constrained_poisson",
+    "covo",
+    "linear_transport",
+    "heat_equation",
+    "heat_equation_two_layers",
+    "heat_equation_sphere",
+    "helmholtz",
+)
+
 @testset "BcubeTutorials.jl" begin
-    @testset "Tutorials" begin
-        custom_include("../src/tutorial/heat_equation.jl")
-        custom_include("../src/tutorial/helmholtz.jl")
-        custom_include("../src/tutorial/linear_transport.jl")
-    end
-    @testset "Examples" begin
-        custom_include("../src/example/heat_equation_sphere/heat_equation_sphere.jl")
-        custom_include("../src/example/constrained_poisson/constrained_poisson.jl")
-        custom_include(
-            "../src/example/heat_equation_two_layers/heat_equation_two_layers.jl",
-        )
-        custom_include("../src/example/covo/covo.jl")
+    for name in names
+        filename = name * ".jl"
+        dir = joinpath(SRC_DIR, name)
+        filepath = joinpath(dir, filename)
+        @testset "$filename" begin
+            Pkg.activate(dir)
+            Pkg.instantiate()
+            include(filepath)
+        end
     end
 end
 

@@ -161,9 +161,10 @@ while t <= totalTime
     end
 end
 
-if get(ENV, "TestMode", "false") == "true"                 #src
-    import ..BcubeTutorialsTests: test_ref                 #src
-    test_ref("heat_equation_100s.jld2", get_dof_values(ϕ)) #src
-end                                                        #src
+if get(ENV, "TestMode", "false") == "true"                     #src
+    import ..BcubeTutorialsTests: test_ref, checkpoint_reached #src
+    checkpoint_reached("end")                                  #src
+    test_ref("heat_equation_100s.jld2", get_dof_values(ϕ))     #src
+end                                                            #src
 
 end #hide
