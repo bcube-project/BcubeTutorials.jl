@@ -30,6 +30,11 @@ using BcubeVTK
 using LinearAlgebra
 using Random
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
+
 Random.seed!(1234) # to obtain reproductible results
 
 # Define some physical and numerical constants, as well as the `g` function
@@ -146,7 +151,14 @@ function main()
         if itime % nout == 0
             write_file(filepath, mesh, dict_vars, itime, t; collection_append = true)
         end
+
+        itime > 10 && break #src
     end
+
+    if is_tested                                                        #src
+        test_ref("phase_field_supercooled_phi.jld2", get_dof_values(ϕ)) #src
+        test_ref("phase_field_supercooled_T.jld2", get_dof_values(T))   #src
+    end                                                                 #src
 end
 
 # run simulation

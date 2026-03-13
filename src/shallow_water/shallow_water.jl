@@ -4,7 +4,7 @@ println("Running shallow_water example...") #hide
 #
 # WARNING : the below explanations are not up to date, the text has been copied from the old-api example.
 #
-# Following "A conservative Saint-Venant type model to describe the dynamics of thien partially wetting films with
+# Following "A conservative Saint-Venant type model to describe the dynamics of thin partially wetting films with
 # regularized forces at the contact line".
 # The gravity is noted ``g = g_n \vec{e_n} + \vec{g_t}`` (note that ``g_n`` is a scalar while ``g_t`` is a vector). The goal is to solve:
 # ```math
@@ -129,8 +129,12 @@ using Roots
 using SparseArrays
 using SparseDiffTools
 using Profile
-#using Symbolics
 using InteractiveUtils
+
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
 
 const eps_h = 1.0e-10
 
@@ -462,19 +466,23 @@ function run_simulation(stateInit)
 
     append_vtk(vtk, mesh, q, time, params)
 
-    println("Benchmarking 'forward_euler':")
-    _rhs1(q, t) = rhs(q, Q, V, params, cache)
-    @btime forward_euler($q, $_rhs1, $time, $Δt)
-    @btime apply_limitation!($q, $params, $cache)
-    println("ndofs total = ", Bcube.get_ndofs(Q))
+    if is_tested
+        test_ref("shallow_water_q.jld2", get_dof_values(q))
+    else
+        println("Benchmarking 'forward_euler':")
+        _rhs1(q, t) = rhs(q, Q, V, params, cache)
+        @btime forward_euler($q, $_rhs1, $time, $Δt)
+        @btime apply_limitation!($q, $params, $cache)
+        println("ndofs total = ", Bcube.get_ndofs(Q))
 
-    Profile.init(; n = 10^7) # returns the current settings
-    Profile.clear()
-    Profile.clear_malloc_data()
-    @profile begin
-        for i in 1:100
-            forward_euler(q, _rhs1, time, Δt)
-            limiter_projection && apply_limitation!(q, params, cache)
+        Profile.init(; n = 10^7) # returns the current settings
+        Profile.clear()
+        Profile.clear_malloc_data()
+        @profile begin
+            for i in 1:100
+                forward_euler(q, _rhs1, time, Δt)
+                limiter_projection && apply_limitation!(q, params, cache)
+            end
         end
     end
 end

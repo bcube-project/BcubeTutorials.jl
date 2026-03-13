@@ -51,6 +51,11 @@ using LinearAlgebra
 using StaticArrays
 using Plots
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
+
 const degree = 1 # Function-space degree (Taylor(0) = first order Finite Volume)
 const nite = 250 # Number of time iteration(s)
 const CFL = 0.5 # CFL number
@@ -145,5 +150,9 @@ end
 g = gif(anim, joinpath(out_dir, "transport_supg.gif"))
 display(g)
 # ![](../assets/transport_supg.gif)
+
+if is_tested                                             #src
+    test_ref("transport_supg_u.jld2", get_dof_values(u)) #src
+end                                                      #src
 
 end #hide

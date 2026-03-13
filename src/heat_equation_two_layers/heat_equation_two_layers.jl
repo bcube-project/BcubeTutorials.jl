@@ -16,6 +16,7 @@ println("Running heat equation two layers example...") #hide
 
 const dir = joinpath(@__DIR__, "..", "..") # BcubeTutorials dir
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using Test #src

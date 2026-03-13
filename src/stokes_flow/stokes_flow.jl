@@ -62,6 +62,11 @@ using LinearAlgebra
 using StaticArrays
 using SpecialFunctions
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
+
 # Function space: P2 for velocity and P1 for pressure
 const fspace = :Lagrange
 const degree_u = 2
@@ -150,6 +155,11 @@ function run_steady()
 
     vars = Dict("Velocity" => velocity, "Pressure" => pressure)
     write_file(joinpath(outputpath, "output_steady.pvd"), mesh, vars)
+
+    if is_tested                                               #src
+        test_ref("stokes_flow_steady_velocity.jld2", velocity) #src
+        test_ref("stokes_flow_steady_pressure.jld2", pressure) #src
+    end                                                        #src
 end
 # The obtained solution captures the Moffat vortices topology of the flow
 # ![](../assets/Stokes_flow_Moffat_vortices.png)
@@ -329,6 +339,11 @@ function run_unsteady()
             write_file(filepath, mesh, vars, itime, time; collection_append = true)
         end
     end
+
+    if is_tested                                                 #src
+        test_ref("stokes_flow_unsteady_velocity.jld2", velocity) #src
+        test_ref("stokes_flow_unsteady_pressure.jld2", pressure) #src
+    end                                                          #src
 end
 
 # The obtained solution compares well with the reference solution

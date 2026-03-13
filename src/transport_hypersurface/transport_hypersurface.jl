@@ -28,6 +28,11 @@ using ProgressMeter
 using Profile
 using BenchmarkTools
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
+
 const out_dir = joinpath(@__DIR__, "..", "..", "myout", "transport_hypersurface")
 rm(out_dir; force = true, recursive = true)
 mkpath(out_dir)
@@ -319,6 +324,10 @@ function scalar_circle(;
     println("Computation is done, building gif...")
     g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
     display(g)
+
+    if is_tested                                                                   #src
+        test_ref("transport_hypersurface_scalar_circle_u.jld2", get_dof_values(u)) #src
+    end                                                                            #src
 end
 
 """
@@ -430,6 +439,10 @@ function vector_circle(; degree, nite, CFL, nθ)
 
     g = gif(anim, joinpath(out_dir, "vector_on_circle_d$degree.gif"); fps = 2)
     display(g)
+
+    if is_tested                                                                   #src
+        test_ref("transport_hypersurface_vector_circle_u.jld2", get_dof_values(u)) #src
+    end                                                                            #src
 end
 
 """
@@ -640,6 +653,10 @@ function scalar_cylinder(;
             @btime assemble_linear!($b, $l, $V)
         end
     end
+
+    if is_tested                                                                     #src
+        test_ref("transport_hypersurface_scalar_cylinder_u.jld2", get_dof_values(u)) #src
+    end                                                                              #src
 end
 
 """
@@ -868,6 +885,10 @@ function vector_cylinder(;
             append_vtk(vtk, u, lim_u, u_mean, t)
         end
     end
+
+    if is_tested                                                                     #src
+        test_ref("transport_hypersurface_vector_cylinder_u.jld2", get_dof_values(u)) #src
+    end                                                                              #src
 end
 
 """
@@ -1076,6 +1097,10 @@ function scalar_torus(;
             append_vtk(vtk, u, lim_u, t)
         end
     end
+
+    if is_tested                                                                  #src
+        test_ref("transport_hypersurface_scalar_torus_u.jld2", get_dof_values(u)) #src
+    end                                                                           #src
 end
 
 ## Run

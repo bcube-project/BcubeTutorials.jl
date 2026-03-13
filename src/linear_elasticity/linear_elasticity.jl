@@ -9,6 +9,11 @@ using BcubeVTK
 using LinearAlgebra
 using StaticArrays
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
+
 # function space (here we shall use Lagrange P1 elements) and quadrature degree.
 const fspace = :Lagrange
 const degree = 1 # FunctionSpace degree
@@ -71,6 +76,10 @@ function run_steady()
     dict_vars = Dict("Displacement" => ϕ)
     mkpath(outputpath)
     write_file(outputpath * "result_elasticity.pvd", mesh, dict_vars)
+
+    if is_tested                                                         #src
+        test_ref("linear_elasticity_steady_phi.jld2", get_dof_values(ϕ)) #src
+    end                                                                  #src
 end
 
 # Function that performs a time step using a Newmark α-HHT scheme
@@ -177,6 +186,10 @@ function run_unsteady()
             # with 0 z-component: Displacement_X*iHat+Displacement_Y*jHat+0.0*kHat
         end
     end
+
+    if is_tested                                                           #src
+        test_ref("linear_elasticity_unsteady_phi.jld2", get_dof_values(ϕ)) #src
+    end                                                                    #src
 end
 
 #run_steady()

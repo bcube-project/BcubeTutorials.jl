@@ -12,6 +12,11 @@ using LinearAlgebra
 using SparseArrays
 using StaticArrays
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    using Test                                            #src
+end                                                       #src
+
 const outputpath = joinpath(@__DIR__, "..", "..", "myout", "poisson_dg")
 isdir(outputpath) || mkpath(outputpath)
 const degree = 3
@@ -82,6 +87,11 @@ function main()
     @show el2, eh1
     @assert el2 < tol
     @assert eh1 < tol
+
+    if is_tested        #src
+        @test el2 < tol #src
+        @test eh1 < tol #src
+    end                 #src
 end
 
 main()

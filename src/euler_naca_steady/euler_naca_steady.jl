@@ -17,14 +17,15 @@ using DifferentialEquations
 using Symbolics
 using SparseDiffTools
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    using ..Tester: test_ref                              #src
+end                                                       #src
+
 const dir = string(@__DIR__, "/")
 
 # Specific to tests
-const is_tested = get(ENV, "TestMode", "false") == "true"
 const maxiters = is_tested ? 10 : 1e5
-if is_tested
-    import ..Tester: test_ref, checkpoint_reached
-end
 
 function compute_residual(qdof, Q, V, params)
     q = (FEFunction(Q, qdof)...,)
@@ -427,10 +428,9 @@ function main(stateInit, stateBcFarfield, degree)
 
         deg < degree && (qLowOrder = deepcopy(q))
 
-        if is_tested
-            checkpoint_reached("end degree $deg")
-            test_ref("euler_naca_steady_q.jld2", get_dof_values(q))
-        end
+        if is_tested                                                           #src
+            test_ref("euler_naca_steady_d$(degree)_q.jld2", get_dof_values(q)) #src
+        end                                                                    #src
     end
     return nothing
 end

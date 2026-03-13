@@ -10,6 +10,11 @@ using BcubeVTK
 using LinearAlgebra
 using StaticArrays
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
+
 # Function space (here we shall use Lagrange P1 elements) and quadrature degree.
 const fspace = :Lagrange
 const degree = 1 # FunctionSpace degree
@@ -202,6 +207,11 @@ function run_unsteady()
             ## with 0 z-component: Displacement_X*iHat+Displacement_Y*jHat+0.0*kHat
         end
     end
+
+    if is_tested                                                      #src
+        test_ref("linear_thermoelasticity_U.jld2", get_dof_values(U)) #src
+        test_ref("linear_thermoelasticity_T.jld2", get_dof_values(T)) #src
+    end                                                               #src
 end
 
 run_unsteady()

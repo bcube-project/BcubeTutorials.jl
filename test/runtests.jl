@@ -20,14 +20,23 @@ end
 
 SRC_DIR = joinpath(@__DIR__, "..", "src")
 names = (
-    # "constrained_poisson",
-    # "covo",
-    # "euler_naca_steady",
-    # "linear_transport",
-    # "heat_equation",
-    # "heat_equation_two_layers",
+    "constrained_poisson",
+    "covo",
+    "euler_naca_steady",
+    "heat_equation",
     "heat_equation_sphere",
+    "heat_equation_two_layers",
     "helmholtz",
+    "incompressible_navier_stokes",
+    "linear_elasticity",
+    "linear_thermoelasticity",
+    "linear_transport",
+    "pahse_field_supercooled",
+    "poisson_dg",
+    "shallow_water",
+    "stokes_flow",
+    "transport_hypersurface",
+    "transport_supg",
 )
 
 @testset "BcubeTutorials" begin
@@ -83,9 +92,9 @@ end
             try
                 run(cmd)
             catch e
-                REMOVE_TMP_FILES && rm(tmp_filepath)
                 throw(e)
             end
+            REMOVE_TMP_FILES && rm(tmp_filepath)
 
             # Check the results
             if isfile(results_path)
