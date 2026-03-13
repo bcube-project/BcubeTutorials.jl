@@ -13,7 +13,7 @@ using BenchmarkTools
 using UnPack
 
 if get(ENV, "TestMode", "false") == "true"
-    import ..BcubeTutorialsTests: test_ref
+    import ..Tester: test_ref
 end
 
 function compute_residual(_u, V, params, cache)

@@ -202,7 +202,7 @@ end
 # ![](../assets/linear_transport.gif)
 
 if get(ENV, "TestMode", "false") == "true"                           #src
-    import ..BcubeTutorialsTests: test_ref                           #src
+    import ..Tester: test_ref                           #src
     test_ref("linear_transport_sol_100ites.jld2", get_dof_values(u)) #src
 end                                                                  #src
 

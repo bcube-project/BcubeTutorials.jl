@@ -23,7 +23,7 @@ const dir = string(@__DIR__, "/")
 const is_tested = get(ENV, "TestMode", "false") == "true"
 const maxiters = is_tested ? 10 : 1e5
 if is_tested
-    import ..BcubeTutorialsTests: test_ref, checkpoint_reached
+    import ..Tester: test_ref, checkpoint_reached
 end
 
 function compute_residual(qdof, Q, V, params)

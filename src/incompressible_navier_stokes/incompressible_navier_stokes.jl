@@ -190,7 +190,7 @@ function run_unsteady_projection_method()
     end
 
     if get(ENV, "TestMode", "false") == "true"
-        import ..BcubeTutorialsTests: test_ref, checkpoint_reached
+        import ..Tester: test_ref, checkpoint_reached
         name = "unsteady_projection_method"
         checkpoint_reached("end $name")
         test_ref(
@@ -297,7 +297,7 @@ function run_unsteady_mixed()
     end
 
     if get(ENV, "TestMode", "false") == "true"
-        import ..BcubeTutorialsTests: test_ref, checkpoint_reached
+        import ..Tester: test_ref, checkpoint_reached
         name = "unsteady_mixted"
         checkpoint_reached("end $name")
         test_ref(

@@ -109,7 +109,7 @@ write_file(joinpath(@__DIR__, outputvtk), mesh, dict_vars)                  #md
 # ![](../assets/helmholtz_x21_y21_vp6.png)
 
 if get(ENV, "TestMode", "false") == "true"                      #src
-    import ..BcubeTutorialsTests: test_ref, checkpoint_reached  #src
+    import ..Tester: test_ref, checkpoint_reached  #src
     checkpoint_reached("end")                                   #src
     results = sqrt.(abs.(vp[3:8]))                              #src
     ref_results = [                                             #src
