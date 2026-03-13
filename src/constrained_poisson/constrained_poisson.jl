@@ -46,7 +46,7 @@ using LinearAlgebra
 using SparseArrays
 using Test #src
 
-const outputpath = joinpath(@__DIR__, "..", "..", "..", "myout", "constrained_poisson")
+const outputpath = joinpath(@__DIR__, "..", "..", "myout", "constrained_poisson")
 mkpath(outputpath)
 
 # Read 2D mesh

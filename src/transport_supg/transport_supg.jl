@@ -65,7 +65,7 @@ const c = SA[1.0] # Transport velocity
 # Build mesh, and prepare output
 mesh = line_mesh(nx; xmax = lx, names = ("West", "East"))
 
-out_dir = joinpath(@__DIR__, "..", "..", "..", "myout", "linear_transport")
+out_dir = joinpath(@__DIR__, "..", "..", "myout", "linear_transport")
 mkpath(out_dir)
 
 # Time step defined by a CFL condition

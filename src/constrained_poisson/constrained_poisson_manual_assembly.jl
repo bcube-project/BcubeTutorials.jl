@@ -52,7 +52,7 @@ using BcubeVTK
 using LinearAlgebra
 using SparseArrays
 
-const outputpath = joinpath(@__DIR__, "../../../myout/constrained_poisson/")
+const outputpath = joinpath(@__DIR__, "..", "..", "myout", "constrained_poisson")
 mkpath(outputpath)
 
 # Read 2D mesh

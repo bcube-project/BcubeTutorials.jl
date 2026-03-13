@@ -6,7 +6,6 @@ using Bcube
 using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
-using StaticArrays
 using Profile
 using StaticArrays
 using InteractiveUtils
@@ -298,7 +297,7 @@ const l = 0.05 # half-width of the domain
 const Δt = CFL * 2 * l / (nx - 1) / ((1 + β) * U₀ + c₀) / (2 * degree + 1)
 #const Δt = 5.e-7
 const nout = 100 # Number of time steps to save
-const outputpath = "../../../myout/covo/"
+const outputpath = "../../myout/covo/"
 const output = joinpath(@__DIR__, outputpath, "covo_deg$degree")
 const nite = Int(floor(nperiod * 2 * l / (U₀ * Δt))) + 1
 

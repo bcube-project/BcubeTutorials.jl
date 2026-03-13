@@ -702,7 +702,7 @@ const nite_max = 300 #300000 # Number of time iteration(s)
 const nout = 1 # number of step between two vtk outputs
 const mass_matrix_in_solve = true
 const degquad = 6
-const outputpath = joinpath(@__DIR__, "../../../myout/euler_naca_steady/")
+const outputpath = joinpath(@__DIR__, "../../myout/euler_naca_steady/")
 
 const stateBcFarfield = (
     AoA = stateInit.AoA,

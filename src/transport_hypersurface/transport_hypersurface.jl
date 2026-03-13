@@ -28,7 +28,7 @@ using ProgressMeter
 using Profile
 using BenchmarkTools
 
-const out_dir = joinpath(@__DIR__, "../../../myout/transport_hypersurface")
+const out_dir = joinpath(@__DIR__, "..", "..", "myout", "transport_hypersurface")
 rm(out_dir; force = true, recursive = true)
 mkpath(out_dir)
 

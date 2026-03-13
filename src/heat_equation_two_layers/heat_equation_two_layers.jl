@@ -14,7 +14,7 @@ println("Running heat equation two layers example...") #hide
 # To numerically solve this problem we seek an approximate solution using Lagrange $$P^1$$ or $$P^2$$ elements.
 # Here we assume that the domain can be split into two domains having different material properties.
 
-const dir = joinpath(@__DIR__, "..", "..", "..") # BcubeTutorials dir
+const dir = joinpath(@__DIR__, "..", "..") # BcubeTutorials dir
 using Bcube
 using BcubeVTK
 using LinearAlgebra

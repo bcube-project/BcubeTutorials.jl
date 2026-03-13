@@ -12,7 +12,7 @@ using LinearAlgebra
 using SparseArrays
 using StaticArrays
 
-const outputpath = joinpath(@__DIR__, "..", "..", "..", "myout", "poisson_dg")
+const outputpath = joinpath(@__DIR__, "..", "..", "myout", "poisson_dg")
 isdir(outputpath) || mkpath(outputpath)
 const degree = 3
 const degree_quad = 2 * degree + 1

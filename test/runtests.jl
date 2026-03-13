@@ -10,6 +10,14 @@ tempdir = mktempdir()
 include("./utils.jl")
 
 ENV["TestMode"] = "true"
+has_custom_bcube_branch = haskey(ENV, "BCUBE_BRANCH")
+bcubeSpec = if has_custom_bcube_branch
+    branch = get(ENV, "BCUBE_BRANCH")
+    @info "Running tests with custom Bcube branch '$branch'"
+    Pkg.PackageSpec(; name = "Bcube", rev = branch)
+else
+    nothing
+end
 
 SRC_DIR = joinpath(@__DIR__, "..", "src")
 names = (
@@ -29,6 +37,7 @@ names = (
         filepath = joinpath(dir, filename)
         @testset "$filename" begin
             Pkg.activate(dir)
+            has_custom_bcube_branch && Pkg.add(bcubeSpec)
             Pkg.instantiate()
             include(filepath)
         end

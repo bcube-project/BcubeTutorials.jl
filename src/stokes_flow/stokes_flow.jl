@@ -80,14 +80,13 @@ const k = sqrt(π * f / ν)
 const Δt = 1.0e-3
 const finalTime = 2.0
 
-const outputpath = joinpath(@__DIR__, "..", "..", "..", "myout", "stokes")
+const outputpath = joinpath(@__DIR__, "..", "..", "myout", "stokes")
 mkpath(outputpath)
 
 # Function that runs the steady case:
 function run_steady()
     # Read 2D mesh
-    mesh_path =
-        joinpath(@__DIR__, "..", "..", "..", "input", "mesh", "domainTriangle_tri.msh")
+    mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainTriangle_tri.msh")
     mesh = read_mesh(mesh_path)
 
     # Definition of trial and test function spaces (with associated Dirichlet boundary conditions)

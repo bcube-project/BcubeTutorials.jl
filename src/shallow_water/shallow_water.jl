@@ -577,7 +577,7 @@ const nite = 5000 #300000 # Number of time iteration(s)
 const timeScheme = :ForwardEuler # :ForwardEuler, :RK3_SPP
 const CFL = 0.4 / (2 * degree + 1)
 const nout = 100 # Number of time steps to save
-const outputpath = joinpath(@__DIR__, "../../../myout/shallow_water/")
+const outputpath = joinpath(@__DIR__, "..", "..", "myout", "shallow_water/")
 const output = outputpath * "sw_deg$degree"
 const Δt₀ = 1.e-7
 

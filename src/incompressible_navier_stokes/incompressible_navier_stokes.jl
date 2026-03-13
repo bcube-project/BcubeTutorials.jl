@@ -48,8 +48,9 @@ const degquad = 2 * degree_u + 1
 const degree_p = 1
 
 # Input and output paths
-const outputpath = joinpath(dir, "..", "..", "..", "myout", "navier_stokes/")
-const meshpath = joinpath(dir, "../../../input/mesh/cylinder_navier_stokes_tri.msh")
+const outputpath = joinpath(dir, "..", "..", "myout", "navier_stokes/")
+const meshpath =
+    joinpath(dir, "..", "..", "input", "mesh", "cylinder_navier_stokes_tri.msh")
 mkpath(outputpath)
 
 # Kinematic viscosity

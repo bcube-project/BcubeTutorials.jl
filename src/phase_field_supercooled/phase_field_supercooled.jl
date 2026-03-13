@@ -49,11 +49,12 @@ const lx = 3.0
 const ly = 1.0
 const nx = 100
 const ny = 20
-const out_dir = joinpath(@__DIR__, "../../myout/phase_field_supercooled") # output directory
+const out_dir = joinpath(@__DIR__, "..", "..", "myout", "phase_field_supercooled") # output directory
 mkpath(out_dir) #hide
 
 # Read the mesh using `gmsh`
-const mesh_path = joinpath(@__DIR__, "../../input/mesh/domainPhaseField_tri.msh")
+const mesh_path =
+    joinpath(@__DIR__, "..", "..", "input", "mesh", "domainPhaseField_tri.msh")
 
 # Here we define the main algorithm in a function
 # to avoid performance penalty (see [Performance Tips](https://docs.julialang.org/en/v1/manual/performance-tips/#man-performance-tips))
