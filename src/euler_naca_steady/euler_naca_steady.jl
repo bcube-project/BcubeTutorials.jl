@@ -19,6 +19,13 @@ using SparseDiffTools
 
 const dir = string(@__DIR__, "/")
 
+# Specific to tests
+const is_tested = get(ENV, "TestMode", "false") == "true"
+const maxiters = is_tested ? 10 : 1e5
+if is_tested
+    import ..BcubeTutorialsTests: test_ref, checkpoint_reached
+end
+
 function compute_residual(qdof, Q, V, params)
     q = (FEFunction(Q, qdof)...,)
 
@@ -314,7 +321,15 @@ end
 function main(stateInit, stateBcFarfield, degree)
     @show degree, degquad
 
-    mesh = read_mesh(dir * "../../../input/mesh/naca0012_o" * string(mesh_degree) * ".msh")
+    meshpath = joinpath(
+        dir,
+        "..",
+        "..",
+        "input",
+        "mesh",
+        "naca0012_o" * string(mesh_degree) * ".msh",
+    )
+    mesh = read_mesh(meshpath)
     scale!(mesh, 1.0 / 0.5334)
 
     dimcar = compute_dimcar(mesh)
@@ -411,6 +426,11 @@ function main(stateInit, stateBcFarfield, degree)
         println("end steady_solve for deg=", deg, " !")
 
         deg < degree && (qLowOrder = deepcopy(q))
+
+        if is_tested
+            checkpoint_reached("end degree $deg")
+            test_ref("euler_naca_steady_q.jld2", get_dof_values(q))
+        end
     end
     return nothing
 end
@@ -535,6 +555,8 @@ function condition_steadystate(integrator, abstol, reltol, min_t)
     else
         testval = (integrator.u - integrator.uprev) / (integrator.t - integrator.tprev)
     end
+
+    (integrator.p.counter[1] ≥ maxiters) && (return true)
 
     if typeof(integrator.u) <: Array
         any(

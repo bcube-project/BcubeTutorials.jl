@@ -109,6 +109,8 @@ write_file(joinpath(@__DIR__, outputvtk), mesh, dict_vars)                  #md
 # ![](../assets/helmholtz_x21_y21_vp6.png)
 
 if get(ENV, "TestMode", "false") == "true"                      #src
+    import ..BcubeTutorialsTests: test_ref, checkpoint_reached  #src
+    checkpoint_reached("end")                                   #src
     results = sqrt.(abs.(vp[3:8]))                              #src
     ref_results = [                                             #src
         3.144823462554393,                                      #src
@@ -119,7 +121,6 @@ if get(ENV, "TestMode", "false") == "true"                      #src
         7.049403274103147,                                      #src
     ]                                                           #src
     @test all(results .≈ ref_results)                           #src
-    import ..BcubeTutorialsTests: test_ref                      #src
     test_ref("helmholtz_A.jld2", A)                             #src
     test_ref("helmholtz_B.jld2", B)                             #src
     test_ref("helmholtz_vp.jld2", vp)                           #src

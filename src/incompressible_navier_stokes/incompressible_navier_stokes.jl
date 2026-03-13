@@ -188,6 +188,20 @@ function run_unsteady_projection_method()
             write_file(filepath, mesh, vars, itime, time; collection_append = true)
         end
     end
+
+    if get(ENV, "TestMode", "false") == "true"
+        import ..BcubeTutorialsTests: test_ref, checkpoint_reached
+        name = "unsteady_projection_method"
+        checkpoint_reached("end $name")
+        test_ref(
+            "incompressible_navier_stokes_$(name)_velocity.jld2",
+            get_dof_values(velocity),
+        )
+        test_ref(
+            "incompressible_navier_stokes_$(name)_pressure.jld2",
+            get_dof_values(pressure),
+        )
+    end
 end
 # The animation below shows the result of simulation with the projection method:
 # ![](../assets/navier_stokes_projection.gif)
@@ -280,6 +294,20 @@ function run_unsteady_mixed()
             vars = Dict("Velocity" => velocity, "Pressure" => pressure)
             write_file(filepath, mesh, vars, itime, time; collection_append = true)
         end
+    end
+
+    if get(ENV, "TestMode", "false") == "true"
+        import ..BcubeTutorialsTests: test_ref, checkpoint_reached
+        name = "unsteady_mixted"
+        checkpoint_reached("end $name")
+        test_ref(
+            "incompressible_navier_stokes_$(name)_velocity.jld2",
+            get_dof_values(velocity),
+        )
+        test_ref(
+            "incompressible_navier_stokes_$(name)_pressure.jld2",
+            get_dof_values(pressure),
+        )
     end
 end
 

@@ -10,6 +10,8 @@ tempdir = mktempdir()
 include("./utils.jl")
 
 ENV["TestMode"] = "true"
+ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
+
 has_custom_bcube_branch = haskey(ENV, "BCUBE_BRANCH")
 bcubeSpec = if has_custom_bcube_branch
     branch = get(ENV, "BCUBE_BRANCH")
@@ -23,6 +25,7 @@ SRC_DIR = joinpath(@__DIR__, "..", "src")
 names = (
     "constrained_poisson",
     "covo",
+    "euler_naca_steady",
     "linear_transport",
     "heat_equation",
     "heat_equation_two_layers",
@@ -39,7 +42,8 @@ names = (
             Pkg.activate(dir)
             has_custom_bcube_branch && Pkg.add(bcubeSpec)
             Pkg.instantiate()
-            include(filepath)
+            Pkg.precompile()
+            @time include(filepath)
         end
     end
 end
