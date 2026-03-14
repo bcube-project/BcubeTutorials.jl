@@ -41,6 +41,11 @@ using BcubeVTK
 using BcubeGmsh
 using StaticArrays
 
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
+
 # Function space (here we shall use Taylor-Hood P2-P1 elements) and quadrature degree.
 const fspace = :Lagrange
 const degree_u = 2
@@ -189,19 +194,12 @@ function run_unsteady_projection_method()
         end
     end
 
-    if get(ENV, "TestMode", "false") == "true"
-        import ..Tester: test_ref, checkpoint_reached
-        name = "unsteady_projection_method"
-        checkpoint_reached("end $name")
-        test_ref(
-            "incompressible_navier_stokes_$(name)_velocity.jld2",
-            get_dof_values(velocity),
-        )
-        test_ref(
-            "incompressible_navier_stokes_$(name)_pressure.jld2",
-            get_dof_values(pressure),
-        )
-    end
+    if is_tested                                                              #src
+        prefix = "incompressible_navier_stokes"                               #src
+        name = "unsteady_projection_method"                                   #src
+        test_ref("$(prefix)_$(name)_velocity.jld2", get_dof_values(velocity)) #src
+        test_ref("$(prefix)_$(name)_pressure.jld2", get_dof_values(pressure)) #src
+    end                                                                       #src
 end
 # The animation below shows the result of simulation with the projection method:
 # ![](../assets/navier_stokes_projection.gif)
@@ -296,19 +294,12 @@ function run_unsteady_mixed()
         end
     end
 
-    if get(ENV, "TestMode", "false") == "true"
-        import ..Tester: test_ref, checkpoint_reached
-        name = "unsteady_mixted"
-        checkpoint_reached("end $name")
-        test_ref(
-            "incompressible_navier_stokes_$(name)_velocity.jld2",
-            get_dof_values(velocity),
-        )
-        test_ref(
-            "incompressible_navier_stokes_$(name)_pressure.jld2",
-            get_dof_values(pressure),
-        )
-    end
+    if is_tested                                                              #src
+        prefix = "incompressible_navier_stokes"                               #src
+        name = "unsteady_mixted"                                              #src
+        test_ref("$(prefix)_$(name)_velocity.jld2", get_dof_values(velocity)) #src
+        test_ref("$(prefix)_$(name)_pressure.jld2", get_dof_values(pressure)) #src
+    end                                                                       #src
 end
 
 # The animation below shows the result of simulation with the "mixed form" method:

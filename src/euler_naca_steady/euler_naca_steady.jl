@@ -429,7 +429,7 @@ function main(stateInit, stateBcFarfield, degree)
         deg < degree && (qLowOrder = deepcopy(q))
 
         if is_tested                                                           #src
-            test_ref("euler_naca_steady_d$(degree)_q.jld2", get_dof_values(q)) #src
+            test_ref("euler_naca_steady_d$(deg)_q.jld2", get_dof_values(q)) #src
         end                                                                    #src
     end
     return nothing

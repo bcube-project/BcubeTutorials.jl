@@ -31,7 +31,7 @@ names = (
     "linear_elasticity",
     "linear_thermoelasticity",
     "linear_transport",
-    "pahse_field_supercooled",
+    "phase_field_supercooled",
     "poisson_dg",
     "shallow_water",
     "stokes_flow",
@@ -92,6 +92,7 @@ end
             try
                 run(cmd)
             catch e
+                REMOVE_TMP_FILES && rm(tmp_filepath)
                 throw(e)
             end
             REMOVE_TMP_FILES && rm(tmp_filepath)
