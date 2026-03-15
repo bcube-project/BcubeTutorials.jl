@@ -5,6 +5,7 @@ println("Running linear elasticity API example...") #hide
 
 const dir = string(@__DIR__, "/") # bcube/example dir
 using Bcube
+using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
 using StaticArrays

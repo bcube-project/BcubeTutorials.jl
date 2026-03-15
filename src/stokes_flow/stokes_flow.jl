@@ -156,10 +156,10 @@ function run_steady()
     vars = Dict("Velocity" => velocity, "Pressure" => pressure)
     write_file(joinpath(outputpath, "output_steady.pvd"), mesh, vars)
 
-    if is_tested                                               #src
-        test_ref("stokes_flow_steady_velocity.jld2", velocity) #src
-        test_ref("stokes_flow_steady_pressure.jld2", pressure) #src
-    end                                                        #src
+    if is_tested                                                               #src
+        test_ref("stokes_flow_steady_velocity.jld2", get_dof_values(velocity)) #src
+        test_ref("stokes_flow_steady_pressure.jld2", get_dof_values(pressure)) #src
+    end                                                                        #src
 end
 # The obtained solution captures the Moffat vortices topology of the flow
 # ![](../assets/Stokes_flow_Moffat_vortices.png)
@@ -340,10 +340,10 @@ function run_unsteady()
         end
     end
 
-    if is_tested                                                 #src
-        test_ref("stokes_flow_unsteady_velocity.jld2", velocity) #src
-        test_ref("stokes_flow_unsteady_pressure.jld2", pressure) #src
-    end                                                          #src
+    if is_tested                                                                 #src
+        test_ref("stokes_flow_unsteady_velocity.jld2", get_dof_values(velocity)) #src
+        test_ref("stokes_flow_unsteady_pressure.jld2", get_dof_values(pressure)) #src
+    end                                                                          #src
 end
 
 # The obtained solution compares well with the reference solution
