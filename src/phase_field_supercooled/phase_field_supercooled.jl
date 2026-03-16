@@ -130,7 +130,11 @@ function main()
     while t <= totalTime
         t += Δt
         itime += 1
+        #! format: off
+        if !is_tested #src
         @show t, totalTime
+        end #src
+        #! format: on
 
         ## Integrate equation on ϕ
         L .= 0.0 # reset L
