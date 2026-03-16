@@ -609,8 +609,8 @@ function scalar_cylinder(;
         ## Define linear forms
         flux = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ))
         l_Γ(v) = ∫(-flux * jump(v))dΓ
-        flux_bnd = upwind ∘ (side⁻(u), side⁺(u), side⁻(c), side⁻(nΓ_bnd))
-        l_Γ_bnd(v) = ∫(-flux_bnd * jump(v))dΓ_bnd
+        flux_bnd = upwind ∘ (side⁻(u), side⁻(u), side⁻(c), side⁻(nΓ_bnd))
+        l_Γ_bnd(v) = ∫(-flux_bnd * side⁻(v))dΓ_bnd
         l_Ω(v) = ∫(u * (c ⋅ ∇ₛ(v)))dΩ ## linear Volumic convective term
         l(v) = l_Ω(v) + l_Γ(v) + l_Γ_bnd(v)
 
@@ -817,6 +817,9 @@ function vector_cylinder(;
         upwind ∘
         (side⁻(u), side⁺(u), side⁻(R), side⁺(R), side⁻(v), side⁺(v), side⁻(c), side⁻(n))
     end
+    function flux_bnd(v, n)
+        upwind ∘ (side⁻(u), side⁻(u), I, I, side⁻(v), side⁻(v), side⁻(c), side⁻(n))
+    end
 
     ## Mass
     M = assemble_bilinear(m, U, V)
@@ -847,7 +850,7 @@ function vector_cylinder(;
 
         ## Define linear forms
         l_Γ(v) = ∫(-flux(v, nΓ))dΓ
-        l_Γ_bnd(v) = ∫(-flux(v, nΓ_bnd))dΓ_bnd
+        l_Γ_bnd(v) = ∫(-flux_bnd(v, nΓ_bnd))dΓ_bnd
         l_Ω(v) = ∫((u ⊗ c) ⊡ ∇ₛ(v))dΩ ## linear Volumic convective term
         l(v) = l_Ω(v) + l_Γ(v) + l_Γ_bnd(v)
 
