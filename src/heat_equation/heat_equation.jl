@@ -139,7 +139,11 @@ while t <= totalTime
     global t, itime
     t += Δt
     itime = itime + 1
+    #! format: off
+    if !is_tested #src
     @show t, itime
+    end #src
+    #! format: on
 
     ## Compute rhs
     rhs = Δt * L + M * (get_dof_values(ϕ) .- Ud)

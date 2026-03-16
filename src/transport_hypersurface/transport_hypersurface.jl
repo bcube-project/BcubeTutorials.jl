@@ -56,7 +56,7 @@ mutable struct VtkHandler
     ν::Any
     ν_centers::Any
     function VtkHandler(basename, dΩ, U, c)
-        @info "Writing to $basename.vtu"
+        @info "Writing to $basename.pvd"
 
         mesh = get_mesh(get_domain(dΩ))
         θ = PhysicalFunction(x -> atan(x[2], x[1]))
@@ -323,7 +323,12 @@ function scalar_circle(;
     end
     println("Computation is done, building gif...")
     g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
+
+    #! format: off
+    if !is_tested #src
     display(g)
+    end #src
+    #! format: on
 
     if is_tested                                                                   #src
         test_ref("transport_hypersurface_scalar_circle_u.jld2", get_dof_values(u)) #src
@@ -438,7 +443,11 @@ function vector_circle(; degree, nite, CFL, nθ)
     end
 
     g = gif(anim, joinpath(out_dir, "vector_on_circle_d$degree.gif"); fps = 2)
+    #! format: off
+    if !is_tested #src
     display(g)
+    end #src
+    #! format: on
 
     if is_tested                                                                   #src
         test_ref("transport_hypersurface_vector_circle_u.jld2", get_dof_values(u)) #src
@@ -550,6 +559,9 @@ function scalar_cylinder(;
     Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
     t = 0.0
     nite = min(floor(Int, tmax / Δt), nitemax)
+    if is_tested   #src
+        nite = 100 #src
+    end            #src
     _nout = min(nite, nout)
 
     @show nite
@@ -1009,6 +1021,9 @@ function scalar_torus(;
     Δt = CFL * dl * ω_quad / C / (2 * degree + 1)
     t = 0.0
     nite = min(floor(Int, tmax / Δt), nitemax)
+    if is_tested    #src
+        nite = 1000 #src
+    end             #src
     _nout = min(nite, nout)
 
     @show nite

@@ -367,9 +367,13 @@ function run_covo()
 
     # Time loop
     for i in 1:nite
+        #! format: off
+        if !is_tested #src
         println("")
         println("")
         println("Iteration ", i, " / ", nite)
+        end #src
+        #! format: on
 
         ## Step forward in time
         rhs(u, t) = compute_residual(u, V, params, cache)

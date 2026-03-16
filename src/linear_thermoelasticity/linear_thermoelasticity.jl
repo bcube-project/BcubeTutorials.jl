@@ -172,7 +172,11 @@ function run_unsteady()
     while t <= totalTime
         t += Δt
         itime = itime + 1
+        #! format: off
+        if !is_tested #src
         @show t, itime
+        end #src
+        #! format: on
 
         ## solve time step heat equation
         rhs = Δt * LT + MT * (get_dof_values(T) .- Td)

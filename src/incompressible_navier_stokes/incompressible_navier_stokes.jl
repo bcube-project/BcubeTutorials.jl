@@ -150,7 +150,11 @@ function run_unsteady_projection_method()
         time += Δt
         itime += 1
 
+        #! format: off
+        if !is_tested #src
         println("Time stepping : time = ", time, " / ", finalTime)
+        end # src
+        #! format: on
 
         ## assemble l1
         L1 = assemble_linear(l1, V_vel)
@@ -269,7 +273,11 @@ function run_unsteady_mixed()
         time += Δt
         itime += 1
 
+        #! format: off
+        if !is_tested #src
         println("Time stepping : time = ", time, " / ", finalTime)
+        end # src
+        #! format: on
 
         L = assemble_linear(l, V)
 

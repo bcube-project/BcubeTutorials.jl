@@ -310,7 +310,11 @@ function run_unsteady()
         time += Δt
         itime += 1
 
+        #! format: off
+        if !is_tested #src
         println("Time stepping : time = ", time, " / ", finalTime)
+        end # src
+        #! format: on
 
         Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
 

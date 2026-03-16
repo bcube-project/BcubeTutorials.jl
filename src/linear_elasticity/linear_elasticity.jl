@@ -158,7 +158,11 @@ function run_unsteady()
     while t <= totalTime
         t += Δt
         itime = itime + 1
+        #! format: off
+        if !is_tested #src
         @show t, itime
+        end #src
+        #! format: on
 
         # solve time step
         U, V, G = Newmark_α_HHT(Δt, L, A, Mat, U0, V0, G0)

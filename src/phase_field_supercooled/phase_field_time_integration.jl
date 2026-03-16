@@ -124,7 +124,11 @@ function run_imex_1space()
     while t <= totalTime
         t += Δt
         itime += 1
+        #! format: off
+        if !is_tested #src
         @show t, itime
+        end #src
+        #! format: on
 
         # Integrate equation on ϕ
         L .= 0.0 # reset L
@@ -234,7 +238,11 @@ function run_imex_2spaces()
     while t <= totalTime
         t += Δt
         itime += 1
+        #! format: off
+        if !is_tested #src
         @show t, itime
+        end #src
+        #! format: on
 
         # Integrate equation on ϕ
         L_ϕ .= 0.0 # reset

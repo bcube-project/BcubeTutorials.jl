@@ -6,7 +6,7 @@ Documented tutorials and various examples for the [Bcube.jl](https://github.com/
 
 ## Run the scripts locally
 
-All the **tutorials** can be ran locally with the following steps.
+All the examples can be ran locally with the following steps.
 
 First, clone the repository
 
@@ -15,23 +15,12 @@ $ git clone https://github.com/bcube-project/BcubeTutorials.jl.git
 $ cd BcubeTutorials.jl/
 ```
 
-Then, set up the environnement and run the script.
+Then, choose your tutorial, set up the environnement and run the script.
 
 ```julia-repl
-pkg> activate .
-(BcubeTutorials) pkg> instantiate
-julia> include("src/tutorial/helmholtz.jl")
-```
-
-Regarding the **examples**, some of them require additionnal dependencies. Hence each example is associated to a specific environment:
-
-```julia-repl
-julia> cd("src/example/covo")
-julia> using Pkg
-julia> Pkg.activate(".")
-julia> Pkg.add(PackageSpec(url="https://github.com/bcube-project/Bcube.jl"))
-julia> Pkg.instantiate()
-julia> include("covo.jl")
+pkg> activate ./src/helmholtz
+(hemlholtz) pkg> instantiate
+julia> include("src/helmholtz.jl")
 ```
 
 ## Build the documentation

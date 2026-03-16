@@ -437,11 +437,15 @@ function run_simulation(stateInit)
         Δt = compute_timestep!(q, dΩ, dimcar, CFL)
 
         ## Infos
+        #! format: off
+        if !is_tested #src
         if (i % Int(max(floor(nite / (nout * 10)), 1)) == 0)
             println("---")
             println("Iteration ", i)
             @show Δt, CFL
         end
+        end #src
+        #! format: on
 
         ## Step forward in time
         _rhs(q, t) = rhs(q, Q, V, params, cache)
@@ -581,7 +585,7 @@ const stateInit = (
     Lstep = 1.0,
     hstep = 2.5,
 )
-const nite = 5000 #300000 # Number of time iteration(s)
+const nite = is_tested ? 100 : 5000 #300000 # Number of time iteration(s)
 const timeScheme = :ForwardEuler # :ForwardEuler, :RK3_SPP
 const CFL = 0.4 / (2 * degree + 1)
 const nout = 100 # Number of time steps to save
