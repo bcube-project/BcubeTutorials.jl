@@ -148,7 +148,11 @@ end
 
 # Here is the output animation
 g = gif(anim, joinpath(out_dir, "transport_supg.gif"))
+#! format: off
+if !is_tested #src
 display(g)
+#! format: on
+end #src
 # ![](../assets/transport_supg.gif)
 
 if is_tested                                             #src

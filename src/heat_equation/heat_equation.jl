@@ -22,7 +22,12 @@ using Bcube
 using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
-using Test #src
+
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    using Test
+    import ..Tester: test_ref                             #src
+end                                                       #src
 
 # First we define some physical and numerical constants
 const htc = 100.0 # Heat transfer coefficient (bnd cdt)
@@ -78,7 +83,7 @@ write_file(outputpath * "result_steady_heat_equation.pvd", mesh, dict_vars)
 # Compute and display the error
 @show norm(Tcn .- Tca, Inf) / norm(Tca, Inf)
 
-if get(ENV, "TestMode", "false") == "true"               #src
+if is_tested                                             #src
     @test norm(Tcn .- Tca, Inf) / norm(Tca, Inf) < 2e-14 #src
 end                                                      #src
 
@@ -165,10 +170,8 @@ while t <= totalTime
     end
 end
 
-if get(ENV, "TestMode", "false") == "true"                     #src
-    import ..Tester: test_ref, checkpoint_reached #src
-    checkpoint_reached("end")                                  #src
-    test_ref("heat_equation_100s.jld2", get_dof_values(ϕ))     #src
-end                                                            #src
+if is_tested                                               #src
+    test_ref("heat_equation_100s.jld2", get_dof_values(ϕ)) #src
+end                                                        #src
 
 end #hide

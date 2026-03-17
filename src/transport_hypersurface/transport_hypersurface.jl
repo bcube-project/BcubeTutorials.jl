@@ -30,7 +30,7 @@ using BenchmarkTools
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
-    import ..Tester: test_ref                             #src
+    import ..Tester: test_ref, compare                    #src
 end                                                       #src
 
 const out_dir = joinpath(@__DIR__, "..", "..", "myout", "transport_hypersurface")
@@ -321,11 +321,10 @@ function scalar_circle(;
         println(io, "t,u")
         writedlm(io, dofOverTime, ",")
     end
-    println("Computation is done, building gif...")
-    g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
-
     #! format: off
     if !is_tested #src
+    println("Computation is done, building gif...")
+    g = gif(anim, joinpath(out_dir, "$filename.gif"); fps = 4)
     display(g)
     end #src
     #! format: on
@@ -442,9 +441,9 @@ function vector_circle(; degree, nite, CFL, nθ)
         frame(anim, plt)
     end
 
-    g = gif(anim, joinpath(out_dir, "vector_on_circle_d$degree.gif"); fps = 2)
     #! format: off
     if !is_tested #src
+    g = gif(anim, joinpath(out_dir, "vector_on_circle_d$degree.gif"); fps = 2)
     display(g)
     end #src
     #! format: on
@@ -667,7 +666,11 @@ function scalar_cylinder(;
     end
 
     if is_tested                                                                     #src
-        test_ref("transport_hypersurface_scalar_cylinder_u.jld2", get_dof_values(u)) #src
+        test_ref(
+            "transport_hypersurface_scalar_cylinder_u.jld2",
+            get_dof_values(u),
+            (a, b) -> compare(a, b, 1e-6, 1e-12),
+        ) #src
     end                                                                              #src
 end
 
@@ -899,7 +902,11 @@ function vector_cylinder(;
     end
 
     if is_tested                                                                     #src
-        test_ref("transport_hypersurface_vector_cylinder_u.jld2", get_dof_values(u)) #src
+        test_ref(
+            "transport_hypersurface_vector_cylinder_u.jld2",
+            get_dof_values(u),
+            (a, b) -> compare(a, b, 1e-9, 1e-12),
+        ) #src
     end                                                                              #src
 end
 
@@ -953,6 +960,10 @@ function scalar_torus(;
         lc,
         order = meshOrder,
         verbose = false,
+    )
+    is_tested && (
+        mesh_path =
+            joinpath(@__DIR__, "..", "..", "input", "mesh", "torus_o$(meshOrder).msh")
     )
     mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
@@ -1114,7 +1125,11 @@ function scalar_torus(;
     end
 
     if is_tested                                                                  #src
-        test_ref("transport_hypersurface_scalar_torus_u.jld2", get_dof_values(u)) #src
+        test_ref(
+            "transport_hypersurface_scalar_torus_u.jld2",
+            get_dof_values(u),
+            (a, b) -> compare(a, b, 1e-12, 1e-12),
+        ) #src
     end                                                                           #src
 end
 

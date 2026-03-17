@@ -12,9 +12,10 @@ using InteractiveUtils
 using BenchmarkTools
 using UnPack
 
-if get(ENV, "TestMode", "false") == "true"
-    import ..Tester: test_ref
-end
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
 
 function compute_residual(_u, V, params, cache)
     u = get_fe_functions(_u)
@@ -397,7 +398,7 @@ function run_covo()
     end
 
     # Summary and benchmark (except if "tests" are asked)                                # ndofs total = 20480
-    if get(ENV, "TestMode", "false") == "false"
+    if !is_tested
         _rhs(u, t) = compute_residual(u, V, params, cache)
         @btime forward_euler($u, $_rhs, $time, $Δt)  # 5.639 ms (1574 allocations: 2.08 MiB)
         # stepper = w -> explicit_step(w, params, cache, Δt)
