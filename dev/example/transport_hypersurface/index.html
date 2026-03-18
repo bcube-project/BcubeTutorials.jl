@@ -12,7 +12,8 @@ using ProgressMeter
 using Profile
 using BenchmarkTools
 
-const out_dir = joinpath(@__DIR__, &quot;../../../myout/transport_hypersurface&quot;)
+
+const out_dir = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;transport_hypersurface&quot;)
 rm(out_dir; force = true, recursive = true)
 mkpath(out_dir)
 
@@ -35,7 +36,7 @@ mutable struct VtkHandler
     ν::Any
     ν_centers::Any
     function VtkHandler(basename, dΩ, U, c)
-        @info &quot;Writing to $basename.vtu&quot;
+        @info &quot;Writing to $basename.pvd&quot;
 
         mesh = get_mesh(get_domain(dΩ))
         θ = PhysicalFunction(x -&gt; atan(x[2], x[1]))
@@ -300,9 +301,12 @@ function scalar_circle(;
         println(io, &quot;t,u&quot;)
         writedlm(io, dofOverTime, &quot;,&quot;)
     end
+    #! format: off
     println(&quot;Computation is done, building gif...&quot;)
     g = gif(anim, joinpath(out_dir, &quot;$filename.gif&quot;); fps = 4)
     display(g)
+    #! format: on
+
 end
 
 &quot;&quot;&quot;
@@ -412,8 +416,11 @@ function vector_circle(; degree, nite, CFL, nθ)
         frame(anim, plt)
     end
 
+    #! format: off
     g = gif(anim, joinpath(out_dir, &quot;vector_on_circle_d$degree.gif&quot;); fps = 2)
     display(g)
+    #! format: on
+
 end
 
 &quot;&quot;&quot;
@@ -624,6 +631,11 @@ function scalar_cylinder(;
             @btime assemble_linear!($b, $l, $V)
         end
     end
+
+        test_ref(
+            &quot;transport_hypersurface_scalar_cylinder_u.jld2&quot;,
+            get_dof_values(u),
+            (a, b) -&gt; compare(a, b, 1e-6, 1e-12),
 end
 
 &quot;&quot;&quot;
@@ -852,6 +864,8 @@ function vector_cylinder(;
             append_vtk(vtk, u, lim_u, u_mean, t)
         end
     end
+
+        vals = var_on_vertices(norm ∘ u, mesh)
 end
 
 &quot;&quot;&quot;
@@ -904,6 +918,10 @@ function scalar_torus(;
         lc,
         order = meshOrder,
         verbose = false,
+    )
+    is_tested &amp;&amp; (
+        mesh_path =
+            joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;torus_o$(meshOrder).msh&quot;)
     )
     mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
@@ -1060,6 +1078,11 @@ function scalar_torus(;
             append_vtk(vtk, u, lim_u, t)
         end
     end
+
+        test_ref(
+            &quot;transport_hypersurface_scalar_torus_u.jld2&quot;,
+            get_dof_values(u),
+            (a, b) -&gt; compare(a, b, 1e-12, 1e-12),
 end
 
 # Run
@@ -1111,4 +1134,4 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     progressBar = true,
     meshOrder = 2,
 )
-</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 16 March 2026 19:41">Monday 16 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 19:44">Wednesday 18 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

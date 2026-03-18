@@ -7,16 +7,16 @@ using Bcube
 using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
-using StaticArrays
 using Profile
 using StaticArrays
 using InteractiveUtils
 using BenchmarkTools
 using UnPack
 
-if get(ENV, &quot;TestMode&quot;, &quot;false&quot;) == &quot;true&quot;
-    import ..BcubeTutorialsTests: test_ref
-end
+const is_tested = get(ENV, &quot;TestMode&quot;, &quot;false&quot;) == &quot;true&quot; #src
+if is_tested                                              #src
+    import ..Tester: test_ref                             #src
+end                                                       #src
 
 function compute_residual(_u, V, params, cache)
     u = get_fe_functions(_u)
@@ -299,7 +299,7 @@ const l = 0.05 # half-width of the domain
 const Δt = CFL * 2 * l / (nx - 1) / ((1 + β) * U₀ + c₀) / (2 * degree + 1)
 #const Δt = 5.e-7
 const nout = 100 # Number of time steps to save
-const outputpath = &quot;../../../myout/covo/&quot;
+const outputpath = &quot;../../myout/covo/&quot;
 const output = joinpath(@__DIR__, outputpath, &quot;covo_deg$degree&quot;)
 const nite = Int(floor(nperiod * 2 * l / (U₀ * Δt))) + 1
 
@@ -369,9 +369,13 @@ function run_covo()
 
     # Time loop
     for i in 1:nite
+        #! format: off
+        if !is_tested #src
         println(&quot;&quot;)
         println(&quot;&quot;)
         println(&quot;Iteration &quot;, i, &quot; / &quot;, nite)
+        end #src
+        #! format: on
 
         ## Step forward in time
         rhs(u, t) = compute_residual(u, V, params, cache)
@@ -388,14 +392,18 @@ function run_covo()
         t += Δt
 
         # Write solution to file
+        #! format: off
+        if !is_tested
         if (i % Int(max(floor(nite / nout), 1)) == 0)
             println(&quot;--&gt; VTK export&quot;)
             append_vtk(vtk, mesh, u, t, params)
         end
+        end
+        #! format: on
     end
 
     # Summary and benchmark (except if &quot;tests&quot; are asked)                                # ndofs total = 20480
-    if get(ENV, &quot;TestMode&quot;, &quot;false&quot;) == &quot;false&quot;
+    if !is_tested
         _rhs(u, t) = compute_residual(u, V, params, cache)
         @btime forward_euler($u, $_rhs, $time, $Δt)  # 5.639 ms (1574 allocations: 2.08 MiB)
         # stepper = w -&gt; explicit_step(w, params, cache, Δt)
@@ -424,4 +432,4 @@ if get(ENV, &quot;BenchmarkMode&quot;, &quot;false&quot;) == &quot;false&quot;
     run_covo()
 end
 
-end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../tutorial/phase_field_supercooled/">« Phase field model - solidification of a liquid in supercooled state</a><a class="docs-footer-nextpage" href="../euler_naca_steady/">Euler equations on a NACA0012 »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 16 March 2026 19:41">Monday 16 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../tutorial/phase_field_supercooled/">« Phase field model - solidification of a liquid in supercooled state</a><a class="docs-footer-nextpage" href="../euler_naca_steady/">Euler equations on a NACA0012 »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 19:44">Wednesday 18 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

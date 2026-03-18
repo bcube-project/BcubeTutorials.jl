@@ -6,8 +6,8 @@ using BcubeVTK
 using LinearAlgebra
 using StaticArrays</code></pre><p>Function space (here we shall use Lagrange P1 elements) and quadrature degree.</p><pre><code class="language-julia hljs">const fspace = :Lagrange
 const degree = 1 # FunctionSpace degree
-const degquad = 2 * degree + 1</code></pre><p>Input and output paths</p><pre><code class="language-julia hljs">const outputpath = joinpath(dir, &quot;../../../myout/linear_thermoelasticity/&quot;)
-const meshpath = joinpath(dir, &quot;../../../input/mesh/domainThermoElast_tri.msh&quot;)</code></pre><p>Time stepping scheme params</p><pre><code class="language-julia hljs">const α = 0.05
+const degquad = 2 * degree + 1</code></pre><p>Input and output paths</p><pre><code class="language-julia hljs">const outputpath = joinpath(dir, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;linear_thermoelasticity/&quot;)
+const meshpath = joinpath(dir, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;domainThermoElast_tri.msh&quot;)</code></pre><p>Time stepping scheme params</p><pre><code class="language-julia hljs">const α = 0.05
 const γ = 0.5 + α
 const β = 0.25 * (1.0 + α)^2
 
@@ -133,7 +133,9 @@ end</code></pre><p>Function that runs the unsteady case:</p><pre><code class="la
     while t &lt;= totalTime
         t += Δt
         itime = itime + 1
+        #! format: off
         @show t, itime
+        #! format: on
 
         # solve time step heat equation
         rhs = Δt * LT + MT * (get_dof_values(T) .- Td)
@@ -168,6 +170,7 @@ end</code></pre><p>Function that runs the unsteady case:</p><pre><code class="la
             # with 0 z-component: Displacement_X*iHat+Displacement_Y*jHat+0.0*kHat
         end
     end
+
 end
 
-run_unsteady()</code></pre><p>Here is an animation of the obtained result: <img src="../../assets/thermo_elasticity.gif" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../constrained_poisson/">Constrained Poisson equation (FE) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 16 March 2026 19:41">Monday 16 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+run_unsteady()</code></pre><p>Here is an animation of the obtained result: <img src="../../assets/thermo_elasticity.gif" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../linear_elasticity/">« Linear elasticity</a><a class="docs-footer-nextpage" href="../constrained_poisson/">Constrained Poisson equation (FE) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 19:44">Wednesday 18 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

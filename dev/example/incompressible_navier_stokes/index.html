@@ -7,8 +7,9 @@ using BcubeGmsh
 using StaticArrays</code></pre><p>Function space (here we shall use Taylor-Hood P2-P1 elements) and quadrature degree.</p><pre><code class="language-julia hljs">const fspace = :Lagrange
 const degree_u = 2
 const degquad = 2 * degree_u + 1
-const degree_p = 1</code></pre><p>Input and output paths</p><pre><code class="language-julia hljs">const outputpath = joinpath(dir, &quot;..&quot;, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;navier_stokes/&quot;)
-const meshpath = joinpath(dir, &quot;../../../input/mesh/cylinder_navier_stokes_tri.msh&quot;)
+const degree_p = 1</code></pre><p>Input and output paths</p><pre><code class="language-julia hljs">const outputpath = joinpath(dir, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;navier_stokes/&quot;)
+const meshpath =
+    joinpath(dir, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;cylinder_navier_stokes_tri.msh&quot;)
 mkpath(outputpath)</code></pre><p>Kinematic viscosity</p><pre><code class="language-julia hljs">const ν = 0.001</code></pre><p>Time step and simulation time</p><pre><code class="language-julia hljs">const Δt = 1.0e-3
 const finalTime = 6.0</code></pre><p>Function that defines the inlet velocity profile</p><pre><code class="language-julia hljs">function inlet_velocity(x, t)
     SA[4.0 * clamp(t, 0.0, 1.5) * x[2] * (0.41 - x[2]) / (0.41 * 0.41), 0.0]
@@ -66,7 +67,10 @@ end</code></pre><p>Function that solves the problem using the projection method<
         time += Δt
         itime += 1
 
+        #! format: off
         println(&quot;Time stepping : time = &quot;, time, &quot; / &quot;, finalTime)
+        end # src
+        #! format: on
 
         # assemble l1
         L1 = assemble_linear(l1, V_vel)
@@ -109,6 +113,7 @@ end</code></pre><p>Function that solves the problem using the projection method<
             write_file(filepath, mesh, vars, itime, time; collection_append = true)
         end
     end
+
 end</code></pre><p>The animation below shows the result of simulation with the projection method: <img src="../../assets/navier_stokes_projection.gif" alt/></p><p>Function that solves the problem using a mixed formalism</p><pre><code class="language-julia hljs">function run_unsteady_mixed()</code></pre><p>Read mesh</p><pre><code class="language-julia hljs">    mesh = read_mesh(meshpath)</code></pre><p>Definition of trial and test function spaces (with associated Dirichlet boundary conditions)</p><pre><code class="language-julia hljs">    fsu = FunctionSpace(fspace, degree_u)
     U_vel = TrialFESpace(
         fsu,
@@ -153,7 +158,10 @@ end</code></pre><p>The animation below shows the result of simulation with the p
         time += Δt
         itime += 1
 
+        #! format: off
         println(&quot;Time stepping : time = &quot;, time, &quot; / &quot;, finalTime)
+        end # src
+        #! format: on
 
         L = assemble_linear(l, V)
 
@@ -177,6 +185,7 @@ end</code></pre><p>The animation below shows the result of simulation with the p
             write_file(filepath, mesh, vars, itime, time; collection_append = true)
         end
     end
+
 end</code></pre><p>The animation below shows the result of simulation with the &quot;mixed form&quot; method: <img src="../../assets/navier_stokes_mixed.gif" alt/></p><pre><code class="language-julia hljs">println(&quot; &quot;)
 println(&quot;---------------------------------------------------&quot;)
 println(&quot;--------- solving with projection method ----------&quot;)
@@ -191,4 +200,4 @@ println(&quot;--------- solving with mixed form method ----------&quot;)
     run_unsteady_mixed()
 end
 println(&quot;---------------------------------------------------&quot;)
-println(&quot; &quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../stokes_flow/">« Stokes flow example (FE with Taylor-Hood elements)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 16 March 2026 19:41">Monday 16 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+println(&quot; &quot;)</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../stokes_flow/">« Stokes flow example (FE with Taylor-Hood elements)</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 19:44">Wednesday 18 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

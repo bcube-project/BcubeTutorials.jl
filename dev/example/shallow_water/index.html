@@ -5,7 +5,7 @@ println(&quot;Running shallow_water example...&quot;) #hide
 #
 # WARNING : the below explanations are not up to date, the text has been copied from the old-api example.
 #
-# Following &quot;A conservative Saint-Venant type model to describe the dynamics of thien partially wetting films with
+# Following &quot;A conservative Saint-Venant type model to describe the dynamics of thin partially wetting films with
 # regularized forces at the contact line&quot;.
 # The gravity is noted ``g = g_n \vec{e_n} + \vec{g_t}`` (note that ``g_n`` is a scalar while ``g_t`` is a vector). The goal is to solve:
 # ```math
@@ -130,8 +130,12 @@ using Roots
 using SparseArrays
 using SparseDiffTools
 using Profile
-#using Symbolics
 using InteractiveUtils
+
+const is_tested = get(ENV, &quot;TestMode&quot;, &quot;false&quot;) == &quot;true&quot; #src
+if is_tested                                              #src
+    import ..Tester: test_ref, compare                    #src
+end                                                       #src
 
 const eps_h = 1.0e-10
 
@@ -434,11 +438,15 @@ function run_simulation(stateInit)
         Δt = compute_timestep!(q, dΩ, dimcar, CFL)
 
         ## Infos
+        #! format: off
+        if !is_tested #src
         if (i % Int(max(floor(nite / (nout * 10)), 1)) == 0)
             println(&quot;---&quot;)
             println(&quot;Iteration &quot;, i)
             @show Δt, CFL
         end
+        end #src
+        #! format: on
 
         ## Step forward in time
         _rhs(q, t) = rhs(q, Q, V, params, cache)
@@ -463,19 +471,27 @@ function run_simulation(stateInit)
 
     append_vtk(vtk, mesh, q, time, params)
 
-    println(&quot;Benchmarking &#39;forward_euler&#39;:&quot;)
-    _rhs1(q, t) = rhs(q, Q, V, params, cache)
-    @btime forward_euler($q, $_rhs1, $time, $Δt)
-    @btime apply_limitation!($q, $params, $cache)
-    println(&quot;ndofs total = &quot;, Bcube.get_ndofs(Q))
+    if is_tested
+        test_ref(
+            &quot;shallow_water_q.jld2&quot;,
+            get_dof_values(q),
+            (a, b) -&gt; compare(a, b, 1e-10, 1e-12),
+        )
+    else
+        println(&quot;Benchmarking &#39;forward_euler&#39;:&quot;)
+        _rhs1(q, t) = rhs(q, Q, V, params, cache)
+        @btime forward_euler($q, $_rhs1, $time, $Δt)
+        @btime apply_limitation!($q, $params, $cache)
+        println(&quot;ndofs total = &quot;, Bcube.get_ndofs(Q))
 
-    Profile.init(; n = 10^7) # returns the current settings
-    Profile.clear()
-    Profile.clear_malloc_data()
-    @profile begin
-        for i in 1:100
-            forward_euler(q, _rhs1, time, Δt)
-            limiter_projection &amp;&amp; apply_limitation!(q, params, cache)
+        Profile.init(; n = 10^7) # returns the current settings
+        Profile.clear()
+        Profile.clear_malloc_data()
+        @profile begin
+            for i in 1:100
+                forward_euler(q, _rhs1, time, Δt)
+                limiter_projection &amp;&amp; apply_limitation!(q, params, cache)
+            end
         end
     end
 end
@@ -574,11 +590,11 @@ const stateInit = (
     Lstep = 1.0,
     hstep = 2.5,
 )
-const nite = 5000 #300000 # Number of time iteration(s)
+const nite = is_tested ? 100 : 5000 #300000 # Number of time iteration(s)
 const timeScheme = :ForwardEuler # :ForwardEuler, :RK3_SPP
 const CFL = 0.4 / (2 * degree + 1)
 const nout = 100 # Number of time steps to save
-const outputpath = joinpath(@__DIR__, &quot;../../../myout/shallow_water/&quot;)
+const outputpath = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;shallow_water/&quot;)
 const output = outputpath * &quot;sw_deg$degree&quot;
 const Δt₀ = 1.e-7
 
@@ -587,4 +603,4 @@ const Δt₀ = 1.e-7
 mkpath(outputpath)
 run_simulation(stateInit)
 
-end #hide</code></pre></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 16 March 2026 19:41">Monday 16 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end #hide</code></pre></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 19:44">Wednesday 18 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

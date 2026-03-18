@@ -35,9 +35,8 @@ const k = sqrt(π * f / ν)
 const Δt = 1.0e-3
 const finalTime = 2.0
 
-const outputpath = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;stokes&quot;)
-mkpath(outputpath)</code></pre><p>Function that runs the steady case:</p><pre><code class="language-julia hljs">function run_steady()</code></pre><p>Read 2D mesh</p><pre><code class="language-julia hljs">    mesh_path =
-        joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;domainTriangle_tri.msh&quot;)
+const outputpath = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;stokes&quot;)
+mkpath(outputpath)</code></pre><p>Function that runs the steady case:</p><pre><code class="language-julia hljs">function run_steady()</code></pre><p>Read 2D mesh</p><pre><code class="language-julia hljs">    mesh_path = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;domainTriangle_tri.msh&quot;)
     mesh = read_mesh(mesh_path)</code></pre><p>Definition of trial and test function spaces (with associated Dirichlet boundary conditions)</p><pre><code class="language-julia hljs">    fsu = FunctionSpace(fspace, degree_u)
     U_vel = TrialFESpace(
         fsu,
@@ -68,6 +67,7 @@ mkpath(outputpath)</code></pre><p>Function that runs the steady case:</p><pre><c
 
     vars = Dict(&quot;Velocity&quot; =&gt; velocity, &quot;Pressure&quot; =&gt; pressure)
     write_file(joinpath(outputpath, &quot;output_steady.pvd&quot;), mesh, vars)
+
 end</code></pre><p>The obtained solution captures the Moffat vortices topology of the flow <img src="../../assets/Stokes_flow_Moffat_vortices.png" alt/></p><h2 id="Unsteady-case-oscillating-plate"><a class="docs-heading-anchor" href="#Unsteady-case-oscillating-plate">Unsteady case - oscillating plate</a><a id="Unsteady-case-oscillating-plate-1"></a><a class="docs-heading-anchor-permalink" href="#Unsteady-case-oscillating-plate" title="Permalink"></a></h2><h3 id="Theory-2"><a class="docs-heading-anchor" href="#Theory-2">Theory</a><a class="docs-heading-anchor-permalink" href="#Theory-2" title="Permalink"></a></h3><p>Let&#39;s now consider a Stokes flow over an oscillating flat plate of length <span>$0.1m$</span> and height <span>$0.5m$</span>. An oscillating velocity <span>$(\sin(2\pi f t),0)$</span> is imposed on the bottom boundary as well as zero pressure. On all the other boundaries a &quot;do nothing&quot; condition is applied: <span>$-pn + \mu \frac{\partial u}{\partial n} = 0$</span>. The set of equations are:</p><p class="math-container">\[\begin{cases}
   \rho \frac{\partial u}{\partial t} = \nabla \cdot \left( -p \mathbb{I} + \mu \nabla u \right) + f  \textrm{  in } \Omega \\
   \nabla \cdot u = 0 \textrm{  in } \Omega  \\
@@ -164,7 +164,10 @@ end</code></pre><p>Function that runs the unsteady case:</p><pre><code class="la
         time += Δt
         itime += 1
 
+        #! format: off
         println(&quot;Time stepping : time = &quot;, time, &quot; / &quot;, finalTime)
+        end # src
+        #! format: on
 
         Wd = Bcube.assemble_dirichlet_vector(U, V, mesh, time)
 
@@ -193,6 +196,7 @@ end</code></pre><p>Function that runs the unsteady case:</p><pre><code class="la
             write_file(filepath, mesh, vars, itime, time; collection_append = true)
         end
     end
+
 end</code></pre><p>The obtained solution compares well with the reference solution <img src="../../assets/Stokes_flow_unsteady.gif" alt/></p><pre><code class="language-julia hljs">println(&quot;&quot;)
 println(&quot;-------------------------------&quot;)
 println(&quot;----- Running steady case -----&quot;)
@@ -204,4 +208,4 @@ println(&quot;----- Running unsteady case -----&quot;)
 run_unsteady()
 println(&quot;---------------------------------&quot;)
 println(&quot;&quot;)
-</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../transport_hypersurface/">« Transport equation on hypersurfaces</a><a class="docs-footer-nextpage" href="../incompressible_navier_stokes/">Incompressible Navier-Stokes (FEM) - flow around a cylinder »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 16 March 2026 19:41">Monday 16 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../transport_hypersurface/">« Transport equation on hypersurfaces</a><a class="docs-footer-nextpage" href="../incompressible_navier_stokes/">Incompressible Navier-Stokes (FEM) - flow around a cylinder »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 19:44">Wednesday 18 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -18,7 +18,15 @@ using DifferentialEquations
 using Symbolics
 using SparseDiffTools
 
+const is_tested = get(ENV, &quot;TestMode&quot;, &quot;false&quot;) == &quot;true&quot; #src
+if is_tested                                              #src
+    using ..Tester: test_ref                              #src
+end                                                       #src
+
 const dir = string(@__DIR__, &quot;/&quot;)
+
+# Specific to tests
+const maxiters = is_tested ? 10 : 1e5
 
 function compute_residual(qdof, Q, V, params)
     q = (FEFunction(Q, qdof)...,)
@@ -315,7 +323,15 @@ end
 function main(stateInit, stateBcFarfield, degree)
     @show degree, degquad
 
-    mesh = read_mesh(dir * &quot;../../../input/mesh/naca0012_o&quot; * string(mesh_degree) * &quot;.msh&quot;)
+    meshpath = joinpath(
+        dir,
+        &quot;..&quot;,
+        &quot;..&quot;,
+        &quot;input&quot;,
+        &quot;mesh&quot;,
+        &quot;naca0012_o&quot; * string(mesh_degree) * &quot;.msh&quot;,
+    )
+    mesh = read_mesh(meshpath)
     scale!(mesh, 1.0 / 0.5334)
 
     dimcar = compute_dimcar(mesh)
@@ -412,6 +428,10 @@ function main(stateInit, stateBcFarfield, degree)
         println(&quot;end steady_solve for deg=&quot;, deg, &quot; !&quot;)
 
         deg &lt; degree &amp;&amp; (qLowOrder = deepcopy(q))
+
+        if is_tested                                                           #src
+            test_ref(&quot;euler_naca_steady_d$(deg)_q.jld2&quot;, get_dof_values(q)) #src
+        end                                                                    #src
     end
     return nothing
 end
@@ -536,6 +556,8 @@ function condition_steadystate(integrator, abstol, reltol, min_t)
     else
         testval = (integrator.u - integrator.uprev) / (integrator.t - integrator.tprev)
     end
+
+    (integrator.p.counter[1] ≥ maxiters) &amp;&amp; (return true)
 
     if typeof(integrator.u) &lt;: Array
         any(
@@ -703,7 +725,7 @@ const nite_max = 300 #300000 # Number of time iteration(s)
 const nout = 1 # number of step between two vtk outputs
 const mass_matrix_in_solve = true
 const degquad = 6
-const outputpath = joinpath(@__DIR__, &quot;../../../myout/euler_naca_steady/&quot;)
+const outputpath = joinpath(@__DIR__, &quot;../../myout/euler_naca_steady/&quot;)
 
 const stateBcFarfield = (
     AoA = stateInit.AoA,
@@ -724,4 +746,4 @@ const stateBcFarfield = (
 
 main(stateInit, stateBcFarfield, degreemax)
 
-end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../covo/">« Euler equations - covo</a><a class="docs-footer-nextpage" href="../linear_elasticity/">Linear elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 16 March 2026 19:41">Monday 16 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+end #hide</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../covo/">« Euler equations - covo</a><a class="docs-footer-nextpage" href="../linear_elasticity/">Linear elasticity »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Wednesday 18 March 2026 19:44">Wednesday 18 March 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
