@@ -10,10 +10,10 @@ Pkg.activate(TEST_DIR)
 Pkg.instantiate()
 
 has_custom_bcube_branch = haskey(ENV, "BCUBE_BRANCH")
-bcubeSpec = if has_custom_bcube_branch
+custom_bcube_branch = if has_custom_bcube_branch
     branch = get(ENV, "BCUBE_BRANCH", "main")
     @info "Running tests with custom Bcube branch '$branch'"
-    Pkg.PackageSpec(; name = "Bcube", rev = branch)
+    branch
 else
     nothing
 end
@@ -62,7 +62,7 @@ ENV["TestMode"] = "true"
 #ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
 
 Pkg.activate($(repr(dir)))
-$has_custom_bcube_branch && Pkg.add(bcubeSpec)
+$has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(custom_bcube_branch)))
 Pkg.instantiate()
 
 ts = Test.DefaultTestSet("Tests for $filename")
