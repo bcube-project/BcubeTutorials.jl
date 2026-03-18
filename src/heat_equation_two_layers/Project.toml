@@ -5,4 +5,4 @@ BcubeVTK = "f7a61acb-f482-4505-b2eb-e9cadd76b6b4"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [compat]
-Bcube = "0.2, 0.3"
+Bcube = "0.2, 0.3, 0.4"
