@@ -62,7 +62,7 @@ ENV["TestMode"] = "true"
 #ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
 
 Pkg.activate($(repr(dir)))
-$has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(custom_bcube_branch)))
+$has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
 Pkg.instantiate()
 
 ts = Test.DefaultTestSet("Tests for $filename")
