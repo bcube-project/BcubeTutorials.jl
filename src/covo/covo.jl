@@ -391,10 +391,14 @@ function run_covo()
         t += Δt
 
         # Write solution to file
+        #! format: off
+        if !is_tested
         if (i % Int(max(floor(nite / nout), 1)) == 0)
             println("--> VTK export")
             append_vtk(vtk, mesh, u, t, params)
         end
+        end
+        #! format: on
     end
 
     # Summary and benchmark (except if "tests" are asked)                                # ndofs total = 20480
