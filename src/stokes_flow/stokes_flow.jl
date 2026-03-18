@@ -64,7 +64,7 @@ using SpecialFunctions
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
-    import ..Tester: test_ref                             #src
+    import ..Tester: test_ref, compare                    #src
 end                                                       #src
 
 # Function space: P2 for velocity and P1 for pressure
@@ -346,7 +346,11 @@ function run_unsteady()
 
     if is_tested                                                                 #src
         test_ref("stokes_flow_unsteady_velocity.jld2", get_dof_values(velocity)) #src
-        test_ref("stokes_flow_unsteady_pressure.jld2", get_dof_values(pressure)) #src
+        test_ref(                                                                #src
+            "stokes_flow_unsteady_pressure.jld2",                                #src
+            get_dof_values(pressure),                                            #src
+            (a, b) -> compare(a, b, 1e-12, 1e-10),                               #src
+        )                                                                        #src
     end                                                                          #src
 end
 

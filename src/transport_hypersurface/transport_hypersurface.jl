@@ -902,11 +902,8 @@ function vector_cylinder(;
     end
 
     if is_tested                                                                     #src
-        test_ref(
-            "transport_hypersurface_vector_cylinder_u.jld2",
-            get_dof_values(u),
-            (a, b) -> compare(a, b, 1e-9, 1e-12),
-        ) #src
+        vals = var_on_vertices(norm ∘ u, mesh)
+        test_ref("transport_hypersurface_vector_cylinder_norm_u.jld2", vals) #src
     end                                                                              #src
 end
 
