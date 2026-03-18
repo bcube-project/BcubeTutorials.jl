@@ -11,7 +11,7 @@ Pkg.instantiate()
 
 has_custom_bcube_branch = haskey(ENV, "BCUBE_BRANCH")
 bcubeSpec = if has_custom_bcube_branch
-    branch = get(ENV, "BCUBE_BRANCH")
+    branch = get(ENV, "BCUBE_BRANCH", "main")
     @info "Running tests with custom Bcube branch '$branch'"
     Pkg.PackageSpec(; name = "Bcube", rev = branch)
 else
