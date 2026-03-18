@@ -155,3 +155,10 @@ end
 _as_dict(a::Dict) = a
 _as_dict(a::AbstractArray) = Dict("array" => a)
 _as_dict(a::AbstractSparseMatrix) = Dict(zip("sparse_" .* ("I", "J", "V"), findnz(a)))
+
+""" Indicate that a given checkpoint has been reached """
+function checkpoint_reached(msg)
+    @testset "Reached checkpoint : $msg" begin
+        @test true
+    end
+end

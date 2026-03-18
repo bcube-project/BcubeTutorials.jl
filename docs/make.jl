@@ -42,21 +42,22 @@ function julia_to_markdown(src_dir, target_dir, filename, title)
     end
 end
 
+# Settings
+const SRC_DIR = joinpath(@__DIR__, "..", "src")
+
 # Generate tutorials
 # `documenter = false` to avoid Documenter to execute cells
 tutorial_names =
     ["helmholtz", "heat_equation", "linear_transport", "phase_field_supercooled"]
-tutorial_src = joinpath(@__DIR__, "..", "src", "tutorial")
 tutorial_dir = joinpath(@__DIR__, "src", "tutorial")
 Sys.rm(tutorial_dir; recursive = true, force = true)
 map(
-    filename -> gen_markdown_with_literate(tutorial_src, "$(filename).jl", tutorial_dir),
+    name -> gen_markdown_with_literate(joinpath(SRC_DIR, name), "$(name).jl", tutorial_dir),
     tutorial_names,
 )
 
 # Generate examples
 # `documenter = false` to avoid Documenter to execute cells
-example_src = joinpath(@__DIR__, "..", "src", "example")
 example_dir = joinpath(@__DIR__, "src", "example")
 Sys.rm(example_dir; recursive = true, force = true)
 mkdir(example_dir)
@@ -75,7 +76,7 @@ for (script_name, name) in (
     ("heat_equation_two_layers.jl", "Heat equation with two layers"),
 )
     julia_to_markdown(
-        joinpath(example_src, first(splitext(script_name))),
+        joinpath(SRC_DIR, first(splitext(script_name))),
         example_dir,
         script_name,
         name,
@@ -92,7 +93,7 @@ for name in (
     "stokes_flow",
     "incompressible_navier_stokes",
 )
-    gen_markdown_with_literate(joinpath(example_src, name), "$(name).jl", example_dir)
+    gen_markdown_with_literate(joinpath(SRC_DIR, name), "$(name).jl", example_dir)
 end
 
 makedocs(;
