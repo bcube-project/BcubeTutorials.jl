@@ -71,10 +71,18 @@ include($(repr(filepath)))
 Test.pop_testset()
 results = Test.get_test_counts(ts)
 
-passes = results.passes
-errors = results.errors
-fails = results.fails
-broken = results.broken
+if VERSION < v"1.11"
+    # passes, fails, errors, broken, c_passes, c_fails, c_errors, c_broken, duration
+    passes = results[1]
+    fails = results[2]
+    errors = results[3]
+    broken = results[4]
+else
+    passes = results.passes
+    errors = results.errors
+    fails = results.fails
+    broken = results.broken
+end
 
 open($(repr(results_path)), "w") do io
     println(io, "passes,errors,fails,broken")
