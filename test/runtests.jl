@@ -78,11 +78,13 @@ using LinearAlgebra
 include($(repr(UTILS_PATH)))
 
 ENV["TestMode"] = "true"
-#ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
+ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
 
 Pkg.activate($(repr(dir)))
 $has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
-Pkg.instantiate()
+Pkg.instantiate(verbose=false)
+Pkg.precompile(verbose=false)
+Pkg.status()
 
 ts = Test.DefaultTestSet("Tests for $filename")
 Test.push_testset(ts)

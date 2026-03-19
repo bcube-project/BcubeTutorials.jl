@@ -57,7 +57,7 @@ The default precision is `10`.
 """
 function compute_checksum(array::AbstractArray{<:Number}; digits = 10)
     path, _ = mktemp()
-    str_array = map(Base.Fix2(scientific_format, digits), round.(array, digits = digits))
+    str_array = map(Base.Fix2(scientific_format, digits), round.(array; digits = digits))
     writedlm(path, str_array)
     checksum = bytes2hex(open(sha256, path))
     return checksum
