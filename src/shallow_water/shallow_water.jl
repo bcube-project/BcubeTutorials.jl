@@ -471,11 +471,7 @@ function run_simulation(stateInit)
     append_vtk(vtk, mesh, q, time, params)
 
     if is_tested
-        test_ref(
-            "shallow_water_q.jld2",
-            get_dof_values(q),
-            (a, b) -> compare(a, b, 1e-10, 1e-12),
-        )
+        test_ref("shallow_water_q.jld2", get_dof_values(q), compare(; rtol = 1e-10))
     else
         println("Benchmarking 'forward_euler':")
         _rhs1(q, t) = rhs(q, Q, V, params, cache)

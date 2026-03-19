@@ -669,7 +669,7 @@ function scalar_cylinder(;
         test_ref(
             "transport_hypersurface_scalar_cylinder_u.jld2",
             get_dof_values(u),
-            (a, b) -> compare(a, b, 1e-6, 1e-12),
+            compare(; rtol = 1e-6),
         ) #src
     end                                                                              #src
 end
@@ -1122,11 +1122,7 @@ function scalar_torus(;
     end
 
     if is_tested                                                                  #src
-        test_ref(
-            "transport_hypersurface_scalar_torus_u.jld2",
-            get_dof_values(u),
-            (a, b) -> compare(a, b, 1e-12, 1e-12),
-        ) #src
+        test_ref("transport_hypersurface_scalar_torus_u.jld2", get_dof_values(u)) #src
     end                                                                           #src
 end
 

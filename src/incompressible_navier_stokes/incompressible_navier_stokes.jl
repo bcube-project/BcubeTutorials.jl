@@ -302,20 +302,20 @@ function run_unsteady_mixed()
         end
     end
 
-    if is_tested                                  #src
-        prefix = "incompressible_navier_stokes"   #src
-        name = "unsteady_mixted"                  #src
-        test_ref(                                 #src
-            "$(prefix)_$(name)_velocity.jld2",    #src
-            get_dof_values(velocity),             #src
-            (a, b) -> compare(a, b, 1e-6, 1e-12), #src
-        )                                         #src
-        test_ref(                                 #src
-            "$(prefix)_$(name)_pressure.jld2",    #src
-            get_dof_values(pressure),             #src
-            (a, b) -> compare(a, b, 1e-7, 1e-12), #src
-        )                                         #src
-    end                                           #src
+    if is_tested                                #src
+        prefix = "incompressible_navier_stokes" #src
+        name = "unsteady_mixted"                #src
+        test_ref(                               #src
+            "$(prefix)_$(name)_velocity.jld2",  #src
+            get_dof_values(velocity),           #src
+            compare(; rtol = 1e-6),             #src
+        )                                       #src
+        test_ref(                               #src
+            "$(prefix)_$(name)_pressure.jld2",  #src
+            get_dof_values(pressure),           #src
+            compare(; rtol = 1e-7),             #src
+        )                                       #src
+    end                                         #src
 end
 
 # The animation below shows the result of simulation with the "mixed form" method:
