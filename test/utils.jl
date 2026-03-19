@@ -57,7 +57,7 @@ The default precision is `10`.
 """
 function compute_checksum(array::AbstractArray{<:Number}; digits = 10)
     path, _ = mktemp()
-    str_array = map(Base.Fix2(scientific_format, digits), round.(array, digits = digits))
+    str_array = map(Base.Fix2(scientific_format, digits), round.(array; digits = digits))
     writedlm(path, str_array)
     checksum = bytes2hex(open(sha256, path))
     return checksum
@@ -113,9 +113,9 @@ an absolute tolerance `atol`.
 """
 function compare(
     d1::Dict{String, <:AbstractArray},
-    d2::Dict{String, <:AbstractArray},
-    rtol,
+    d2::Dict{String, <:AbstractArray};
     atol,
+    rtol,
 )
     # From the official doc for `Dict`:
     # -
@@ -128,11 +128,43 @@ function compare(
     any(x -> !haskey(d1, x), keys(d2)) && return false
 
     for key in keys(d1)
-        any((!isapprox).(d1[key], d2[key]; atol = atol, rtol = rtol)) && return false
+        _x = d1[key]
+        _y = d2[key]
+
+        # We mainly rely on `isapprox` (when everything's fine)
+        # and only perform additionnal checks to explain failure if needed
+        check_failed = any((!isapprox).(d1[key], d2[key]; atol, rtol))
+
+        if check_failed
+            println("Comparison failure info: atol=$atol, rtol=$rtol")
+            # We perform the check on all entries, without stopping on the first failure
+            # (except for Inf/NaN)
+            for (x, y) in zip(_x, _y)
+                # Code below adapted from "isapprox"
+                if !isfinite(x) || !isfinite(y)
+                    println("isfinite check failed")
+                    break
+                end
+                if isnan(x) || isnan(y)
+                    println("isnan check failed")
+                    break
+                end
+
+                x′, y′ = promote(x, y) # to avoid integer overflow
+                n = norm(x - y)
+                r = rtol * max(norm(x′), norm(y′))
+                if n > max(atol, r)
+                    println(
+                        "x=$x, y=$y, norm(x-y)=$n, rtol*max(norm(x),norm(y))=$(rtol*max(norm(x),norm(y)))",
+                    )
+                end
+            end
+            return false
+        end
     end
     return true
 end
-compare(; atol::Real = 1.0e-12, rtol::Real = 1.0e-12) = (a, b) -> compare(a, b, atol, rtol)
+compare(; atol::Real = 1.0e-12, rtol::Real = 1.0e-12) = (a, b) -> compare(a, b; atol, rtol)
 
 """
     test_ref(filename_ref::String, data, comp::Function = compare())

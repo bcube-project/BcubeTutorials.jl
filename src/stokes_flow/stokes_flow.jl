@@ -349,7 +349,7 @@ function run_unsteady()
         test_ref(                                                                #src
             "stokes_flow_unsteady_pressure.jld2",                                #src
             get_dof_values(pressure),                                            #src
-            (a, b) -> compare(a, b, 1e-12, 1e-10),                               #src
+            compare(; atol = 1e-10),                                             #src
         )                                                                        #src
     end                                                                          #src
 end

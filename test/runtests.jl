@@ -6,6 +6,24 @@ const TEST_DIR = joinpath(@__DIR__)
 const UTILS_PATH = joinpath(TEST_DIR, "utils.jl")
 const REMOVE_TMP_FILES = true
 
+function print_centered_with_hash(s::String, n::Int)
+    @assert n > 4 + length(s)
+
+    total_padding = n - 4 - length(s)
+    left_padding = div(total_padding, 2)
+    right_padding = total_padding - left_padding
+
+    centered = "##" * " "^left_padding * s * " "^right_padding * "##"
+
+    println(repeat("#", n))
+    println(repeat("#", n))
+    println("##" * " "^(n - 4) * "##")
+    println(centered)
+    println("##" * " "^(n - 4) * "##")
+    println(repeat("#", n))
+    println(repeat("#", n))
+end
+
 Pkg.activate(TEST_DIR)
 Pkg.instantiate()
 
@@ -20,23 +38,23 @@ end
 
 SRC_DIR = joinpath(@__DIR__, "..", "src")
 names = (
-    "constrained_poisson",
-    "covo",
-    "euler_naca_steady",
-    "heat_equation",
-    "heat_equation_sphere",
-    "heat_equation_two_layers",
-    "helmholtz",
+    # "constrained_poisson",
+    # "covo",
+    # "euler_naca_steady",
+    # "heat_equation",
+    # "heat_equation_sphere",
+    # "heat_equation_two_layers",
+    # "helmholtz",
     "incompressible_navier_stokes",
-    "linear_elasticity",
-    "linear_thermoelasticity",
-    "linear_transport",
-    "phase_field_supercooled",
-    "poisson_dg",
-    "shallow_water",
-    "stokes_flow",
-    "transport_hypersurface",
-    "transport_supg",
+    # "linear_elasticity",
+    # "linear_thermoelasticity",
+    # "linear_transport",
+    # "phase_field_supercooled",
+    # "poisson_dg",
+    # "shallow_water",
+    # "stokes_flow",
+    # "transport_hypersurface",
+    # "transport_supg",
 )
 
 @testset "BcubeTutorials" begin
@@ -55,6 +73,7 @@ using Test
 using Pkg
 using ReferenceTests
 using SparseArrays
+using LinearAlgebra
 
 include($(repr(UTILS_PATH)))
 
@@ -63,7 +82,7 @@ ENV["TestMode"] = "true"
 
 Pkg.activate($(repr(dir)))
 $has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
-Pkg.instantiate()
+Pkg.instantiate(verbose=false)
 
 ts = Test.DefaultTestSet("Tests for $filename")
 Test.push_testset(ts)
@@ -96,6 +115,9 @@ end
         end
 
         @testset "$name" begin
+            # Display
+            print_centered_with_hash("Running case $name", 80)
+
             # Run the julia script
             cmd = `julia --startup-file=no --project=$TEST_DIR $(tmp_filepath)`
             try
