@@ -136,6 +136,7 @@ function compare(
         check_failed = any((!isapprox).(d1[key], d2[key]; atol, rtol))
 
         if check_failed
+            println("Comparison failure info: atol=$atol, rtol=$rtol")
             # We perform the check on all entries, without stopping on the first failure
             # (except for Inf/NaN)
             for (x, y) in zip(_x, _y)
@@ -153,10 +154,8 @@ function compare(
                 n = norm(x - y)
                 r = rtol * max(norm(x′), norm(y′))
                 if n > max(atol, r)
-                    println("Comparison failure info: atol=$atol, rtol=$rtol, x=$x, y=$y")
-                    println("Absolute difference: norm(x - y)) = $(n)")
                     println(
-                        "Relative difference: rtol*max(norm(x),norm(y))=$(rtol*max(norm(x),norm(y)))",
+                        "x=$x, y=$y, norm(x-y)=$n, rtol*max(norm(x),norm(y))=$(rtol*max(norm(x),norm(y)))",
                     )
                 end
             end
