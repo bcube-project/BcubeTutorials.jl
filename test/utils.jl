@@ -136,15 +136,17 @@ function compare(
         check_failed = any((!isapprox).(d1[key], d2[key]; atol, rtol))
 
         if check_failed
+            # We perform the check on all entries, without stopping on the first failure
+            # (except for Inf/NaN)
             for (x, y) in zip(_x, _y)
                 # Code below adapted from "isapprox"
                 if !isfinite(x) || !isfinite(y)
                     println("isfinite check failed")
-                    return false
+                    break
                 end
                 if isnan(x) || isnan(y)
                     println("isnan check failed")
-                    return false
+                    break
                 end
 
                 x′, y′ = promote(x, y) # to avoid integer overflow
@@ -156,9 +158,9 @@ function compare(
                     println(
                         "Relative difference: rtol*max(norm(x),norm(y))=$(rtol*max(norm(x),norm(y)))",
                     )
-                    return false
                 end
             end
+            return false
         end
     end
     return true
