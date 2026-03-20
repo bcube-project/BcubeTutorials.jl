@@ -175,7 +175,7 @@ function run(;
     t = 0.0
     b = Bcube.allocate_dofs(U)
     vtk_output && append_vtk(vtk, u, t)
-    progress = Progress(nite)
+    progress = Progress(nite; enabled = !is_tested)
     for ite in 1:nite
         b .= (M + Δt * α * K) \ (M * get_dof_values(u))
         set_dof_values!(u, b)
