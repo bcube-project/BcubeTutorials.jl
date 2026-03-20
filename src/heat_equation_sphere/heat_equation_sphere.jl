@@ -25,7 +25,11 @@ using StaticArrays
 using FastTransforms
 using Random
 using ProgressMeter
-using Test #src
+
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    using Test                                            #src
+end                                                       #src
 
 """
 From wikipedia (physics)

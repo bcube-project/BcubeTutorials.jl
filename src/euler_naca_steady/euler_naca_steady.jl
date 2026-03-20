@@ -13,9 +13,9 @@ using Roots
 using SparseArrays
 using Profile
 using InteractiveUtils
-using DifferentialEquations
-using Symbolics
+using OrdinaryDiffEq
 using SparseDiffTools
+using DiffEqCallbacks
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
