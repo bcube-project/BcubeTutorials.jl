@@ -620,7 +620,7 @@ function scalar_cylinder(;
 
     b = Bcube.allocate_dofs(U)
     du = similar(b)
-    progressBar && (progress = Progress(nitemax))
+    progress = Progress(nitemax; enabled = progressBar)
     for ite in 1:nitemax
         b .= 0.0
 
@@ -644,7 +644,7 @@ function scalar_cylinder(;
         @. u.dofValues += Δt * du
 
         t += Δt
-        progressBar && next!(progress)
+        next!(progress)
 
         ## Output results
         if ite % (nitemax ÷ _nout) == 0
@@ -870,7 +870,7 @@ function vector_cylinder(;
 
     b = Bcube.allocate_dofs(U)
     du = similar(b)
-    progressBar && (progress = Progress(nitemax))
+    progress = Progress(nitemax; enabled = progressBar)
     for ite in 1:nitemax
         b .= 0.0
 
@@ -892,7 +892,7 @@ function vector_cylinder(;
         @. u.dofValues += Δt * du
 
         t += Δt
-        progressBar && next!(progress)
+        next!(progress)
 
         ## Output results
         if ite % (nitemax ÷ _nout) == 0
@@ -1091,7 +1091,7 @@ function scalar_torus(;
 
     b = Bcube.allocate_dofs(U)
     du = similar(b)
-    progressBar && (progress = Progress(nite))
+    progress = Progress(nite; enabled = progressBar)
     for ite in 1:nite
         b .= 0.0
 
@@ -1113,7 +1113,7 @@ function scalar_torus(;
         @. u.dofValues += Δt * du
 
         t += Δt
-        progressBar && next!(progress)
+        next!(progress)
 
         ## Output results
         if ite % (nite ÷ _nout) == 0
@@ -1141,7 +1141,7 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     nout = 100,
     nitemax = 2000,#Int(1e9),
     isLimiterActive = false,
-    progressBar = true,
+    progressBar = !is_tested,
     meshOrder = 2,
 )
 @time vector_cylinder(;
@@ -1158,7 +1158,7 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     nout = 100,
     nitemax = 50,#Int(1e9),
     isLimiterActive = false,
-    progressBar = true,
+    progressBar = !is_tested,
 )
 @time scalar_torus(;
     degree = 1,
@@ -1172,7 +1172,7 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     nout = 100,
     nitemax = 100000, # d = 4, n = 400 OK,
     isLimiterActive = false,
-    progressBar = true,
+    progressBar = !is_tested,
     meshOrder = 2,
 )
 

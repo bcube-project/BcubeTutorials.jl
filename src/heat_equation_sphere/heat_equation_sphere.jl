@@ -25,7 +25,11 @@ using StaticArrays
 using FastTransforms
 using Random
 using ProgressMeter
-using Test #src
+
+const is_tested = get(ENV, "TestMode", "false") == "true" #src
+if is_tested                                              #src
+    using Test                                            #src
+end                                                       #src
 
 """
 From wikipedia (physics)
@@ -175,7 +179,7 @@ function run(;
     t = 0.0
     b = Bcube.allocate_dofs(U)
     vtk_output && append_vtk(vtk, u, t)
-    progress = Progress(nite)
+    progress = Progress(nite; enabled = !is_tested)
     for ite in 1:nite
         b .= (M + Δt * α * K) \ (M * get_dof_values(u))
         set_dof_values!(u, b)

@@ -13,13 +13,13 @@ using Roots
 using SparseArrays
 using Profile
 using InteractiveUtils
-using DifferentialEquations
-using Symbolics
+using OrdinaryDiffEq
 using SparseDiffTools
+using DiffEqCallbacks
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
-    using ..Tester: test_ref                              #src
+    using ..Tester: test_ref, compare                     #src
 end                                                       #src
 
 const dir = string(@__DIR__, "/")
@@ -428,9 +428,13 @@ function main(stateInit, stateBcFarfield, degree)
 
         deg < degree && (qLowOrder = deepcopy(q))
 
-        if is_tested                                                           #src
-            test_ref("euler_naca_steady_d$(deg)_q.jld2", get_dof_values(q)) #src
-        end                                                                    #src
+        if is_tested                                #src
+            test_ref(                               #src
+                "euler_naca_steady_d$(deg)_q.jld2", #src
+                get_dof_values(q),                  #src
+                compare(; atol = 2e-12),            #src
+            )                                       #src
+        end                                         #src
     end
     return nothing
 end
