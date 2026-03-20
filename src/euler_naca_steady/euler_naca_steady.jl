@@ -431,7 +431,7 @@ function main(stateInit, stateBcFarfield, degree)
         if is_tested                                #src
             test_ref(                               #src
                 "euler_naca_steady_d$(deg)_q.jld2", #src
-                get_dof_values(q);                  #src
+                get_dof_values(q),                  #src
                 compare(; atol = 2e-12),            #src
             )                                       #src
         end                                         #src
