@@ -78,11 +78,11 @@ const Δt = CFL * min(lx / (nx - 1), ly / (ny - 1)) / norm(c)
 t = 0.0
 
 # Inlet boundary condition. Use `f_west(x, t) = 1.0` for a square.
-f_west(x, t) = sin(10 * t) # better start with 0 at t=0
+f_west(t) = sin(10 * t) # better start with 0 at t=0
 
 # Function space, trial and test FESpace, with the boundary condition
 fs = FunctionSpace(:Lagrange, degree)
-U = TrialFESpace(fs, mesh, Dict("West" => f_west))
+U = TrialFESpace(fs, mesh, Dict("West" => t -> PhysicalFunction(x -> f_west(t))))
 V = TestFESpace(U)
 
 # Measure for domain discretization
@@ -136,7 +136,7 @@ for i in 1:nite
     ## Evaluate and project reference solution on FESpace
     projection_l2!(
         u_ref,
-        PhysicalFunction(x -> (x[1] - c[1] * t) > 0 ? 0.0 : f_west(0, t - x[1] / c[1])),
+        PhysicalFunction(x -> (x[1] - c[1] * t) > 0 ? 0.0 : f_west(t - x[1] / c[1])),
         mesh,
     )
 

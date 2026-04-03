@@ -248,7 +248,7 @@ function run_unsteady()
     U_vel = TrialFESpace(
         fsu,
         mesh,
-        Dict("South" => (x, t) -> SA[sin(2.0 * π * f * t), 0.0]);
+        Dict("South" => t -> PhysicalFunction(x -> SA[sin(2.0 * π * f * t), 0.0]));
         size = 2,
     )
     V_vel = TestFESpace(U_vel)
