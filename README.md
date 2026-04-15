@@ -40,6 +40,42 @@ julia> include("docs/make.jl")
 
 You can then browse `BcubeTutorials.jl/docs/build/index.html`.
 
+## Running the tests
+
+The test suite can be executed locally with:
+
+```julia-repl
+pkg> activate ./test
+(test) pkg> instantiate
+julia> include("test/runtests.jl")
+```
+
+### Testing with a custom Bcube branch
+
+By default, the tests use the version of Bcube.jl specified in the `Project.toml` files. However, you may want to run the tests against a specific branch of Bcube.jl (e.g., for development or debugging purposes).
+
+**Locally:** Set the `BCUBE_BRANCH` environment variable before running the tests:
+
+```bash
+# Linux/macOS
+export BCUBE_BRANCH=dev
+julia --project=test -e 'using Pkg; Pkg.test()'
+
+# Windows (PowerShell)
+$env:BCUBE_BRANCH = "dev"
+julia --project=test -e 'using Pkg; Pkg.test()'
+```
+
+**Via GitHub Actions (manual trigger):** Go to the Actions tab, select the "CI" workflow, click "Run workflow", and enter the branch name in the "Bcube branch to use for tests" field.
+
+**Via PR comment:** On a pull request, add a comment with the following syntax to trigger the tests with a custom branch:
+
+```
+/test-bcube-branch <branch_name>
+```
+
+For example: `/test-bcube-branch dev`
+
 ## Authors
 
 Ghislain Blanchard, Lokman Bennani and Maxime Bouyges.

@@ -5,6 +5,14 @@ on:
       - main
   pull_request:
     types: [unlabeled, opened, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      bcube_branch:
+        description: "Bcube branch to use for tests (leave empty for default)"
+        required: false
+        default: ""
+  issue_comment:
+    types: [created]
 
 concurrency:
   # Skip intermediate builds: always.
@@ -13,9 +21,33 @@ concurrency:
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 
 jobs:
-  test:
+  parse-comment:
+    name: Parse comment for Bcube branch
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/test-bcube-branch')
+    outputs:
+      bcube_branch: ${{ steps.extract.outputs.branch }}
+      pr_number: ${{ steps.extract.outputs.pr_number }}
+    steps:
+      - name: Extract branch name and PR number
+        id: extract
+        run: |
+          COMMENT="${{ github.event.comment.body }}"
+          BRANCH=$(echo "$COMMENT" | sed -n 's|^/test-bcube-branch[[:space:]]\+\([^[:space:]]\+\).*|\1|p')
+          PR_NUMBER="${{ github.event.issue.number }}"
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+
+          # Verify this is a PR comment
+          if [ -z "${{ github.event.issue.pull_request }}" ]; then
+            echo "Comment is not on a pull request"
+            exit 1
+          fi
+
+  test-normal:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
+    if: github.event_name != 'issue_comment'
     strategy:
       matrix:
         version:
@@ -44,7 +76,61 @@ jobs:
             ${{ runner.os }}-
       - name: Install dependencies
         run: julia --color=yes --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile();'
-      - uses: julia-actions/julia-runtest@latest
+      - name: Run tests
+        run: |
+          if [ -n "${{ inputs.bcube_branch }}" ]; then
+            export BCUBE_BRANCH="${{ inputs.bcube_branch }}"
+            echo "Using custom Bcube branch: $BCUBE_BRANCH"
+          fi
+          julia --color=yes --project=test -e 'using Pkg; Pkg.test()'
+      - uses: julia-actions/julia-processcoverage@v1
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          file: lcov.info
+
+  test-from-comment:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} (custom branch)
+    runs-on: ${{ matrix.os }}
+    needs: [parse-comment]
+    if: github.event_name == 'issue_comment' && needs.parse-comment.result == 'success'
+    strategy:
+      matrix:
+        version:
+          - "1.10"
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: "true"
+          ref: refs/pull/${{ needs.parse-comment.outputs.pr_number }}/head
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: actions/cache@v5
+        env:
+          cache-name: cache-artifacts
+        with:
+          path: ~/.julia/artifacts
+          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-test-${{ env.cache-name }}-
+            ${{ runner.os }}-test-
+            ${{ runner.os }}-
+      - name: Install dependencies
+        run: julia --color=yes --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile();'
+      - name: Run tests with custom Bcube branch
+        env:
+          BCUBE_BRANCH: ${{ needs.parse-comment.outputs.bcube_branch }}
+        run: |
+          echo "Using custom Bcube branch: $BCUBE_BRANCH"
+          julia --color=yes --project=test -e 'using Pkg; Pkg.test()'
       - uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
