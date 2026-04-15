@@ -59,11 +59,11 @@ By default, the tests use the version of Bcube.jl specified in the `Project.toml
 ```bash
 # Linux/macOS
 export BCUBE_BRANCH=dev
-julia --project=test -e 'using Pkg; Pkg.test()'
+julia --project=test test/runtests.jl
 
 # Windows (PowerShell)
 $env:BCUBE_BRANCH = "dev"
-julia --project=test -e 'using Pkg; Pkg.test()'
+julia --project=test test/runtests.jl
 ```
 
 **Via GitHub Actions (manual trigger):** Go to the Actions tab, select the "CI" workflow, click "Run workflow", and enter the branch name in the "Bcube branch to use for tests" field.

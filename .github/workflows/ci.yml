@@ -87,7 +87,7 @@ jobs:
             export BCUBE_BRANCH="${{ needs.parse-comment.outputs.bcube_branch }}"
             echo "Using custom Bcube branch (issue_comment): $BCUBE_BRANCH"
           fi
-          julia --color=yes --project=test -e 'using Pkg; Pkg.test()'
+          julia --color=yes --project=test test/runtests.jl
       - uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v5
