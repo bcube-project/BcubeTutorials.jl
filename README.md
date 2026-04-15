@@ -64,7 +64,7 @@ julia --project=test test/runtests.jl
 
 **Via GitHub Actions (manual trigger):** Go to the Actions tab, select the "CI" workflow, click "Run workflow", and enter the branch name in the "Bcube branch to use for tests" field.
 
-**Via PR comment:** On a pull request, add a comment with the following syntax to trigger the tests with a custom branch:
+**Via PR:** On a pull request, include the following syntax in the PR description or in the latest commit message to trigger CI with a custom Bcube branch:
 
 ```
 /bcube-branch <branch_name>

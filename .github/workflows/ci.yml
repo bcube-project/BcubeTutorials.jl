@@ -41,12 +41,30 @@ jobs:
         with:
           lfs: "true"
           ref: ${{ github.event_name == 'issue_comment' && github.event.issue.pull_request && format('refs/pull/{0}/head', github.event.issue.number) || github.event_name == 'pull_request' && github.head_ref || github.ref }}
+      - name: Set BCube branch from PR description or commit message
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          SELECTED_BRANCH=""
+          if [[ "$PR_BODY" =~ /bcube-branch[[:space:]]+([^[:space:]]+) ]]; then
+            SELECTED_BRANCH="${BASH_REMATCH[1]}"
+          fi
+          if [[ -z "$SELECTED_BRANCH" ]]; then
+            LAST_COMMIT_MSG="$(git log -1 --pretty=%B)"
+            if [[ "$LAST_COMMIT_MSG" =~ /bcube-branch[[:space:]]+([^[:space:]]+) ]]; then
+              SELECTED_BRANCH="${BASH_REMATCH[1]}"
+            fi
+          fi
+          if [[ -n "$SELECTED_BRANCH" ]]; then
+            echo "BCUBE_BRANCH=$SELECTED_BRANCH" >> "$GITHUB_ENV"
+          fi
       - name: Set BCube branch from PR comment
         if: github.event_name == 'issue_comment'
         shell: bash
         run: |
           COMMENT_BODY="${{ github.event.comment.body }}"
-          if [[ "$COMMENT_BODY" =~ ^/bcube-branch[[:space:]]+(.+) ]]; then
+          if [[ "$COMMENT_BODY" =~ /bcube-branch[[:space:]]+([^[:space:]]+) ]]; then
             echo "BCUBE_BRANCH=${BASH_REMATCH[1]}" >> $GITHUB_ENV
           fi
       - uses: julia-actions/setup-julia@v2
