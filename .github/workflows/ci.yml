@@ -27,7 +27,11 @@ jobs:
     if: github.event_name == 'issue_comment' && startsWith(github.event.comment.body, '/test-bcube-branch')
     outputs:
       bcube_branch: ${{ steps.extract.outputs.branch }}
+      is_comment_trigger: ${{ steps.is-comment.outputs.is-comment }}
     steps:
+      - name: Check if triggered by comment
+        id: is-comment
+        run: echo "is-comment=true" >> $GITHUB_OUTPUT
       - name: Extract branch name from comment
         id: extract
         run: |
@@ -41,10 +45,11 @@ jobs:
             exit 1
           fi
 
-  test-normal:
+  test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
-    if: github.event_name != 'issue_comment'
+    needs: [parse-comment]
+    if: always() && (needs.parse-comment.result == 'skipped' || needs.parse-comment.result == 'success')
     strategy:
       matrix:
         version:
@@ -77,55 +82,11 @@ jobs:
         run: |
           if [ -n "${{ inputs.bcube_branch }}" ]; then
             export BCUBE_BRANCH="${{ inputs.bcube_branch }}"
-            echo "Using custom Bcube branch: $BCUBE_BRANCH"
+            echo "Using custom Bcube branch (workflow_dispatch): $BCUBE_BRANCH"
+          elif [ -n "${{ needs.parse-comment.outputs.bcube_branch }}" ]; then
+            export BCUBE_BRANCH="${{ needs.parse-comment.outputs.bcube_branch }}"
+            echo "Using custom Bcube branch (issue_comment): $BCUBE_BRANCH"
           fi
-          julia --color=yes --project=test -e 'using Pkg; Pkg.test()'
-      - uses: julia-actions/julia-processcoverage@v1
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        with:
-          file: lcov.info
-
-  test-from-comment:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} (custom branch)
-    runs-on: ${{ matrix.os }}
-    needs: [parse-comment]
-    if: github.event_name == 'issue_comment' && needs.parse-comment.result == 'success'
-    strategy:
-      matrix:
-        version:
-          - "1.10"
-        os:
-          - ubuntu-latest
-        arch:
-          - x64
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          lfs: "true"
-      - uses: julia-actions/setup-julia@v2
-        with:
-          version: ${{ matrix.version }}
-          arch: ${{ matrix.arch }}
-      - uses: actions/cache@v5
-        env:
-          cache-name: cache-artifacts
-        with:
-          path: ~/.julia/artifacts
-          key: ${{ runner.os }}-test-${{ env.cache-name }}-${{ hashFiles('**/Project.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-test-${{ env.cache-name }}-
-            ${{ runner.os }}-test-
-            ${{ runner.os }}-
-      - name: Install dependencies
-        run: julia --color=yes --project=. -e 'using Pkg; Pkg.instantiate(); Pkg.precompile();'
-      - name: Run tests with custom Bcube branch
-        env:
-          BCUBE_BRANCH: ${{ needs.parse-comment.outputs.bcube_branch }}
-        run: |
-          echo "Using custom Bcube branch: $BCUBE_BRANCH"
           julia --color=yes --project=test -e 'using Pkg; Pkg.test()'
       - uses: julia-actions/julia-processcoverage@v1
       - name: Upload coverage reports to Codecov
