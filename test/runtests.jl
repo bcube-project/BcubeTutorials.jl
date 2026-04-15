@@ -27,9 +27,10 @@ end
 Pkg.activate(TEST_DIR)
 Pkg.instantiate()
 
-has_custom_bcube_branch = haskey(ENV, "BCUBE_BRANCH")
+has_custom_bcube_branch =
+    haskey(ENV, "BCUBE_BRANCH") && !isempty(strip(ENV["BCUBE_BRANCH"]))
 custom_bcube_branch = if has_custom_bcube_branch
-    branch = get(ENV, "BCUBE_BRANCH", "main")
+    branch = strip(get(ENV, "BCUBE_BRANCH", "main"))
     @info "Running tests with custom Bcube branch '$branch'"
     branch
 else
