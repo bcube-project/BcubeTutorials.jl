@@ -11,7 +11,7 @@ println("Running heat equation tutorial...") #hide
 # We shall assume that $f, \, \rho, \, C_p, \, \lambda \, \in L^2(\Omega)$. The weak form of the problem is given by: find $ u \in \tilde{H}^1_0(\Omega)$
 # (there will be at least one Dirichlet boundary condition) such that:
 # ```math
-#   \forall v \in  \tilde{H}^1_0(\Omega), \, \, \, \underbrace{\int_\Omega \partial_t u . v dx}_{m(\partial_t u,v)} + \underbrace{\int_\Omega \nabla u . \nabla v dx}_{a(u,v)} = \underbrace{\int_\Omega f v dx}_{l(v)}
+#   \forall v \in  \tilde{H}^1_0(\Omega), \, \, \, \underbrace{\int_\Omega \rho C_p \partial_t u . v dx}_{m(\partial_t u,v)} + \underbrace{\int_\Omega \nabla u . \nabla v dx}_{a(u,v)} = \underbrace{\int_\Omega f v dx}_{l(v)}
 # ```
 # To numerically solve this problem we seek an approximate solution using Lagrange $$P^1$$ or $$P^2$$ elements.
 # Here we assume that the domain can be split into two domains having different material properties.
