@@ -14,3 +14,4 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [compat]
 Bcube = "0.2, 0.3.10, 0.4"
+BcubeGmsh = "0.3"
