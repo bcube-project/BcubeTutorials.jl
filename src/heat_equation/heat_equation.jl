@@ -60,27 +60,27 @@ a(u, v) = ∫(η * ∇(u) ⋅ ∇(v))dΩ
 l(v) = ∫(q * v)dΩ
 
 # Create an affine FE system and solve it using the `AffineFESystem` structure.
-# The package `LinearSolve` is used behind the scenes, so different solver may
-# be used to invert the system (ex: `solve(...; alg = IterativeSolversJL_GMRES())`)
-# The result is a FEFunction (`ϕ`).
-# We can interpolate it on mesh centers : the result is named `Tcn`.
-sys = AffineFESystem(a, l, U, V)
+# By default, an LU decomposition is used to solve the system. In the present case
+# we know that the matrix A is symmetric. Hence a Cholesky decomposition can be used.
+# The result is a FEFunction (`Tn`).
+# We can extract its dof values: the result is named `Tn_dofs`.
+Cholesky_linsolve!(y, A, x) = ldiv!(y, cholesky(Symmetric(A)), x)
+sys = AffineFESystem(a, l, U, V, Cholesky_linsolve!)
 Tn = Bcube.solve(sys)
 Tn_dofs = get_dof_values(Tn)
 
-# Compute analytical solution for comparison. Apply the analytical solution
-# on mesh centers
+# Compute analytical solution for comparison. An FEFunction is built using
+# the analytical solution and the dof values are extracted. 
 T_analytical = PhysicalFunction(x -> 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1]))
 Ta = FEFunction(U, mesh, T_analytical)
 Ta_dofs = get_dof_values(Ta)
 
-# Write both the obtained FE solution and the analytical solution to a vtk file. To
-# write the data on mesh centers, we need to wrap them in a `MeshCellData` object.
+# Write both the obtained FE solution and the analytical solution to a vtk file. 
 mkpath(outputpath)
 dict_vars = Dict("Temperature (numerical)" => Tn, "Temperature (analytical)" => Ta)
 write_file(outputpath * "result_steady_heat_equation.pvd", mesh, dict_vars)
 
-# Compute and display the error
+# Compute and display the error, which is computed using the previously extracted dof values.
 @show norm(Tn_dofs .- Ta_dofs, Inf) / norm(Ta_dofs, Inf)
 
 if is_tested                                                         #src
