@@ -36,6 +36,15 @@ custom_bcube_branch = if has_custom_bcube_branch
 else
     nothing
 end
+has_custom_bcubevtk_branch =
+    haskey(ENV, "BCUBEVTK_BRANCH") && !isempty(strip(ENV["BCUBEVTK_BRANCH"]))
+custom_bcubevtk_branch = if has_custom_bcubevtk_branch
+    branch = strip(get(ENV, "BCUBEVTK_BRANCH", "main"))
+    @info "Running tests with custom BcubeVTK branch '$branch'"
+    branch
+else
+    nothing
+end
 
 SRC_DIR = joinpath(@__DIR__, "..", "src")
 names = (
@@ -83,6 +92,7 @@ ENV["TestMode"] = "true"
 
 Pkg.activate($(repr(dir)))
 $has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
+$has_custom_bcubevtk_branch && Pkg.add(Pkg.PackageSpec(; name = "BcubeVTK", rev = $(repr(custom_bcubevtk_branch))))
 Pkg.instantiate(verbose=false)
 
 ts = Test.DefaultTestSet("Tests for $filename")
