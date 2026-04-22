@@ -27,10 +27,29 @@ end
 Pkg.activate(TEST_DIR)
 Pkg.instantiate()
 
-has_custom_bcube_branch = haskey(ENV, "BCUBE_BRANCH")
+has_custom_bcube_branch =
+    haskey(ENV, "BCUBE_BRANCH") && !isempty(strip(ENV["BCUBE_BRANCH"]))
 custom_bcube_branch = if has_custom_bcube_branch
-    branch = get(ENV, "BCUBE_BRANCH", "main")
+    branch = strip(get(ENV, "BCUBE_BRANCH", "main"))
     @info "Running tests with custom Bcube branch '$branch'"
+    branch
+else
+    nothing
+end
+has_custom_bcubevtk_branch =
+    haskey(ENV, "BCUBEVTK_BRANCH") && !isempty(strip(ENV["BCUBEVTK_BRANCH"]))
+custom_bcubevtk_branch = if has_custom_bcubevtk_branch
+    branch = strip(get(ENV, "BCUBEVTK_BRANCH", "main"))
+    @info "Running tests with custom BcubeVTK branch '$branch'"
+    branch
+else
+    nothing
+end
+has_custom_bcubegmsh_branch =
+    haskey(ENV, "BCUBEGMSH_BRANCH") && !isempty(strip(ENV["BCUBEGMSH_BRANCH"]))
+custom_bcubegmsh_branch = if has_custom_bcubegmsh_branch
+    branch = strip(get(ENV, "BCUBEGMSH_BRANCH", "main"))
+    @info "Running tests with custom BcubeGmsh branch '$branch'"
     branch
 else
     nothing
@@ -81,7 +100,11 @@ ENV["TestMode"] = "true"
 #ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
 
 Pkg.activate($(repr(dir)))
-$has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
+pkgSpec = Pkg.PackageSpec[]
+$has_custom_bcube_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
+$has_custom_bcubevtk_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "BcubeVTK", rev = $(repr(custom_bcubevtk_branch))))
+$has_custom_bcubegmsh_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "BcubeGmsh", rev = $(repr(custom_bcubegmsh_branch))))
+(length(pkgSpec) > 0) && Pkg.add(pkgSpec)
 Pkg.instantiate(verbose=false)
 
 ts = Test.DefaultTestSet("Tests for $filename")

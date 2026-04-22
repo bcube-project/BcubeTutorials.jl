@@ -74,7 +74,7 @@ function main()
     # same FE spaces for this tutorial. Note the way we specify the Dirichlet condition
     # in the definition of `U`.
     fs = FunctionSpace(:Lagrange, degree)
-    U = TrialFESpace(fs, mesh, Dict("West" => (x, t) -> 1.0))
+    U = TrialFESpace(fs, mesh, Dict("West" => 1.0))
     V = TestFESpace(U)
 
     # Build FE functions

@@ -66,8 +66,10 @@ const Δt = 1.0e-3
 const finalTime = 6.0
 
 # Function that defines the inlet velocity profile
-function inlet_velocity(x, t)
-    SA[4.0 * clamp(t, 0.0, 1.5) * x[2] * (0.41 - x[2]) / (0.41 * 0.41), 0.0]
+function inlet_velocity(t)
+    PhysicalFunction(
+        x -> SA[4.0 * clamp(t, 0.0, 1.5) * x[2] * (0.41 - x[2]) / (0.41 * 0.41), 0.0],
+    )
 end
 
 # Function that solves the problem using the projection method

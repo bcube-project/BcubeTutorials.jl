@@ -499,15 +499,15 @@ function scalar_cylinder(;
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
     BcubeGmsh.gen_cylinder_shell_mesh(
-        mesh_path,
-        nθ,
-        nz;
-        lz,
+        mesh_path;
         radius,
+        lz,
+        nθ,
+        nz,
         lc = 1e-1,
-        recombine = true,
-        transfinite = true,
         order = meshOrder,
+        transfinite = true,
+        recombine = true,
     )
     mesh = read_mesh(mesh_path)
     rng = Random.MersenneTwister(33)
@@ -728,9 +728,9 @@ function vector_cylinder(;
     ## Mesh
     mesh_path = joinpath(out_dir, "mesh.msh")
     BcubeGmsh.gen_cylinder_shell_mesh(
-        mesh_path,
+        mesh_path;
         nθ,
-        nz;
+        nz,
         lz,
         radius,
         lc = 1e-1,
