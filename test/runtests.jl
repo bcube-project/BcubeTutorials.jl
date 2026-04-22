@@ -91,8 +91,10 @@ ENV["TestMode"] = "true"
 #ENV["JULIA_PKG_PRECOMPILE_AUTO"] = 0
 
 Pkg.activate($(repr(dir)))
-$has_custom_bcube_branch && Pkg.add(Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
-$has_custom_bcubevtk_branch && Pkg.add(Pkg.PackageSpec(; name = "BcubeVTK", rev = $(repr(custom_bcubevtk_branch))))
+pkgSpec = []
+$has_custom_bcube_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
+$has_custom_bcubevtk_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "BcubeVTK", rev = $(repr(custom_bcubevtk_branch))))
+(length(pkgSpec) > 0) && Pkg.add(pkgSpec)
 Pkg.instantiate(verbose=false)
 
 ts = Test.DefaultTestSet("Tests for $filename")
