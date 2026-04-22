@@ -22,10 +22,10 @@ using Bcube
 using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
+using Test 
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
-    using Test
     import ..Tester: test_ref                             #src
 end                                                       #src
 
@@ -65,27 +65,27 @@ l(v) = ∫(q * v)dΩ
 # The result is a FEFunction (`ϕ`).
 # We can interpolate it on mesh centers : the result is named `Tcn`.
 sys = AffineFESystem(a, l, U, V)
-ϕ = Bcube.solve(sys)
-Tcn = var_on_centers(ϕ, mesh)
+Tn = Bcube.solve(sys)
+Tn_dofs = get_dof_values(Tn)
 
 # Compute analytical solution for comparison. Apply the analytical solution
 # on mesh centers
-T_analytical = x -> 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1])
-Tca = map(T_analytical, get_cell_centers(mesh))
+T_analytical = PhysicalFunction(x -> 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1]))
+Ta = FEFunction(U, mesh, T_analytical)
+Ta_dofs = get_dof_values(Ta)
 
 # Write both the obtained FE solution and the analytical solution to a vtk file. To
 # write the data on mesh centers, we need to wrap them in a `MeshCellData` object.
-using BcubeVTK
 mkpath(outputpath)
-dict_vars = Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
+dict_vars = Dict("Temperature (numerical)" => Tn, "Temperature (analytical)" => Ta)
 write_file(outputpath * "result_steady_heat_equation.pvd", mesh, dict_vars)
 
 # Compute and display the error
-@show norm(Tcn .- Tca, Inf) / norm(Tca, Inf)
+@show norm(Tn_dofs .- Ta_dofs, Inf) / norm(Ta_dofs, Inf)
 
-if is_tested                                             #src
-    @test norm(Tcn .- Tca, Inf) / norm(Tca, Inf) < 2e-14 #src
-end                                                      #src
+if is_tested                                                         #src
+    @test norm(Tn_dofs .- Ta_dofs, Inf) / norm(Ta_dofs, Inf) < 2e-14 #src
+end                                                                  #src
 
 # # Unsteady case
 # The code for the unsteady case if of course very similar to the steady case, at least for the
@@ -134,7 +134,7 @@ Miter = factorize(M + Δt * A)
 
 # Write initial solution to a file
 mkpath(outputpath)
-dict_vars = Dict("Temperature" => MeshCellData(var_on_centers(ϕ, mesh)))
+dict_vars = Dict("Temperature" => ϕ)
 write_file(outputpath * "result_unsteady_heat_equation.pvd", mesh, dict_vars, 0, 0.0)
 
 # Time loop
@@ -158,7 +158,7 @@ while t <= totalTime
 
     ## Write solution (every 10 iterations)
     if itime % 10 == 0
-        dict_vars = Dict("Temperature" => MeshCellData(var_on_centers(ϕ, mesh)))
+        dict_vars = Dict("Temperature" => ϕ)
         write_file(
             outputpath * "result_unsteady_heat_equation.pvd",
             mesh,
