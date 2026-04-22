@@ -72,6 +72,13 @@ julia --project=test test/runtests.jl
 
 For example: `/bcube-branch dev`
 
+The same mechanism works for `BcubeVTK` and `BcubeGmsh`, and all can be combined. For instance:
+```
+/bcube-branch <name_1>
+/bcubegmsh-branch <name_2>
+/bcubevtk-branch <name_3>
+```
+
 ## Authors
 
 Ghislain Blanchard, Lokman Bennani and Maxime Bouyges.

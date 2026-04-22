@@ -28,6 +28,7 @@ jobs:
     env:
       BCUBE_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bcube_branch || '' }}
       BCUBEVTK_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bcubevtk_branch || '' }}
+      BCUBEGMSH_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.bcubegmsh_branch || '' }}
     strategy:
       matrix:
         version:
@@ -77,6 +78,24 @@ jobs:
           fi
           if [[ -n "$SELECTED_BRANCH" ]]; then
             echo "BCUBEVTK_BRANCH=$SELECTED_BRANCH" >> "$GITHUB_ENV"
+          fi
+      - name: Set BcubeGmsh branch from PR description or commit message
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+          SELECTED_BRANCH=""
+          if [[ "$PR_BODY" =~ /bcubegmsh-branch[[:space:]]+([^[:space:]]+) ]]; then
+            SELECTED_BRANCH="${BASH_REMATCH[1]}"
+          fi
+          if [[ -z "$SELECTED_BRANCH" ]]; then
+            LAST_COMMIT_MSG="$(git log -1 --pretty=%B)"
+            if [[ "$LAST_COMMIT_MSG" =~ /bcubegmsh-branch[[:space:]]+([^[:space:]]+) ]]; then
+              SELECTED_BRANCH="${BASH_REMATCH[1]}"
+            fi
+          fi
+          if [[ -n "$SELECTED_BRANCH" ]]; then
+            echo "BCUBEGMSH_BRANCH=$SELECTED_BRANCH" >> "$GITHUB_ENV"
           fi
       - uses: julia-actions/setup-julia@v2
         with:

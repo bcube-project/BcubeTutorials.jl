@@ -45,6 +45,15 @@ custom_bcubevtk_branch = if has_custom_bcubevtk_branch
 else
     nothing
 end
+has_custom_bcubegmsh_branch =
+    haskey(ENV, "BCUBEGMSH_BRANCH") && !isempty(strip(ENV["BCUBEGMSH_BRANCH"]))
+custom_bcubegmsh_branch = if has_custom_bcubegmsh_branch
+    branch = strip(get(ENV, "BCUBEGMSH_BRANCH", "main"))
+    @info "Running tests with custom BcubeGmsh branch '$branch'"
+    branch
+else
+    nothing
+end
 
 SRC_DIR = joinpath(@__DIR__, "..", "src")
 names = (
@@ -94,6 +103,7 @@ Pkg.activate($(repr(dir)))
 pkgSpec = Pkg.PackageSpec[]
 $has_custom_bcube_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "Bcube", rev = $(repr(custom_bcube_branch))))
 $has_custom_bcubevtk_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "BcubeVTK", rev = $(repr(custom_bcubevtk_branch))))
+$has_custom_bcubegmsh_branch && push!(pkgSpec, Pkg.PackageSpec(; name = "BcubeGmsh", rev = $(repr(custom_bcubegmsh_branch))))
 (length(pkgSpec) > 0) && Pkg.add(pkgSpec)
 Pkg.instantiate(verbose=false)
 
