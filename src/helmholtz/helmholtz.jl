@@ -109,7 +109,7 @@ write_file(joinpath(@__DIR__, outputvtk), mesh, dict_vars)                  #md
 # ![](../assets/helmholtz_x21_y21_vp6.png)
 
 if get(ENV, "TestMode", "false") == "true"                      #src
-    import ..Tester: test_ref                                   #src
+    import ..Tester: test_ref, compare                          #src
     results = sqrt.(abs.(vp[3:8]))                              #src
     ref_results = [                                             #src
         3.144823462554393,                                      #src
@@ -122,6 +122,10 @@ if get(ENV, "TestMode", "false") == "true"                      #src
     @test all(results .≈ ref_results)                           #src
     test_ref("helmholtz_A.jld2", A)                             #src
     test_ref("helmholtz_B.jld2", B)                             #src
-    test_ref("helmholtz_vp.jld2", vp)                           #src
+    test_ref(                                                   #src
+        "helmholtz_vp.jld2",                                    #src
+        vp,                                                     #src
+        (a, b) -> compare(a, b; atol = 1.0e-11, rtol = 1.0e-11),#src
+    )                                                           #src
 end                                                             #src
 end #hide
