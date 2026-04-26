@@ -4,174 +4,180 @@ println("Running heat equation tutorial...") #hide
 # In this tutorial, the heat equation (first steady and then unsteady) is solved using finite-elements.
 #
 # # Theory
-# This example shows how to solve the heat equation with eventually variable physical properties in steady and unsteady formulations:
+# This example shows how to solve the heat equation in steady and unsteady formulations. The unsteady heat equation is given by:
 # ```math
-#   \rho C_p \partial_t u - \nabla . ( \lambda u) = f
+#   \rho C_p \frac{\partial u}{\partial t} - \nabla \cdot ( \lambda \nabla u) = f
 # ```
 # We shall assume that $f, \, \rho, \, C_p, \, \lambda \, \in L^2(\Omega)$. The weak form of the problem is given by: find $ u \in \tilde{H}^1_0(\Omega)$
 # (there will be at least one Dirichlet boundary condition) such that:
 # ```math
-#   \forall v \in  \tilde{H}^1_0(\Omega), \, \, \, \underbrace{\int_\Omega \partial_t u . v dx}_{m(\partial_t u,v)} + \underbrace{\int_\Omega \nabla u . \nabla v dx}_{a(u,v)} = \underbrace{\int_\Omega f v dx}_{l(v)}
+#   \forall v \in  \tilde{H}^1_0(\Omega), \, \, \, \underbrace{\int_\Omega \rho C_p \frac{\partial u}{\partial t}  v dx}_{m(\partial_t u,v)} + \underbrace{\int_\Omega \lambda \nabla u \cdot \nabla v dx}_{a(u,v)} = \underbrace{\int_\Omega f v dx}_{l(v)}
 # ```
-# To numerically solve this problem we seek an approximate solution using Lagrange $$P^1$$ or $$P^2$$ elements.
-# Here we assume that the domain can be split into two domains having different material properties.
+# To numerically solve this problem we seek an approximate solution using Lagrange $$P^2$$ elements.
 
-# # Steady case
+#
 # As usual, start by importing the necessary packages.
 using Bcube
 using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
+using Test #src
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
-    using Test
     import ..Tester: test_ref                             #src
 end                                                       #src
 
 # First we define some physical and numerical constants
-const htc = 100.0 # Heat transfer coefficient (bnd cdt)
-const Tr = 268.0 # Recovery temperature (bnd cdt)
-const phi = 100.0
-const q = 1500.0
-const λ = 100.0
-const η = λ
-const ρCp = 100.0 * 200.0
-const degree = 2
+const q = 1500.0 # heat source
+const λ = 100.0 # thermal conductivity
+const ρCp = 100.0 * 200.0 # density times specific heat capacity
+const degree = 2 # Degree of the Lagrange polynomials (for $$P^2$$ elements)
 const outputpath = joinpath(@__DIR__, "..", "..", "myout", "heat_equation/")
 mkpath(outputpath) #hide
 
-# Read 2D mesh
-mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri.msh")
-mesh = read_mesh(mesh_path)
+# # Steady case
+function solve_steady()
+    println(" ----- Solving steady problem -----")
+    # Read 2D mesh
+    mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri.msh")
+    mesh = read_mesh(mesh_path)
 
-# Build function space and associated Trial and Test FE spaces.
-# We impose a Dirichlet condition with a temperature of 260K
-# on boundary "West"
-fs = FunctionSpace(:Lagrange, degree)
-U = TrialFESpace(fs, mesh, Dict("West" => 260.0))
-V = TestFESpace(U)
+    # Build function space and associated Trial and Test FE spaces.
+    # We impose a Dirichlet condition with a temperature of 260K
+    # on boundary "West"
+    fs = FunctionSpace(:Lagrange, degree)
+    U = TrialFESpace(fs, mesh, Dict("West" => 260.0))
+    V = TestFESpace(U)
 
-# Define measures for cell integration
-dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
+    # Define measures for cell integration
+    dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
-# Define bilinear and linear forms
-a(u, v) = ∫(η * ∇(u) ⋅ ∇(v))dΩ
-l(v) = ∫(q * v)dΩ
+    # Define bilinear and linear forms
+    a(u, v) = ∫(λ * ∇(u) ⋅ ∇(v))dΩ
+    l(v) = ∫(q * v)dΩ
 
-# Create an affine FE system and solve it using the `AffineFESystem` structure.
-# The package `LinearSolve` is used behind the scenes, so different solver may
-# be used to invert the system (ex: `solve(...; alg = IterativeSolversJL_GMRES())`)
-# The result is a FEFunction (`ϕ`).
-# We can interpolate it on mesh centers : the result is named `Tcn`.
-sys = AffineFESystem(a, l, U, V)
-ϕ = Bcube.solve(sys)
-Tcn = var_on_centers(ϕ, mesh)
+    # Create an affine FE system and solve it using the `AffineFESystem` structure.
+    # By default, an LU decomposition is used to solve the system. In the present case
+    # we know that the matrix A is symmetric. Hence a Cholesky decomposition can be used.
+    # The result is a FEFunction (`Tn`).
+    # We can extract its dof values: the result is named `Tn_dofs`.
+    Cholesky_linsolve!(y, A, x) = ldiv!(y, cholesky(Symmetric(A)), x)
+    sys = AffineFESystem(a, l, U, V, Cholesky_linsolve!)
+    Tn = Bcube.solve(sys)
+    Tn_dofs = get_dof_values(Tn)
 
-# Compute analytical solution for comparison. Apply the analytical solution
-# on mesh centers
-T_analytical = x -> 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1])
-Tca = map(T_analytical, get_cell_centers(mesh))
+    # Compute analytical solution for comparison. An FEFunction is built using
+    # the analytical solution and the dof values are extracted. 
+    T_analytical = PhysicalFunction(x -> 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1]))
+    Ta = FEFunction(U, mesh, T_analytical)
+    Ta_dofs = get_dof_values(Ta)
 
-# Write both the obtained FE solution and the analytical solution to a vtk file. To
-# write the data on mesh centers, we need to wrap them in a `MeshCellData` object.
-using BcubeVTK
-mkpath(outputpath)
-dict_vars = Dict("Temperature" => MeshCellData(Tcn), "Temperature_a" => MeshCellData(Tca))
-write_file(outputpath * "result_steady_heat_equation.pvd", mesh, dict_vars)
+    # Write both the obtained FE solution and the analytical solution to a vtk file. 
+    mkpath(outputpath)
+    dict_vars = Dict("Temperature (numerical)" => Tn, "Temperature (analytical)" => Ta)
+    write_file(outputpath * "result_steady_heat_equation.pvd", mesh, dict_vars)
 
-# Compute and display the error
-@show norm(Tcn .- Tca, Inf) / norm(Tca, Inf)
+    # Compute and display the error, which is computed using the previously extracted dof values.
+    @show norm(Tn_dofs .- Ta_dofs, Inf) / norm(Ta_dofs, Inf)
 
-if is_tested                                             #src
-    @test norm(Tcn .- Tca, Inf) / norm(Tca, Inf) < 2e-14 #src
-end                                                      #src
+    if is_tested                                                         #src
+        @test norm(Tn_dofs .- Ta_dofs, Inf) / norm(Ta_dofs, Inf) < 2e-14 #src
+    end                                                                  #src
+end
 
 # # Unsteady case
 # The code for the unsteady case if of course very similar to the steady case, at least for the
-# beginning. Start by defining two additional parameters:
-totalTime = 100.0
-Δt = 0.1
+# beginning. 
+function solve_unsteady()
+    println(" ----- Solving unsteady problem -----")
+    # Start by defining two additional parameters:
+    totalTime = 100.0
+    Δt = 0.1
 
-# Read a slightly different mesh
-mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri_2.msh")
-mesh = read_mesh(mesh_path)
+    # Read a slightly different mesh
+    mesh_path = joinpath(@__DIR__, "..", "..", "input", "mesh", "domainSquare_tri_2.msh")
+    mesh = read_mesh(mesh_path)
 
-# The rest is similar to the steady case
-fs = FunctionSpace(:Lagrange, degree)
-U = TrialFESpace(fs, mesh, Dict("West" => 260.0))
-V = TestFESpace(U)
-dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
+    # The rest is similar to the steady case
+    fs = FunctionSpace(:Lagrange, degree)
+    U = TrialFESpace(fs, mesh, Dict("West" => 260.0))
+    V = TestFESpace(U)
+    dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
-# Compute matrices associated to bilinear and linear forms, and assemble
-a(u, v) = ∫(η * ∇(u) ⋅ ∇(v))dΩ
-m(u, v) = ∫(ρCp * u ⋅ v)dΩ
-l(v) = ∫(q * v)dΩ
+    # Compute matrices associated to bilinear and linear forms, and assemble
+    a(u, v) = ∫(λ * ∇(u) ⋅ ∇(v))dΩ
+    m(u, v) = ∫(ρCp * u ⋅ v)dΩ
+    l(v) = ∫(q * v)dΩ
 
-A = assemble_bilinear(a, U, V)
-M = assemble_bilinear(m, U, V)
-L = assemble_linear(l, V)
+    A = assemble_bilinear(a, U, V)
+    M = assemble_bilinear(m, U, V)
+    L = assemble_linear(l, V)
 
-# Compute a vector of dofs whose values are zeros everywhere
-# except on dofs lying on a Dirichlet boundary, where they
-# take the Dirichlet value
-Ud = assemble_dirichlet_vector(U, V, mesh)
+    # Compute a vector of dofs whose values are zeros everywhere
+    # except on dofs lying on a Dirichlet boundary, where they
+    # take the Dirichlet value
+    Ud = assemble_dirichlet_vector(U, V, mesh)
 
-# Apply lift
-L = L - A * Ud
+    # Apply lift
+    L = L - A * Ud
 
-# Apply homogeneous dirichlet condition
-apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
-apply_dirichlet_to_matrix!((A, M), U, V, mesh)
+    # Apply homogeneous dirichlet condition
+    apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
+    apply_dirichlet_to_matrix!((A, M), U, V, mesh)
 
-# Form time iteration matrix
-# (note that this is bad for performance since up to now,
-# M and A are sparse matrices)
-Miter = factorize(M + Δt * A)
+    # Form time iteration matrix
+    # (note that this is bad for performance since up to now,
+    # M and A are sparse matrices)
+    Miter = factorize(M + Δt * A)
 
-# Init the solution with a constant temperature of 260K
-ϕ = FEFunction(U, 260.0)
+    # Init the solution with a constant temperature of 260K
+    ϕ = FEFunction(U, 260.0)
 
-# Write initial solution to a file
-mkpath(outputpath)
-dict_vars = Dict("Temperature" => MeshCellData(var_on_centers(ϕ, mesh)))
-write_file(outputpath * "result_unsteady_heat_equation.pvd", mesh, dict_vars, 0, 0.0)
+    # Write initial solution to a file
+    mkpath(outputpath)
+    dict_vars = Dict("Temperature" => ϕ)
+    write_file(outputpath * "result_unsteady_heat_equation.pvd", mesh, dict_vars, 0, 0.0)
 
-# Time loop
-itime = 0
-t = 0.0
-while t <= totalTime
-    global t, itime
-    t += Δt
-    itime = itime + 1
-    #! format: off
-    if !is_tested #src
-    @show t, itime
-    end #src
-    #! format: on
+    # Time loop
+    itime = 0
+    t = 0.0
+    while t <= totalTime
+        t, itime
+        t += Δt
+        itime = itime + 1
+        #! format: off
+        if !is_tested #src
+        @show t, itime
+        end #src
+        #! format: on
 
-    ## Compute rhs
-    rhs = Δt * L + M * (get_dof_values(ϕ) .- Ud)
+        ## Compute rhs
+        rhs = Δt * L + M * (get_dof_values(ϕ) .- Ud)
 
-    ## Invert system and apply inverse shift
-    set_dof_values!(ϕ, Miter \ rhs .+ Ud)
+        ## Invert system and apply inverse shift
+        set_dof_values!(ϕ, Miter \ rhs .+ Ud)
 
-    ## Write solution (every 10 iterations)
-    if itime % 10 == 0
-        dict_vars = Dict("Temperature" => MeshCellData(var_on_centers(ϕ, mesh)))
-        write_file(
-            outputpath * "result_unsteady_heat_equation.pvd",
-            mesh,
-            dict_vars,
-            itime,
-            t;
-            collection_append = true,
-        )
+        ## Write solution (every 10 iterations)
+        if itime % 10 == 0
+            dict_vars = Dict("Temperature" => ϕ)
+            write_file(
+                outputpath * "result_unsteady_heat_equation.pvd",
+                mesh,
+                dict_vars,
+                itime,
+                t;
+                collection_append = true,
+            )
+        end
     end
+
+    if is_tested                                               #src
+        test_ref("heat_equation_100s.jld2", get_dof_values(ϕ)) #src
+    end                                                        #src
 end
 
-if is_tested                                               #src
-    test_ref("heat_equation_100s.jld2", get_dof_values(ϕ)) #src
-end                                                        #src
+solve_steady()
+solve_unsteady()
 
 end #hide
