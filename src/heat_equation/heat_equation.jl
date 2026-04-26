@@ -21,7 +21,7 @@ using Bcube
 using BcubeGmsh
 using BcubeVTK
 using LinearAlgebra
-using Test
+using Test #src
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
