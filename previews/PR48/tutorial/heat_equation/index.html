@@ -6,67 +6,57 @@ using LinearAlgebra</code></pre><p>First we define some physical and numerical c
 const λ = 100.0 # thermal conductivity
 const ρCp = 100.0 * 200.0 # density times specific heat capacity
 const degree = 2 # Degree of the Lagrange polynomials (for $$P^2$$ elements)
-const outputpath = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;heat_equation/&quot;)</code></pre><h1 id="Steady-case"><a class="docs-heading-anchor" href="#Steady-case">Steady case</a><a id="Steady-case-1"></a><a class="docs-heading-anchor-permalink" href="#Steady-case" title="Permalink"></a></h1><pre><code class="language-julia hljs">function solve_steady()
-    println(&quot; ----- Solving steady problem -----&quot;)</code></pre><p>Read 2D mesh</p><pre><code class="language-julia hljs">    mesh_path = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;domainSquare_tri.msh&quot;)
-    mesh = read_mesh(mesh_path)</code></pre><p>Build function space and associated Trial and Test FE spaces. We impose a Dirichlet condition with a temperature of 260K on boundary &quot;West&quot;</p><pre><code class="language-julia hljs">    fs = FunctionSpace(:Lagrange, degree)
-    U = TrialFESpace(fs, mesh, Dict(&quot;West&quot; =&gt; 260.0))
-    V = TestFESpace(U)</code></pre><p>Define measures for cell integration</p><pre><code class="language-julia hljs">    dΩ = Measure(CellDomain(mesh), 2 * degree + 1)</code></pre><p>Define bilinear and linear forms</p><pre><code class="language-julia hljs">    a(u, v) = ∫(λ * ∇(u) ⋅ ∇(v))dΩ
-    l(v) = ∫(q * v)dΩ</code></pre><p>Create an affine FE system and solve it using the <code>AffineFESystem</code> structure. By default, an LU decomposition is used to solve the system. In the present case we know that the matrix A is symmetric. Hence a Cholesky decomposition can be used. The result is a FEFunction (<code>Tn</code>). We can extract its dof values: the result is named <code>Tn_dofs</code>.</p><pre><code class="language-julia hljs">    Cholesky_linsolve!(y, A, x) = ldiv!(y, cholesky(Symmetric(A)), x)
-    sys = AffineFESystem(a, l, U, V, Cholesky_linsolve!)
-    Tn = Bcube.solve(sys)
-    Tn_dofs = get_dof_values(Tn)</code></pre><p>Compute analytical solution for comparison. An FEFunction is built using the analytical solution and the dof values are extracted.</p><pre><code class="language-julia hljs">    T_analytical = PhysicalFunction(x -&gt; 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1]))
-    Ta = FEFunction(U, mesh, T_analytical)
-    Ta_dofs = get_dof_values(Ta)</code></pre><p>Write both the obtained FE solution and the analytical solution to a vtk file.</p><pre><code class="language-julia hljs">    mkpath(outputpath)
-    dict_vars = Dict(&quot;Temperature (numerical)&quot; =&gt; Tn, &quot;Temperature (analytical)&quot; =&gt; Ta)
-    write_file(outputpath * &quot;result_steady_heat_equation.pvd&quot;, mesh, dict_vars)</code></pre><p>Compute and display the error, which is computed using the previously extracted dof values.</p><pre><code class="language-julia hljs">    @show norm(Tn_dofs .- Ta_dofs, Inf) / norm(Ta_dofs, Inf)
+const outputpath = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;heat_equation/&quot;)</code></pre><h1 id="Steady-case"><a class="docs-heading-anchor" href="#Steady-case">Steady case</a><a id="Steady-case-1"></a><a class="docs-heading-anchor-permalink" href="#Steady-case" title="Permalink"></a></h1><p>We will first start by solving the steady case: find <span>$u \in \tilde{H}^1_0(\Omega)$</span> such that <span>$\forall v \in  \tilde{H}^1_0(\Omega), \, \, \, a(u,v) = l(v)$</span>.</p><pre><code class="language-julia hljs">println(&quot; ----- Solving steady problem -----&quot;)</code></pre><p>Read 2D mesh</p><pre><code class="language-julia hljs">mesh_path = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;domainSquare_tri.msh&quot;)
+mesh = read_mesh(mesh_path)</code></pre><p>Build function space and associated Trial and Test FE spaces. We impose a Dirichlet condition with a temperature of 260K on boundary &quot;West&quot;</p><pre><code class="language-julia hljs">fs = FunctionSpace(:Lagrange, degree)
+U = TrialFESpace(fs, mesh, Dict(&quot;West&quot; =&gt; 260.0))
+V = TestFESpace(U)</code></pre><p>Define measures for cell integration</p><pre><code class="language-julia hljs">dΩ = Measure(CellDomain(mesh), 2 * degree + 1)</code></pre><p>Define bilinear and linear forms. The steady problem is defined by the bilinear form a and the linear form l.</p><pre><code class="language-julia hljs">a(u, v) = ∫(λ * ∇(u) ⋅ ∇(v))dΩ
+l(v) = ∫(q * v)dΩ</code></pre><p>Create an affine FE system and solve it using the <code>AffineFESystem</code> structure. By default, an LU decomposition is used to solve the system. In the present case we know that the matrix A is symmetric. Hence a Cholesky decomposition can be used. The result is a FEFunction (<code>Tn</code>). We can extract its dof values: the result is named <code>Tn_dofs</code>.</p><pre><code class="language-julia hljs">Cholesky_linsolve!(y, A, x) = ldiv!(y, cholesky(Symmetric(A)), x)
+sys = AffineFESystem(a, l, U, V, Cholesky_linsolve!)
+Tn = Bcube.solve(sys)
+Tn_dofs = get_dof_values(Tn)</code></pre><p>Compute analytical solution for comparison. An FEFunction is built using the analytical solution and the dof values are extracted.</p><pre><code class="language-julia hljs">T_analytical = PhysicalFunction(x -&gt; 260.0 + (q / λ) * x[1] * (1.0 - 0.5 * x[1]))
+Ta = FEFunction(U, mesh, T_analytical)
+Ta_dofs = get_dof_values(Ta)</code></pre><p>Write both the obtained FE solution and the analytical solution to a vtk file.</p><pre><code class="language-julia hljs">mkpath(outputpath)
+dict_vars = Dict(&quot;Temperature (numerical)&quot; =&gt; Tn, &quot;Temperature (analytical)&quot; =&gt; Ta)
+write_file(outputpath * &quot;result_steady_heat_equation.pvd&quot;, mesh, dict_vars)</code></pre><p>Compute and display the error, which is computed using the previously extracted dof values.</p><pre><code class="language-julia hljs">@show norm(Tn_dofs .- Ta_dofs, Inf) / norm(Ta_dofs, Inf)</code></pre><h1 id="Unsteady-case"><a class="docs-heading-anchor" href="#Unsteady-case">Unsteady case</a><a id="Unsteady-case-1"></a><a class="docs-heading-anchor-permalink" href="#Unsteady-case" title="Permalink"></a></h1><p>We now solve the unsteady problem: find $ u $ such that for all <span>$v , \, \, \, m(\frac{\partial u}{\partial t}, v) + a(u,v) = l(v)$</span>. The code for the unsteady case if of course very similar to the steady case, at least for the beginning.</p><pre><code class="language-julia hljs">println(&quot; ----- Solving unsteady problem -----&quot;)</code></pre><p>Start by defining two additional parameters:</p><pre><code class="language-julia hljs">totalTime = 100.0
+Δt = 0.1</code></pre><p>Read a slightly different mesh</p><pre><code class="language-julia hljs">mesh_path = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;domainSquare_tri_2.msh&quot;)
+mesh = read_mesh(mesh_path)</code></pre><p>The rest is similar to the steady case</p><pre><code class="language-julia hljs">fs = FunctionSpace(:Lagrange, degree)
+U = TrialFESpace(fs, mesh, Dict(&quot;West&quot; =&gt; 260.0))
+V = TestFESpace(U)
+dΩ = Measure(CellDomain(mesh), 2 * degree + 1)</code></pre><p>Compute matrices associated to bilinear and linear forms, and assemble. The bilinear form a and linear form l have already been defined in the steady problem. We now define the bilinear form m.</p><pre><code class="language-julia hljs">m(u, v) = ∫(ρCp * u ⋅ v)dΩ
 
-end</code></pre><h1 id="Unsteady-case"><a class="docs-heading-anchor" href="#Unsteady-case">Unsteady case</a><a id="Unsteady-case-1"></a><a class="docs-heading-anchor-permalink" href="#Unsteady-case" title="Permalink"></a></h1><p>The code for the unsteady case if of course very similar to the steady case, at least for the beginning.</p><pre><code class="language-julia hljs">function solve_unsteady()
-    println(&quot; ----- Solving unsteady problem -----&quot;)</code></pre><p>Start by defining two additional parameters:</p><pre><code class="language-julia hljs">    totalTime = 100.0
-    Δt = 0.1</code></pre><p>Read a slightly different mesh</p><pre><code class="language-julia hljs">    mesh_path = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;input&quot;, &quot;mesh&quot;, &quot;domainSquare_tri_2.msh&quot;)
-    mesh = read_mesh(mesh_path)</code></pre><p>The rest is similar to the steady case</p><pre><code class="language-julia hljs">    fs = FunctionSpace(:Lagrange, degree)
-    U = TrialFESpace(fs, mesh, Dict(&quot;West&quot; =&gt; 260.0))
-    V = TestFESpace(U)
-    dΩ = Measure(CellDomain(mesh), 2 * degree + 1)</code></pre><p>Compute matrices associated to bilinear and linear forms, and assemble</p><pre><code class="language-julia hljs">    a(u, v) = ∫(λ * ∇(u) ⋅ ∇(v))dΩ
-    m(u, v) = ∫(ρCp * u ⋅ v)dΩ
-    l(v) = ∫(q * v)dΩ
-
-    A = assemble_bilinear(a, U, V)
-    M = assemble_bilinear(m, U, V)
-    L = assemble_linear(l, V)</code></pre><p>Compute a vector of dofs whose values are zeros everywhere except on dofs lying on a Dirichlet boundary, where they take the Dirichlet value</p><pre><code class="language-julia hljs">    Ud = assemble_dirichlet_vector(U, V, mesh)</code></pre><p>Apply lift</p><pre><code class="language-julia hljs">    L = L - A * Ud</code></pre><p>Apply homogeneous dirichlet condition</p><pre><code class="language-julia hljs">    apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
-    apply_dirichlet_to_matrix!((A, M), U, V, mesh)</code></pre><p>Form time iteration matrix (note that this is bad for performance since up to now, M and A are sparse matrices)</p><pre><code class="language-julia hljs">    Miter = factorize(M + Δt * A)</code></pre><p>Init the solution with a constant temperature of 260K</p><pre><code class="language-julia hljs">    ϕ = FEFunction(U, 260.0)</code></pre><p>Write initial solution to a file</p><pre><code class="language-julia hljs">    mkpath(outputpath)
-    dict_vars = Dict(&quot;Temperature&quot; =&gt; ϕ)
-    write_file(outputpath * &quot;result_unsteady_heat_equation.pvd&quot;, mesh, dict_vars, 0, 0.0)</code></pre><p>Time loop</p><pre><code class="language-julia hljs">    itime = 0
-    t = 0.0
-    while t &lt;= totalTime
-        t, itime
-        t += Δt
-        itime = itime + 1
+A = assemble_bilinear(a, U, V)
+M = assemble_bilinear(m, U, V)
+L = assemble_linear(l, V)</code></pre><p>Compute a vector of dofs whose values are zeros everywhere except on dofs lying on a Dirichlet boundary, where they take the Dirichlet value</p><pre><code class="language-julia hljs">Ud = assemble_dirichlet_vector(U, V, mesh)</code></pre><p>Apply lift</p><pre><code class="language-julia hljs">L = L - A * Ud</code></pre><p>Apply homogeneous dirichlet condition</p><pre><code class="language-julia hljs">apply_homogeneous_dirichlet_to_vector!(L, U, V, mesh)
+apply_dirichlet_to_matrix!((A, M), U, V, mesh)</code></pre><p>Form time iteration matrix (note that this is bad for performance since up to now, M and A are sparse matrices)</p><pre><code class="language-julia hljs">Miter = factorize(M + Δt * A)</code></pre><p>Init the solution with a constant temperature of 260K</p><pre><code class="language-julia hljs">ϕ = FEFunction(U, 260.0)</code></pre><p>Write initial solution to a file</p><pre><code class="language-julia hljs">mkpath(outputpath)
+dict_vars = Dict(&quot;Temperature&quot; =&gt; ϕ)
+write_file(outputpath * &quot;result_unsteady_heat_equation.pvd&quot;, mesh, dict_vars, 0, 0.0)</code></pre><p>Time loop</p><pre><code class="language-julia hljs">itime = 0
+t = 0.0
+while t &lt;= totalTime
+    global t, itime
+    t += Δt
+    itime = itime + 1
         #! format: off
         @show t, itime
         #! format: on
 
         # Compute rhs
-        rhs = Δt * L + M * (get_dof_values(ϕ) .- Ud)
+    rhs = Δt * L + M * (get_dof_values(ϕ) .- Ud)
 
-        # Invert system and apply inverse shift
-        set_dof_values!(ϕ, Miter \ rhs .+ Ud)
+    # Invert system and apply inverse shift
+    set_dof_values!(ϕ, Miter \ rhs .+ Ud)
 
-        # Write solution (every 10 iterations)
-        if itime % 10 == 0
-            dict_vars = Dict(&quot;Temperature&quot; =&gt; ϕ)
-            write_file(
-                outputpath * &quot;result_unsteady_heat_equation.pvd&quot;,
-                mesh,
-                dict_vars,
-                itime,
-                t;
-                collection_append = true,
-            )
-        end
+    # Write solution (every 10 iterations)
+    if itime % 10 == 0
+        dict_vars = Dict(&quot;Temperature&quot; =&gt; ϕ)
+        write_file(
+            outputpath * &quot;result_unsteady_heat_equation.pvd&quot;,
+            mesh,
+            dict_vars,
+            itime,
+            t;
+            collection_append = true,
+        )
     end
-
 end
 
-solve_steady()
-solve_unsteady()
-</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../helmholtz/">« Helmholtz equation (FE)</a><a class="docs-footer-nextpage" href="../linear_transport/">Linear transport (DG) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Sunday 26 April 2026 13:51">Sunday 26 April 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../helmholtz/">« Helmholtz equation (FE)</a><a class="docs-footer-nextpage" href="../linear_transport/">Linear transport (DG) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 2 June 2026 21:19">Tuesday 2 June 2026</span>. Using Julia version 1.10.11.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
