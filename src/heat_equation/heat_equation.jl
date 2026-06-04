@@ -64,7 +64,7 @@ l(v) = ∫(q * v)dΩ
 # we know that the matrix A is symmetric. Hence a Cholesky decomposition can be used.
 # The result is a FEFunction (`Tn`).
 # We can extract its dof values: the result is named `Tn_dofs`.
-Cholesky_linsolve!(y, A, x) = ldiv!(y, cholesky(Symmetric(A)), x)
+Cholesky_linsolve!(y, A, x) = y .= cholesky(Symmetric(A)) \ x
 sys = AffineFESystem(a, l, U, V, Cholesky_linsolve!)
 Tn = Bcube.solve(sys)
 Tn_dofs = get_dof_values(Tn)
