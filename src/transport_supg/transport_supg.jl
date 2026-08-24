@@ -56,13 +56,11 @@ if is_tested                                              #src
     import ..Tester: test_ref                             #src
 end                                                       #src
 
-const degree = 1 # Function-space degree (Taylor(0) = first order Finite Volume)
+const degree = 1 # Function-space degree
 const nite = 250 # Number of time iteration(s)
 const CFL = 0.5 # CFL number
 const nx = 101 # Number of nodes in the x-direction
-const ny = 41 # Number of nodes in the y-direction
 const lx = 1.0 # Domain width
-const ly = 2.0 # Domain height
 const c = SA[1.0] # Transport velocity
 
 @assert degree >= 1 "Cannot apply Dirichlet when degree = 0!"
@@ -74,7 +72,7 @@ out_dir = joinpath(@__DIR__, "..", "..", "myout", "linear_transport")
 mkpath(out_dir)
 
 # Time step defined by a CFL condition
-const Δt = CFL * min(lx / (nx - 1), ly / (ny - 1)) / norm(c)
+const Δt = CFL * lx / (nx - 1) / norm(c)
 t = 0.0
 
 # Inlet boundary condition. Use `f_west(x, t) = 1.0` for a square.
