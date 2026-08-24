@@ -90,7 +90,7 @@ mesh = line_mesh(nx; xmax = lx, names = ("West", "East"))
 
 # All generated files (animation, snapshots, etc.) will be stored in the following
 # directory, created relative to the source file location.
-out_dir = joinpath(@__DIR__, "..", "..", "myout", "linear_transport")
+out_dir = joinpath(@__DIR__, "..", "..", "myout", "transport_supg")
 mkpath(out_dir)
 
 # ### Time step from the CFL condition
@@ -234,7 +234,7 @@ for i in 1:nite
     ## 2. Explicit time step
     ## Multiply the dof vector by the pre-computed operator M.
     ## This advances the solution from u^n to u^{n+1}.
-    u.dofValues .= M * u.dofValues
+    set_dof_values!(u, M * get_dof_values(u))
 
     ## 3. Enforce Dirichlet boundary condition
     ## After the matrix multiplication, the boundary dof(s) no longer respect
@@ -278,5 +278,64 @@ end #src
 if is_tested                                             #src
     test_ref("transport_supg_u.jld2", get_dof_values(u)) #src
 end                                                      #src
+
+# ## Code : 2D domain with periodicity
+# Let's now solve the same equation but on a rectangular (2D) domain.
+# !!! note
+#     For didactic purpose the code is copied here but note that the previous 1D code could be put into a function
+#     and then re-used for the 2D domain with only minor adjusments.
+
+# First, let's build a rectangular domain and the periodic face domains associated with it. We impose a periodicity
+# in both x and y directions. The order between donor and receiver must be consistent with the input transformation
+# (here a `Translation`).
+mesh = rectangle_mesh(41, 31; xmax = 2, ymax = 1.0)
+perio_x = PeriodicBCType(Translation(SA[2.0, 0.0]), "xmin", "xmax")
+perio_y = PeriodicBCType(Translation(SA[0.0, -1.0]), "ymax", "ymin")
+Γ_perio_x = BoundaryFaceDomain(mesh, perio_x)
+Γ_perio_y = BoundaryFaceDomain(mesh, perio_y)
+
+# Now, define the FESpace and specify the periodicity conditions (there is no more Dirichlet condition for this case).
+U = TrialFESpace(FunctionSpace(:Lagrange, 1), mesh; periodicity = (Γ_perio_x, Γ_perio_y))
+V = TestFESpace(U)
+
+# The rest of the code is now almost the same as above, including the SUPG modification for the test function.
+c_2D = SA[2.0, 1.0]
+Δt_2D = CFL * min(2.0 / (41 - 1), 1.0 / (31 - 1)) / norm(c_2D)
+dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
+supg_2D(v) = v + Δt_2D / 2 * c_2D ⋅ ∇(v)
+a_2D(u, v) = ∫(u ⋅ v)dΩ
+b_2D(u, v) = ∫((c_2D ⋅ ∇(u)) ⋅ supg_2D(v))dΩ
+A = assemble_bilinear(a_2D, U, V)
+B = assemble_bilinear(b_2D, U, V)
+M = I - Δt_2D * inv(Matrix(A)) * B
+
+# This time, we will initialiaze the FEFunction with a smooth bump near the center of the domain. To set each dof value with a given analytical function
+# we use the `FEFunction(::TrialFESpace, ::AbstractMesh, ::AbstractLazy)` constructor.
+x0 = SA[1.0, 0.5]
+r = 0.25 # bump radius
+_a, _b = SA[
+    r^3 r^2
+    3*r^2 2*r
+] \ SA[-1.0; 0]
+f = PhysicalFunction(x -> begin
+    dx = norm(x - x0)
+    dx < r ? _a * dx^3 + _b * dx^2 + 1.0 : 0.0
+end)
+u = FEFunction(U, mesh, f)
+
+# To build an animation, we use this time a VTK export.
+using BcubeVTK
+d = Dict("u" => u)
+path = joinpath(out_dir, "periodic_rectangle.pvd")
+write_file(path, mesh, d, 0, 0.0) # init export
+# Run !
+t = 0.0
+for i in 1:nite
+    global t += Δt_2D
+    set_dof_values!(u, M * get_dof_values(u))
+    write_file(path, mesh, d, i, t; collection_append = true)
+end
+# The obtained result is the following one:
+# ![](../assets/transport_supg_periodic.gif)
 
 end #hide
