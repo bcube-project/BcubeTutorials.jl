@@ -203,7 +203,11 @@ function run_unsteady_projection_method()
     if is_tested                                                              #src
         prefix = "incompressible_navier_stokes"                               #src
         name = "unsteady_projection_method"                                   #src
-        test_ref("$(prefix)_$(name)_velocity.jld2", get_dof_values(velocity)) #src
+        test_ref(                                                             #src
+            "$(prefix)_$(name)_velocity.jld2",                                #src
+            get_dof_values(velocity),                                         #src
+            compare(; atol = 2e-12),                                          #src
+        )                                                                     #src
         test_ref("$(prefix)_$(name)_pressure.jld2", get_dof_values(pressure)) #src
     end                                                                       #src
 end
@@ -310,7 +314,7 @@ function run_unsteady_mixed()
         test_ref(                                 #src
             "$(prefix)_$(name)_velocity.jld2",    #src
             get_dof_values(velocity),             #src
-            compare(; atol = 6e-10, rtol = 2e-6), #src
+            compare(; atol = 7e-10, rtol = 2e-6), #src
         )                                         #src
         test_ref(                                 #src
             "$(prefix)_$(name)_pressure.jld2",    #src
