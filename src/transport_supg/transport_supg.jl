@@ -337,5 +337,13 @@ for i in 1:nite
 end
 # The obtained result is the following one:
 # ![](../assets/transport_supg_periodic.gif)
+if is_tested                              #src
+    test_ref(                             #src
+        "transport_supg_periodic_u.jld2", #src
+        get_dof_values(u);                #src
+        atol = 1e-10,                     #src
+        rtol = 1e-10,                     #src
+    )                                     #src
+end                                       #src
 
 end #hide
