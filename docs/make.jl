@@ -89,6 +89,7 @@ for name in (
     "transport_hypersurface",
     "stokes_flow",
     "incompressible_navier_stokes",
+    "potential_flow",
 )
     gen_markdown_with_literate(joinpath(SRC_DIR, name), "$(name).jl", example_dir)
 end
@@ -120,6 +121,7 @@ makedocs(;
             "example/heat_equation_two_layers.md",
             "example/transport_hypersurface.md",
             "example/stokes_flow.md",
+            "example/potential_flow.md",
             "example/incompressible_navier_stokes.md",
         ],
     ],

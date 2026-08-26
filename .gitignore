@@ -6,4 +6,5 @@
 .vscode
 **/Manifest.toml
 **/tmp.jl
+**/tmp
 myout
