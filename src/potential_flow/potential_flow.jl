@@ -2,22 +2,22 @@ module PotentialFlow #hide
 println("Running potential flow example...") #hide
 # # 2D Potential flow (FEM)
 # In this example, we build a potential flow solver in 2D with finite elements.
-# # Part 1 : the Laplace equation
+# # Part 1: the Laplace equation
 # See for instance [Wikipedia](https://en.wikipedia.org/wiki/Potential_flow) for more information about the theory.
-# Let ``\phi`` the velocity potential, i.e the velocity ``u`` is defined as ``u = \nabla \phi``. The equation rulling
+# Let ``\phi`` be the velocity potential, i.e. the velocity ``u`` is defined as ``u = \nabla \phi``. The equation ruling
 # this potential is a Laplace equation, ``\Delta \phi = 0`` in the domain ``\Omega``; along with Neumann conditions:
-# * ``u \cdot n = u_{farfield} \cdot``, i.e ``\nabla \phi \cdot n = u_{farfield} \cdot`` far from the obstacle (noted ``\Gamma_{farfield}``);
-# * ``u \cdot n = 0``, i.e ``\nabla \phi \cdot n = 0`` on the obstacle surface (noted ``\Gamma_{wall}``).
+# * ``u \cdot n = u_{farfield} \cdot n``, i.e. ``\nabla \phi \cdot n = u_{farfield} \cdot n`` far from the obstacle (denoted ``\Gamma_{farfield}``);
+# * ``u \cdot n = 0``, i.e. ``\nabla \phi \cdot n = 0`` on the obstacle surface (denoted ``\Gamma_{wall}``).
 #
 # Note that the Laplace equation doesn't have a unique solution if only Neumann boundary conditions are imposed. We
-# need additional condition(s). Since two potentials give the same velocity field if they only differ from a constant,
+# need additional condition(s). Since two potentials give the same velocity field if they only differ by a constant,
 # we are free to add the following mean condition: ``\int_\Omega \phi = 0``.
 #
-# To sum up, the potential ``\phi`` must statify the following problem:
+# To sum up, the potential ``\phi`` must satisfy the following problem:
 # ```math
 #   \begin{cases}
 #       \Delta \phi = 0 \text{  in  } \Omega,\\
-#       \nabla \phi \cdot n 0 \text{  on  } \Gamma_{wall},\\
+#       \nabla \phi \cdot n = 0 \text{  on  } \Gamma_{wall},\\
 #       \nabla \phi \cdot n = u_{farfield} \cdot n \text{  on  } \Gamma_{farfield},\\
 #       \int_\Omega \phi = 0.
 #   \end{cases}
@@ -36,7 +36,7 @@ using BcubeGmsh # to read the mesh
 using BcubeVTK # to export the results
 using LinearAlgebra # we always need this guy
 
-# Let's define the two settings for this simulation : the farfield velocity and the Lagrange polynomials degree
+# Let's define the two settings for this simulation: the farfield velocity and the degree of the Lagrange polynomials
 u_farfield = [100.0, 0.0]
 degree = 2 # P2 elements for this tutorial
 
@@ -58,7 +58,7 @@ U = MultiFESpace(U_u, U_λ)
 V = MultiFESpace(V_u, V_λ)
 
 # Next, define the bilinear and the linear forms. Note that due to a current limitation, the linear form
-# must explicitely contain `λᵥ`, although it is absent from the weakform. Hence the `0 * side_n(λᵥ)` term.
+# must explicitly contain `λᵥ`, although it is absent from the weak form. Hence the `0 * side_n(λᵥ)` term.
 a((ϕ, λᵤ), (φ, λᵥ)) = ∫(∇(ϕ) ⋅ ∇(φ) + λᵤ * φ + ϕ * λᵥ)dΩ
 l((φ, λᵥ)) = ∫(side_n(φ) * side_n(u_farfield) ⋅ side_n(nΓ) + 0 * side_n(λᵥ))dΓ
 
@@ -70,7 +70,7 @@ sys = AffineFESystem(a, l, U, V)
 # Finally, write both the potential and the velocity field to a VTK file.
 # !!! warning
 #     By default the solution will be output on mesh vertices, but note that with P1 elements, the gradient is only P0
-#     and should rigourously output on mesh centers.
+#     and should rigorously be output at cell centers.
 outdir = joinpath(@__DIR__, "tmp")
 mkpath(outdir)
 write_file(joinpath(outdir, "potential-flow-circle.pvd"), mesh, Dict("ϕ" => ϕ, "u" => ∇(ϕ)))
@@ -80,26 +80,26 @@ write_file(joinpath(outdir, "potential-flow-circle.pvd"), mesh, Dict("ϕ" => ϕ,
 
 # # Part 2: the Kutta condition
 # In its simplest form, the potential flow Laplace equation is known to suffer from several drawbacks, and notably
-# breaks the Kutta condition (again, checkout the [Wikipedia](https://en.wikipedia.org/wiki/Kutta_condition) page
-# for more details). For instance, try this above code on a mesh of a NACA airfoil with some angle of attack, and
-# the result will look suspicious because the stream-lines don't exit the airfoil near the trailing edge.
+# violates the Kutta condition (again, check out the [Wikipedia](https://en.wikipedia.org/wiki/Kutta_condition) page
+# for more details). For instance, try the above code on a mesh of a NACA airfoil with some angle of attack, and
+# the result will look suspicious because the streamlines do not exit the airfoil near the trailing edge.
 #
 # In this second part, we implement a correction to respect the Kutta condition. The idea is to add a second potential,
-# ``\psi`` with the harmonic property : ``\nabla \psi = 0``. It then offers an additionnal degree of freedom in term of
+# ``\psi`` with the harmonic property ``\Delta \psi = 0``. It thus offers an additional degree of freedom in terms of
 # scale. More precisely, the full flow potential is now written ``\bar{\phi} = \phi + \mathscr{C} \psi`` where ``\mathscr{C} \in \mathbb{R}``
-# is the additionnal degree of freedom and is called the _circulation_. With this additionnal unknown, we can enforce the
-# Kutta condition, translated here as "the tangential velocity must be equal from both sides of the trailing edge":
+# is the additional degree of freedom and is called the _circulation_. With this additional unknown, we can enforce the
+# Kutta condition, translated here as "the tangential velocity must be equal on both sides of the trailing edge":
 # ```math
 #   u^+_{TE} \cdot t^+ = u^-_{TE} \cdot t^-
 # ```
-# where ``t^+`` is the tangential vector of one of the face containing the trailing edge node, and ``t^-`` is the own
-# the other face. The same goes for the velocities ``u^+_{TE}`` and ``u^-_{TE}``. For the additionnal harmonic potential
+# where ``t^+`` is the tangent vector of one of the faces sharing the trailing edge node, and ``t^-`` is the one
+# on the other face. The same goes for the velocities ``u^+_{TE}`` and ``u^-_{TE}``. For the additional harmonic potential
 # we select ``\psi = (1/2\pi)atan2(y-y_c,x-x_c)`` where ``(x_c,y_c)`` are the coordinates of a point inside the obstacle.
 # The full problem for the two unknowns ``\phi`` and ``\mathscr{C}`` then reads
 # ```math
 #   \begin{cases}
 #       \Delta \bar{\phi} = 0 \text{  in  } \Omega,\\
-#       \nabla \bar{\phi} \cdot n 0 \text{  on  } \Gamma_{wall},\\
+#       \nabla \bar{\phi} \cdot n = 0 \text{  on  } \Gamma_{wall},\\
 #       \nabla \bar{\phi} \cdot n = u_{farfield} \cdot n \text{  on  } \Gamma_{farfield},\\
 #       \int_\Omega \phi = 0,\\
 #       \nabla(\bar{\phi})^+_{TE} \cdot t^+ = \nabla(\bar{\phi})^-_{TE} \cdot t^-,\\
@@ -116,9 +116,9 @@ write_file(joinpath(outdir, "potential-flow-circle.pvd"), mesh, Dict("ϕ" => ϕ,
 #       (\nabla \phi + \mathscr{C}\nabla \psi)^+_{TE} \cdot t^+ = (\nabla \phi + \mathscr{C}\nabla \psi)^-_{TE} \cdot t^-.
 #   \end{cases}
 # ```
-# There are several methods to solve this problem. We could use an other Lagrange multiplier for ``mathscr{C}``, but note that the
-# problem is actually linear with respect to ``\mathscr{C}``. In matrix form, it can be written ``A_{ij} ϕ_j + Γ B_j = C_j``.
-# Hence, evaluating the weak form with two different values of ``\mathscr{C}``, we can obtain the solution.
+# There are several methods to solve this problem. We could use another Lagrange multiplier for ``\mathscr{C}``. However,
+# note that the problem is actually linear with respect to ``\mathscr{C}``; in matrix form it reads ``A \phi + \mathscr{C} B = C``.
+# Hence, solving the system for two different values of ``\mathscr{C}`` is enough to determine the solution.
 # This is what is done here.
 
 # Let's read a second mesh, with a different farfield condition
@@ -143,11 +143,12 @@ V_λ = TestFESpace(U_λ)
 U = MultiFESpace(U_u, U_λ)
 V = MultiFESpace(V_u, V_λ)
 
-# Now, we need to identify the trailing edge. This part won't be detailed, the rather uncommented code
-# is given below. The idea is, given a `BoundaryFaceDomain`, to build an explicit mesh of it using
-# `Bcube.domain_to_mesh`. From this extracted mesh, we loop on the cells (ie the edges or the airfoil)
-# and compute the angle between two consecutive edges. The maximum (or minimum depending on the definition)
-# identifies the trailing edge node, as well as the two edges attached to it.
+# Now, we need to identify the trailing edge. This technical step is not detailed; the mostly uncommented code
+# is given below. The idea is as follows. Starting from a `BoundaryFaceDomain`, we build an explicit mesh of it
+# with `Bcube.domain_to_mesh`. We then loop over the cells (i.e. the edges of the airfoil) and compute the angle
+# between two consecutive edges. The trailing edge is the node where two edges meet at the sharpest angle, which
+# is also where the dot product of their directions is maximal. This identifies the trailing edge node together
+# with the two edges meeting at it.
 function identify_trailing_edges(Γ)
     mesh = Bcube.domain_to_mesh(Γ)
     @assert topodim(mesh) == 1
@@ -189,7 +190,7 @@ function identify_trailing_edges(Γ)
     return inode, iface, jface, t1, t2
 end
 
-# Let's call this function, and build a `MeshFaceData` containing the tangents vectors only for the edges
+# Let's call this function, and build a `MeshFaceData` containing the tangent vectors only for the edges
 # attached to the trailing edge. This will ease the computation of the Kutta condition.
 inode, iface, jface, t1, t2 = identify_trailing_edges(Γ_wall)
 _tangents = fill([0.0, 0.0], Bcube.nfaces(mesh)) # all tangents are zero by default
@@ -197,8 +198,9 @@ _tangents[iface] = t1
 _tangents[jface] = t2
 tangents = MeshFaceData(_tangents)
 
-# Now, define the harmonic potential ψ. The condition to obtain ``(x_c,y_c)`` is a bit too weak, but enough
-# for this simple geometry : we simply define it as the barycenter of the airfoil nodes.
+# Now, define the harmonic potential ψ. Recall that ψ requires choosing a point ``(x_c, y_c)`` inside the obstacle.
+# The constraint "any point inside the obstacle" is rather loose, but sufficient for this simple geometry: we simply
+# take the barycenter of the airfoil nodes.
 mesh_wall = Bcube.domain_to_mesh(Γ_wall)
 xn = get_coords.(get_nodes(mesh_wall))
 xc = sum(xn) ./ length(xn)
@@ -218,7 +220,7 @@ B = assemble_linear(b, V)
 C = assemble_linear(c, V)
 
 # As explained above, we now have to solve the system ``A\phi + \mathscr{C} B = C`` for two different values of ``\mathscr{C}``,
-# and then compute the difference of tangential velocities around the trailing edges. So we write a function for that.
+# and then compute the difference of tangential velocities at the trailing edge. We thus write a function for that.
 # Note the use of `Bcube.compute` to evaluate the integrals ``\int_{E^+} u \cdot t`` and ``\int_{E^-} u \cdot t`` rather
 # than evaluating these values on the trailing node only.
 function compute_J(Γ)
@@ -229,7 +231,7 @@ function compute_J(Γ)
     return J, ϕₕ
 end
 
-# Finally, we solve this linear system
+# Finally, we solve for the circulation ``\mathscr{C}`` that enforces the Kutta condition
 J0, ϕ0 = compute_J(0.0)
 J1, ϕ1 = compute_J(1.0)
 𝒞 = -J0 / (J1-J0)
@@ -243,7 +245,7 @@ write_file(
     Dict("ϕ" => ϕ_tot, "u" => ∇(ϕ_tot)),
 )
 
-# This is the final result, far more satisfying that without ensuring the Kutta condition!
+# This is the final result, far more satisfying than without ensuring the Kutta condition!
 # ![](../assets/potential-flow-naca.png)
 
 end #hide
