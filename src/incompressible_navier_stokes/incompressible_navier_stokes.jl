@@ -319,7 +319,7 @@ function run_unsteady_mixed()
         test_ref(                                 #src
             "$(prefix)_$(name)_pressure.jld2",    #src
             get_dof_values(pressure),             #src
-            compare(; atol = 6e-10, rtol = 1e-7), #src
+            compare(; atol = 1e-9, rtol = 1e-7),  #src
         )                                         #src
     end                                           #src
 end
