@@ -3,31 +3,10 @@
 \int_\Omega c \phi^n \cdot \nabla v \mathrm{\,d}\Omega - \oint_\Gamma \left( c \phi \cdot n \right) v \mathrm{\,d}\Gamma
 \right]\]</p><p>where <span>$\Gamma = \delta \Omega$</span>. Adopting the discontinuous Galerkin framework, this equation is written in every mesh cell <span>$\Omega_i$</span>. The cell boundary term involves discontinuous quantities and is replaced by a &quot;numerical flux&quot;, leading to the expression:</p><p class="math-container">\[\int_{\Omega_i} \phi^{n+1} v \mathrm{\,d}\Omega_i = \int_{\Omega_i} \phi^n v \mathrm{\,d}\Omega_i + \Delta t \left[
 \int_{\Omega_i} c \phi^n \cdot \nabla v \mathrm{\,d}\Omega_i - \oint_{\Gamma_i} F^*(\phi) v \mathrm{\,d} \Gamma_i
-\right]\]</p><p>For this example, an upwind flux will be used for <span>$F^*$</span>. Using a matrix formulation, the above equation can be written as:</p><p class="math-container">\[\phi^{n+1} = \phi^n + M^{-1}(f_\Omega - f_\Gamma)\]</p><p>where <span>$M^{-1}$</span> is the inverse of the mass matrix, <span>$f_\Omega$</span> the volumic flux term and <span>$f_\Gamma$</span> the surfacic flux term.</p><h1 id="Commented-code"><a class="docs-heading-anchor" href="#Commented-code">Commented code</a><a id="Commented-code-1"></a><a class="docs-heading-anchor-permalink" href="#Commented-code" title="Permalink"></a></h1><p>Start by importing the necessary packages: Load the necessary packages</p><pre><code class="language-julia hljs">using Bcube
+\right]\]</p><p>For this example, an upwind flux will be used for <span>$F^*$</span>. Using a matrix formulation, and noting that the two volumic terms are bilinear, the above equation can be written as:</p><p class="math-container">\[M \phi^{n+1} = (M + \Delta t C) \phi^n - \Delta t f_\Gamma\]</p><p>where <span>$M$</span> is the mass matrix, <span>$C$</span> is the volumic convective term and <span>$f_\Gamma$</span> the surfacic flux term.</p><h1 id="Commented-code"><a class="docs-heading-anchor" href="#Commented-code">Commented code</a><a id="Commented-code-1"></a><a class="docs-heading-anchor-permalink" href="#Commented-code" title="Permalink"></a></h1><p>Start by importing the necessary packages: Load the necessary packages</p><pre><code class="language-julia hljs">using Bcube
 using BcubeGmsh
 using BcubeVTK
-using LinearAlgebra</code></pre><p>Before all, to ease to ease the solution VTK output we will write a structure to store the vtk filename and the number of iteration; and a function that exports the solution on demand. Note the use of <code>var_on_nodes_discontinuous</code> to export the solution on the mesh nodes, respecting the discontinuous feature of the solution.</p><pre><code class="language-julia hljs">mutable struct VtkHandler
-    basename::Any
-    ite::Any
-    mesh::Any
-    VtkHandler(basename, mesh) = new(basename, 0, mesh)
-end
-
-function append_vtk(vtk, u::Bcube.AbstractFEFunction, t)
-    # Write
-    write_file(
-        vtk.basename,
-        vtk.mesh,
-        Dict(&quot;u&quot; =&gt; u),
-        vtk.ite,
-        t;
-        discontinuous = true,
-        collection_append = vtk.ite &gt; 0,
-    )
-
-    # Update counter
-    vtk.ite += 1
-end</code></pre><p>First, we define some physical and numerical constant parameters</p><pre><code class="language-julia hljs">const degree = 0 # Function-space degree (Taylor(0) = first order Finite Volume)
+using LinearAlgebra</code></pre><p>Define some physical and numerical constant parameters</p><pre><code class="language-julia hljs">const degree = 0 # Function-space degree (Taylor(0) = first order Finite Volume)
 const c = [1.0, 0.0] # Convection velocity (must be a vector)
 const nite = 100 # Number of time iteration(s)
 const CFL = 1 # 0.1 for degree 1
@@ -47,8 +26,7 @@ BcubeGmsh.gen_rectangle_mesh(
     yc = 0.0,
 )
 mesh = read_mesh(tmp_path)
-rm(tmp_path)</code></pre><p>We can now init our <code>VtkHandler</code></p><pre><code class="language-julia hljs">out_dir = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;linear_transport&quot;)
-vtk = VtkHandler(joinpath(out_dir, &quot;linear_transport.pvd&quot;), mesh)</code></pre><p>As seen in the previous tutorial, the definition of trial and test spaces needs a mesh and a function space. Here, we select Taylor space, and build discontinuous FE spaces with it. Then an FEFunction, that will represent our solution, is created.</p><pre><code class="language-julia hljs">fs = FunctionSpace(:Taylor, degree)
+rm(tmp_path)</code></pre><p>As seen in the previous tutorial, the definition of trial and test spaces needs a mesh and a function space. Here, we select Taylor space, and build discontinuous FE spaces with it. Then an FEFunction, that will represent our solution, is created.</p><pre><code class="language-julia hljs">fs = FunctionSpace(:Taylor, degree)
 U = TrialFESpace(fs, mesh, :discontinuous)
 V = TestFESpace(U)
 u = FEFunction(U)</code></pre><p>Define measures for cell and interior face integrations</p><pre><code class="language-julia hljs">Γ = InteriorFaceDomain(mesh)
@@ -60,8 +38,8 @@ dΓ = Measure(Γ, 2 * degree + 1)
 dΓ_in = Measure(Γ_in, 2 * degree + 1)
 dΓ_out = Measure(Γ_out, 2 * degree + 1)</code></pre><p>We will also need the face normals associated to the different face domains. Note that this operation is lazy, <code>nΓ</code> is just an abstract representation on face normals of <code>Γ</code>.</p><pre><code class="language-julia hljs">nΓ = get_face_normals(Γ)
 nΓ_in = get_face_normals(Γ_in)
-nΓ_out = get_face_normals(Γ_out)</code></pre><p>Let&#39;s move on to the bilinear and linear forms. First, the two easiest ones:</p><pre><code class="language-julia hljs">m(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
-l_Ω(v) = ∫((c * u) ⋅ ∇(v))dΩ # Volumic convective term</code></pre><p>For the flux term, we first need to define a numerical flux. It is convenient to define it separately in a dedicated function. Here is the definition of simple upwind flux.</p><pre><code class="language-julia hljs">function upwind(ui, uj, nij)
+nΓ_out = get_face_normals(Γ_out)</code></pre><p>Let&#39;s move on to the bilinear and linear forms. First, the two easiest ones:</p><pre><code class="language-julia hljs">mass(u, v) = ∫(u ⋅ v)dΩ # Mass matrix
+conv(u, v) = ∫((c * u) ⋅ ∇(v))dΩ # Volumic convective term</code></pre><p>For the flux term, we first need to define a numerical flux. It is convenient to define it separately in a dedicated function. Here is the definition of simple upwind flux.</p><pre><code class="language-julia hljs">function upwind(ui, uj, nij)
     cij = c ⋅ nij
     if cij &gt; zero(cij)
         flux = cij * ui
@@ -73,33 +51,41 @@ end</code></pre><p>We then define the &quot;flux&quot; as the composition of the
 l_Γ(v) = ∫(flux * jump(v))dΓ</code></pre><p>Finally, we define what to perform on the &quot;two&quot; boundaries : inlet / oulet. On the inlet, we directly impose the flux with a user defined function that depends on the time (the input is an oscillating wave). On the outlet, we keep our upwind flux but we impose the ghost cell value.</p><pre><code class="language-julia hljs">bc_in = t -&gt; PhysicalFunction(x -&gt; c .* cos(3 * x[2]) * sin(4 * t)) # flux
 l_Γ_in(v, t) = ∫(side⁻(bc_in(t)) ⋅ side⁻(nΓ_in) * side⁻(v))dΓ_in
 flux_out = upwind ∘ (side⁻(u), 0.0, side⁻(nΓ_out))
-l_Γ_out(v) = ∫(flux_out * side⁻(v))dΓ_out</code></pre><p>Assemble the (constant) mass matrix. The returned matrix is a sparse matrix. To simplify the tutorial, we will directly compute the inverse mass matrix. But note that way more performant strategies should be employed to solve such a problem (since we don&#39;t need the inverse, only the matrix-vector product).</p><pre><code class="language-julia hljs">M = assemble_bilinear(m, U, V)
-invM = inv(Matrix(M)) #WARNING : really expensive !!!</code></pre><p>Let&#39;s also create three vectors to avoid allocating them at each time step</p><pre><code class="language-julia hljs">nd = get_ndofs(V)
-b_vol = zeros(nd)
-b_fac = similar(b_vol)
-rhs = similar(b_vol)</code></pre><p>The time loop is trivial : at each time step we compute the linear forms using the <code>assemble_</code> methods, we complete the rhs, perform an explicit step and write the solution.</p><pre><code class="language-julia hljs">t = 0.0
+l_Γ_out(v) = ∫(flux_out * side⁻(v))dΓ_out</code></pre><blockquote><p><strong>Tip</strong></p><p>For this tutorial, each linear form is defined separately, but it&#39;s often more handy to group them into a unique one, either by summing the integral</p><pre><code class="language-julia hljs">l(v,t) = ∫(flux * jump(v))dΓ + ∫(side⁻(bc_in(t)) ⋅ side⁻(nΓ_in) * side⁻(v))dΓ_in + ∫(flux_out * side⁻(v))dΓ_out</code></pre><p>or by introducing a closure:</p><pre><code class="language-julia hljs">l(v,t) = l_Γ(v) + l_Γ_in(v, t) + l_Γ_out(v)</code></pre></blockquote><p>Assemble the (constant) mass and &quot;convective&quot; matrices. The returned matrices are sparse matrices. Then factorize the mass matrix since it will be used in a linear system. We could also define B = M + Δt*C so speed a little bit up the computation, but it would require a fixed time step.</p><pre><code class="language-julia hljs">M = assemble_bilinear(mass, U, V)
+C = assemble_bilinear(conv, U, V)
+Mfac = factorize(M)</code></pre><p>Let&#39;s also create a vector to avoid allocating it at each time step We will then use the in-place version of <code>assemble_linear</code> : <code>assemble_linear!(b_Γ, l, V)</code></p><pre><code class="language-julia hljs">nd = get_ndofs(V)
+b_Γ = zeros(nd) # alternatively: b_Γ = Bcube.allocate_dofs(U)</code></pre><p>Write the initial solution to a file. Note the use of the <code>discontinuous</code> flag to write a true discontinuous solution with the VTK format</p><pre><code class="language-julia hljs">out_dir = joinpath(@__DIR__, &quot;..&quot;, &quot;..&quot;, &quot;myout&quot;, &quot;linear_transport&quot;)
+out_path = joinpath(out_dir, &quot;linear_transport.pvd&quot;)
+write_file(out_path, mesh, Dict(&quot;u&quot; =&gt; u), 0, 0.0; discontinuous = true)</code></pre><p>The time loop is trivial : at each time step we compute the linear forms using the <code>assemble_linear!</code> function, we solve the linear system, update the solution and write it to a file.</p><pre><code class="language-julia hljs">t = 0.0
+
 for i in 1:nite
     global t
 
-    # Reset pre-allocated vectors
-    b_vol .= 0.0
-    b_fac .= 0.0
+    # Reset pre-allocated vector
+    b_Γ .= 0.0
 
     # Compute linear forms
-    assemble_linear!(b_vol, l_Ω, V)
-    assemble_linear!(b_fac, l_Γ, V)
-    assemble_linear!(b_fac, v -&gt; l_Γ_in(v, t), V)
-    assemble_linear!(b_fac, l_Γ_out, V)
+    assemble_linear!(b_Γ, l_Γ, V)
+    assemble_linear!(b_Γ, v -&gt; l_Γ_in(v, t), V)
+    assemble_linear!(b_Γ, l_Γ_out, V)
 
-    # Assemble rhs
-    rhs .= Δt .* invM * (b_vol - b_fac)
+    # Solve the linear system : use `get_dof_values(u)` to get the array of dofs
+    x = Mfac\((M + Δt*C)*get_dof_values(u) - Δt*b_Γ)
 
-    # Update solution
-    u.dofValues .+= rhs
+    # Update solution: `set_dof_values!(u, x)` to set the dof with an array,
+    set_dof_values!(u, x)
 
     # Update time
     t += Δt
 
-    # Write to file
-    append_vtk(vtk, u, t)
-end</code></pre><p>And here is an animation of the result: <img src="../../assets/linear_transport.gif" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation (FE)</a><a class="docs-footer-nextpage" href="../phase_field_supercooled/">Phase field model - solidification of a liquid in supercooled state »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Monday 24 August 2026 13:49">Monday 24 August 2026</span>. Using Julia version 1.10.12.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+    # Append the solution to file
+    write_file(
+        out_path,
+        mesh,
+        Dict(&quot;u&quot; =&gt; u),
+        i,
+        t;
+        discontinuous = true,
+        collection_append = true,
+    )
+end</code></pre><p>And here is an animation of the result: <img src="../../assets/linear_transport.gif" alt/></p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation/">« Heat equation (FE)</a><a class="docs-footer-nextpage" href="../phase_field_supercooled/">Phase field model - solidification of a liquid in supercooled state »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Friday 28 August 2026 09:42">Friday 28 August 2026</span>. Using Julia version 1.10.12.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
