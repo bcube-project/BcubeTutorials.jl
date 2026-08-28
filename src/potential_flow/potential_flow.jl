@@ -219,12 +219,15 @@ A = assemble_bilinear(a, U, V)
 B = assemble_linear(b, V)
 C = assemble_linear(c, V)
 
+# Factorize the `A` matrix since it will be used twice in a linear system.
+Afac = factorize(A)
+
 # As explained above, we now have to solve the system ``A\phi + \mathscr{C} B = C`` for two different values of ``\mathscr{C}``,
 # and then compute the difference of tangential velocities at the trailing edge. We thus write a function for that.
 # Note the use of `Bcube.compute` to evaluate the integrals ``\int_{E^+} u \cdot t`` and ``\int_{E^-} u \cdot t`` rather
 # than evaluating these values on the trailing node only.
 function compute_J(Γ)
-    x = A\(C - Γ*B)
+    x = Afac\(C - Γ*B)
     ϕₕ, _ = FEFunction(U, x)
     y = Bcube.compute(∫(side_n(∇(ϕₕ) + Γ*∇(ψ)) ⋅ side_n(tangents))dΓ_wall)
     J = y[iface] - y[jface]
