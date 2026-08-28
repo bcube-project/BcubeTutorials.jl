@@ -53,7 +53,7 @@ using Plots
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
-    import ..Tester: test_ref                             #src
+    import ..Tester: test_ref, compare                    #src
 end                                                       #src
 
 # ### Simulation parameters
