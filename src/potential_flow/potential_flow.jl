@@ -85,8 +85,9 @@ write_file(joinpath(outdir, "potential-flow-circle.pvd"), mesh, Dict("ϕ" => ϕ,
 # the result will look suspicious because the streamlines do not exit the airfoil near the trailing edge.
 #
 # In this second part, we implement a correction to respect the Kutta condition. The idea is to add a second potential,
-# ``\psi`` with the harmonic property ``\Delta \psi = 0``. It thus offers an additional degree of freedom in terms of
-# scale. More precisely, the full flow potential is now written ``\bar{\phi} = \phi + \mathscr{C} \psi`` where ``\mathscr{C} \in \mathbb{R}``
+# ``\psi`` with the harmonic property ``\Delta \psi = 0`` such that ``\int_{\Gamma_{wall}}\nabla \psi \cdot t = 1`` where ``t``
+# is the tangent vector. It thus offers an additional degree of freedom in terms of _circlulation_. More precisely,
+# the full flow potential is now written ``\bar{\phi} = \phi + \mathscr{C} \psi`` where ``\mathscr{C} \in \mathbb{R}``
 # is the additional degree of freedom and is called the _circulation_. With this additional unknown, we can enforce the
 # Kutta condition, translated here as "the tangential velocity must be equal on both sides of the trailing edge":
 # ```math
@@ -117,7 +118,8 @@ write_file(joinpath(outdir, "potential-flow-circle.pvd"), mesh, Dict("ϕ" => ϕ,
 #   \end{cases}
 # ```
 # There are several methods to solve this problem. We could use another Lagrange multiplier for ``\mathscr{C}``. However,
-# note that the problem is actually linear with respect to ``\mathscr{C}``; in matrix form it reads ``A \phi + \mathscr{C} B = C``.
+# note that the problem is actually linear with respect to ``\mathscr{C}``, including the Kutta condition. In matrix form it
+# reads ``A \phi + \mathscr{C} B = C``.
 # Hence, solving the system for two different values of ``\mathscr{C}`` is enough to determine the solution.
 # This is what is done here.
 
@@ -179,23 +181,26 @@ function identify_trailing_edges(Γ)
 
     ## Gather geom infos
     icell, jcell = n2c[old2new[i_trail]]
-    t1 = normalize(xn[i_trail] - xc[icell])
-    t2 = normalize(xn[i_trail] - xc[jcell])
-    @show t1, t2
+    t1 = xn[i_trail] - xc[icell]
+    t2 = xn[i_trail] - xc[jcell]
+    l1 = norm(t1)
+    l2 = norm(t2)
+    t1 = t1 ./ l1
+    t2 = t2 ./ l2
 
     inode = node_l2g[i_trail]
     iface = cell_l2g[icell]
     jface = cell_l2g[jcell]
 
-    return inode, iface, jface, t1, t2
+    return inode, iface, jface, t1, t2, l1, l2
 end
 
 # Let's call this function, and build a `MeshFaceData` containing the tangent vectors only for the edges
 # attached to the trailing edge. This will ease the computation of the Kutta condition.
-inode, iface, jface, t1, t2 = identify_trailing_edges(Γ_wall)
+inode, iface, jface, t1, t2, l1, l2 = identify_trailing_edges(Γ_wall)
 _tangents = fill([0.0, 0.0], Bcube.nfaces(mesh)) # all tangents are zero by default
-_tangents[iface] = t1
-_tangents[jface] = t2
+_tangents[iface] = t1 ./ l1
+_tangents[jface] = t2 ./ l2
 tangents = MeshFaceData(_tangents)
 
 # Now, define the harmonic potential ψ. Recall that ψ requires choosing a point ``(x_c, y_c)`` inside the obstacle.
