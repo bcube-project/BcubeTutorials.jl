@@ -11,6 +11,14 @@ on:
         description: "Optional Bcube branch to use for tests"
         required: false
         default: ""
+      bcubevtk_branch:
+        description: "Optional BcubeVTK branch to use for tests"
+        required: false
+        default: ""
+      bcubegmsh_branch:
+        description: "Optional BcubeGmsh branch to use for tests"
+        required: false
+        default: ""
   issue_comment:
     types: [created, edited]
 
