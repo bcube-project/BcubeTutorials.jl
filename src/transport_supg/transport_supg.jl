@@ -45,7 +45,7 @@ println("Running transport SUPG example...") #hide
 # ```
 # Hence, the weak formulation is quite straigthforward, it simply consists in replacing the test function $v$ in the advection term by $v + c\Delta t \partial_x v / 2$.
 #
-# ## Code
+# ## Code : 1D domain with Dirichlet condition
 using Bcube
 using LinearAlgebra
 using StaticArrays
@@ -53,100 +53,220 @@ using Plots
 
 const is_tested = get(ENV, "TestMode", "false") == "true" #src
 if is_tested                                              #src
-    import ..Tester: test_ref                             #src
+    import ..Tester: test_ref, compare                    #src
 end                                                       #src
 
-const degree = 1 # Function-space degree (Taylor(0) = first order Finite Volume)
+# ### Simulation parameters
+# The `degree` controls the polynomial order of the finite-element basis
+# functions. Here we use linear (P1) elements.
+#
+# `nite` is the total number of time steps to perform. Together with the time
+# step `Δt` (computed below from the CFL condition), it determines the total
+# physical simulation time.
+#
+# The CFL (Courant–Friedrichs–Lewy) number is a dimensionless quantity that
+# relates the time step to the spatial discretization and the advection speed.
+# For an explicit scheme the CFL must remain ≤ 1 for stability; here we choose
+# 0.5 to provide a safety margin.
+#
+# `nx` is the number of nodes (not cells) along the 1-D domain, and `lx` is
+# the physical length of the domain. The velocity `c` is stored as a
+# `StaticArray` (SVector) of size 1 since this is a 1-D problem.
+const degree = 1 # Function-space degree
 const nite = 250 # Number of time iteration(s)
 const CFL = 0.5 # CFL number
 const nx = 101 # Number of nodes in the x-direction
-const ny = 41 # Number of nodes in the y-direction
 const lx = 1.0 # Domain width
-const ly = 2.0 # Domain height
 const c = SA[1.0] # Transport velocity
 
 @assert degree >= 1 "Cannot apply Dirichlet when degree = 0!"
 
-# Build mesh, and prepare output
+# ### Mesh and output directory
+# `line_mesh` builds a uniform 1-D mesh on the interval [0, lx] with `nx`
+# nodes. The `names` keyword assigns human-readable labels to the two boundary
+# endpoints: the left end ("West") and the right end ("East"). These names will
+# be used later to prescribe Dirichlet boundary conditions.
 mesh = line_mesh(nx; xmax = lx, names = ("West", "East"))
 
-out_dir = joinpath(@__DIR__, "..", "..", "myout", "linear_transport")
+# All generated files (animation, snapshots, etc.) will be stored in the following
+# directory, created relative to the source file location.
+out_dir = joinpath(@__DIR__, "..", "..", "myout", "transport_supg")
 mkpath(out_dir)
 
-# Time step defined by a CFL condition
-const Δt = CFL * min(lx / (nx - 1), ly / (ny - 1)) / norm(c)
-t = 0.0
+# ### Time step from the CFL condition
+# The CFL condition for 1-D advection reads:  CFL = c Δt / Δx.
+# Solving for Δt gives:  Δt = CFL × Δx / c,  where Δx = lx / (nx - 1) is the
+# uniform cell size. We use `norm(c)` so the formula is valid even if `c` were
+# a multi-dimensional vector.
+const Δt = CFL * lx / (nx - 1) / norm(c)
+t = 0.0 # Current physical time, updated at each iteration
 
-# Inlet boundary condition. Use `f_west(x, t) = 1.0` for a square.
+# ### Inlet (West) boundary condition
+# `f_west(t)` prescribes the value of `u` at the left boundary as a function of
+# time. A sinusoidal signal is used here because it starts at zero (smooth
+# startup). To inject a square wave instead, simply replace this with
+# `f_west(t) = 1.0`.
 f_west(t) = sin(10 * t) # better start with 0 at t=0
 
-# Function space, trial and test FESpace, with the boundary condition
+# ### Function space and finite-element spaces
+# A `FunctionSpace` defines the type of polynomial basis functions used on each
+# cell. Here we choose Lagrange elements of the given `degree`.
 fs = FunctionSpace(:Lagrange, degree)
+
+# The `TrialFESpace` is the space of unknown (trial) functions. It is built on
+# top of `fs` and the `mesh`. A Dirichlet boundary condition is attached to the
+# "West" boundary: at each time `t`, the boundary value is `f_west(t)`. The
+# `PhysicalFunction` wraps a user-provided function of the physical coordinate
+# `x` so that Bcube can evaluate it on quadrature points.
 U = TrialFESpace(fs, mesh, Dict("West" => t -> PhysicalFunction(x -> f_west(t))))
+
+# The `TestFESpace` is derived from the trial space `U`. In a standard Galerkin
+# method, the test space coincides with the trial space (minus the Dirichlet
+# degrees of freedom). In SUPG, the test function will be *modified* later (see
+# `supg` below), but the underlying FE space `V` remains the same.
 V = TestFESpace(U)
 
-# Measure for domain discretization
+# ### Integration measure
+# `dΩ` is a measure over the computational domain (all cells of the mesh). The
+# second argument is the quadrature degree: it must be high enough to integrate
+# the polynomial expressions appearing in the bilinear forms exactly. A common
+# rule of thumb is `2 * degree + 1`, which is sufficient for mass and stiffness
+# integrals of order up to `2 * degree`.
 dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
 
-# Compute 'h', the cell characteristic length
+# ### Cell characteristic length 'h'
+# `MeshCellData` stores per-cell quantities. Here we compute, for each cell,
+# the integral of the constant function 1, which in 1-D simply yields the cell
+# length Δx. This per-cell length (often denoted 'h') can be used in alternative
+# SUPG formulations that express the stabilization parameter via h instead of
+# Δt (see the commented-out alternative below).
 vol = MeshCellData(Bcube.compute(∫(PhysicalFunction(x -> 1))dΩ))
 
-# SUPG test function : two equivalent formulae:
-# $ \tilde{v} = v + \dfrac{\Delta t}{2} c \cdot \nabla v$
-# or
-# $ \tilde{v} = v + \alpha \dfrac{\Delta x}{2} \dfrac{c}{|c|} \cdot \nabla v$
-# where $\alpha = c \Delta t / \Delta x$ is the CFL number.
+# ### SUPG modified test function
+# The key idea of SUPG (Streamline Upwind Petrov–Galerkin) is to replace the
+# standard test function `v` by a *modified* test function `ṽ` that adds a
+# perturbation along the streamline direction (i.e. along the velocity `c`).
+# This introduces an artificial diffusion aligned with the flow, which
+# stabilizes the numerical solution without polluting the crosswind direction.
+#
+# Two equivalent formulae can be used (see also the theoretical section above):
+#
+#   1) Time-based form:
+#        ṽ = v + (Δt / 2) (c · ∇v)
+#
+#   2) Space-based form (using the cell size h and CFL number α):
+#        ṽ = v + α (h / 2) (c / |c|) · ∇v
+#      where α = c Δt / h = CFL.
+#
+# Both are equivalent when the mesh is uniform. We use form (1) here.
 supg(v) = v + Δt / 2 * c ⋅ ∇(v)
 ## supg(v) = v + CFL * h / (2 * norm(c)) * (c ⋅ ∇(v))
 
-# Bilinear forms (mass and advection) definitions and assembly
+# ### Bilinear forms: mass and convection (advection)
+# `a(u, v)` is the standard mass bilinear form:  ∫Ω u v dΩ.
+# It does **not** involve the SUPG modification — the test function `v` is used
+# as-is.
+#
+# `b(u, v)` is the convection bilinear form:  ∫Ω (c · ∇u) ṽ dΩ.
+# Here the **SUPG-modified** test function `supg(v)` replaces `v`. This is the
+# only place where SUPG enters the formulation; the mass term is left
+# unchanged.
 a(u, v) = ∫(u ⋅ v)dΩ # Mass bilinear form : no supg
 b(u, v) = ∫((c ⋅ ∇(u)) ⋅ supg(v))dΩ # Convection bilinear form
 
+# ### Assembly and time-stepping matrix
+# `A` and `B` are the global finite-element matrices assembled from the bilinear
+# forms `a` and `b`, respectively, on the trial/test spaces `U` and `V`.
+#
+# The semi-discrete equation after time discretization is:
+# ```math
+#   A u^{n+1} = A u^n − Δt B u^n
+# ```
+# which can be written as:
+# ```math
+#   u^{n+1} = (I − Δt A^{-1} B) u^n
+# ```
+# The matrix `M = I − Δt A^{-1} B` is thus the explicit time-stepping operator.
+# Beware: forming the dense inverse `inv(Matrix(A))` is **very expensive** for
+# large problems! In production code one should instead solve the linear system
+# `A x = B u^n` with a sparse direct or iterative solver at each step.
 A = assemble_bilinear(a, U, V)
 B = assemble_bilinear(b, U, V)
 M = I - Δt * inv(Matrix(A)) * B #WARNING : really expensive !!!
 
-# Build FE functions : one for the computed solution,
-# one for the reference solution interpolated on the FESpace (that the best we can obtain!)
+# ### Finite-element functions for the solution and the reference
+# `u` will store the computed numerical solution. Its degree-of-freedom (dof)
+# vector is initialized from the Dirichlet boundary condition at t = 0.
+#
+# `u_ref` is an auxiliary FE function used to visualize the analytical
+# (reference) solution. Since the exact solution is projected onto the same
+# FESpace via an L² projection, `u_ref` represents the *best possible*
+# representation of the exact solution in this discrete space — it is not the
+# exact solution itself but its FE interpolation.
 u = FEFunction(U)
 apply_dirichlet_to_vector!(u.dofValues, U, V, mesh, t)
 
 u_ref = FEFunction(U)
 
-# Prepare animation. Since the mesh and the FESpace are "trivial",
-# we directly extract the mesh coordinates into a vector and the
-# dof values are in the same order.
+# ### Prepare animation
+# For this simple 1-D structured mesh with a Lagrange FESpace, the nodal dof
+# values are ordered consistently with the mesh nodes. We can therefore extract
+# the x-coordinates of the nodes into a plain vector and plot them directly
+# against `u.dofValues`.
 anim = Animation()
 x = [get_coords(node, 1) for node in get_nodes(mesh)]
 
-# Let's loop
+# ### Time loop
+# At each iteration we:
+#   1. Advance the physical time by Δt.
+#   2. Apply the explicit time-stepping matrix M to update the solution.
+#   3. Re-apply the Dirichlet boundary condition at the new time (since the
+#      matrix update does not enforce boundary values).
+#   4. Compute the reference (analytical) solution by L² projection for
+#      comparison.
+#   5. Capture a frame of the current solution vs. reference for the animation.
 for i in 1:nite
     global t
 
-    ## Update time
+    ## 1. Advance time
     t += Δt
 
-    ## Update solution
-    u.dofValues .= M * u.dofValues
+    ## 2. Explicit time step
+    ## Multiply the dof vector by the pre-computed operator M.
+    ## This advances the solution from u^n to u^{n+1}.
+    set_dof_values!(u, M * get_dof_values(u))
 
-    ## Apply bnd condition : we can also set M[1,:] = [1, 0...]
+    ## 3. Enforce Dirichlet boundary condition
+    ## After the matrix multiplication, the boundary dof(s) no longer respect
+    ## the imposed inlet value, so we overwrite them. An alternative approach
+    ## would be to modify M directly (e.g. set M[1,:] = [1, 0, ..., 0]) so that
+    ## the boundary is automatically enforced at each step.
     apply_dirichlet_to_vector!(u.dofValues, U, V, mesh, t)
 
-    ## Evaluate and project reference solution on FESpace
+    ## 4. Reference solution
+    ## For the pure advection equation  ∂_t u + c ∂_x u = 0, the exact solution
+    ## is simply the inlet signal transported at speed c:
+    ##     u_exact(x, t) = f_west(t - x / c)   when  t - x/c > 0  (signal has arrived)
+    ##     u_exact(x, t) = 0                    otherwise          (signal not yet arrived)
+    ## We project this analytical expression onto the FESpace via an L²
+    ## projection to obtain `u_ref`, which is the best interpolate of the exact
+    ## solution in the FE space.
     projection_l2!(
         u_ref,
         PhysicalFunction(x -> (x[1] - c[1] * t) > 0 ? 0.0 : f_west(t - x[1] / c[1])),
         mesh,
     )
 
-    ## Build animation
+    ## 5. Animation frame
+    ## Plot the computed solution (solid line) and the reference (dotted).
     plt = plot(x, u.dofValues; label = "u", xlabel = "x")
     plot!(x, u_ref.dofValues; label = "u_ref", ls = :dot)
     frame(anim, plt)
 end
 
-# Here is the output animation
+# ### Save and display the animation
+# The GIF is written to the output directory. In interactive (non-test) mode
+# the animation is also displayed in the REPL / plot pane.
 g = gif(anim, joinpath(out_dir, "transport_supg.gif"))
 #! format: off
 if !is_tested #src
@@ -158,5 +278,71 @@ end #src
 if is_tested                                             #src
     test_ref("transport_supg_u.jld2", get_dof_values(u)) #src
 end                                                      #src
+
+# ## Code : 2D domain with periodicity
+# Let's now solve the same equation but on a rectangular (2D) domain.
+# !!! note
+#     For didactic purpose the code is copied here but note that the previous 1D code could be put into a function
+#     and then re-used for the 2D domain with only minor adjusments.
+
+# First, let's build a rectangular domain and the periodic face domains associated with it. We impose a periodicity
+# in both x and y directions. The order between donor and receiver must be consistent with the input transformation
+# (here a `Translation`).
+mesh = rectangle_mesh(41, 31; xmax = 2, ymax = 1.0)
+perio_x = PeriodicBCType(Translation(SA[2.0, 0.0]), "xmin", "xmax")
+perio_y = PeriodicBCType(Translation(SA[0.0, -1.0]), "ymax", "ymin")
+Γ_perio_x = BoundaryFaceDomain(mesh, perio_x)
+Γ_perio_y = BoundaryFaceDomain(mesh, perio_y)
+
+# Now, define the FESpace and specify the periodicity conditions (there is no more Dirichlet condition for this case).
+U = TrialFESpace(FunctionSpace(:Lagrange, 1), mesh; periodicity = (Γ_perio_x, Γ_perio_y))
+V = TestFESpace(U)
+
+# The rest of the code is now almost the same as above, including the SUPG modification for the test function.
+c_2D = SA[2.0, 1.0]
+Δt_2D = CFL * min(2.0 / (41 - 1), 1.0 / (31 - 1)) / norm(c_2D)
+dΩ = Measure(CellDomain(mesh), 2 * degree + 1)
+supg_2D(v) = v + Δt_2D / 2 * c_2D ⋅ ∇(v)
+a_2D(u, v) = ∫(u ⋅ v)dΩ
+b_2D(u, v) = ∫((c_2D ⋅ ∇(u)) ⋅ supg_2D(v))dΩ
+A = assemble_bilinear(a_2D, U, V)
+B = assemble_bilinear(b_2D, U, V)
+M = I - Δt_2D * inv(Matrix(A)) * B
+
+# This time, we will initialiaze the FEFunction with a smooth bump near the center of the domain. To set each dof value with a given analytical function
+# we use the `FEFunction(::TrialFESpace, ::AbstractMesh, ::AbstractLazy)` constructor.
+x0 = SA[1.0, 0.5]
+r = 0.25 # bump radius
+_a, _b = SA[
+    r^3 r^2
+    3*r^2 2*r
+] \ SA[-1.0; 0]
+f = PhysicalFunction(x -> begin
+    dx = norm(x - x0)
+    dx < r ? _a * dx^3 + _b * dx^2 + 1.0 : 0.0
+end)
+u = FEFunction(U, mesh, f)
+
+# To build an animation, we use this time a VTK export.
+using BcubeVTK
+d = Dict("u" => u)
+path = joinpath(out_dir, "periodic_rectangle.pvd")
+write_file(path, mesh, d, 0, 0.0) # init export
+# Run !
+t = 0.0
+for i in 1:nite
+    global t += Δt_2D
+    set_dof_values!(u, M * get_dof_values(u))
+    write_file(path, mesh, d, i, t; collection_append = true)
+end
+# The obtained result is the following one:
+# ![](../assets/transport_supg_periodic.gif)
+if is_tested                                   #src
+    test_ref(                                  #src
+        "transport_supg_periodic_u.jld2",      #src
+        get_dof_values(u),                     #src
+        compare(; atol = 1e-10, rtol = 1e-10), #src
+    )                                          #src
+end                                            #src
 
 end #hide

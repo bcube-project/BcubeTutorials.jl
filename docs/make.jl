@@ -61,9 +61,6 @@ map(
 example_dir = joinpath(@__DIR__, "src", "example")
 Sys.rm(example_dir; recursive = true, force = true)
 mkdir(example_dir)
-# gen_markdown(example_src, "euler_naca_steady.jl", example_dir)
-# gen_markdown(example_src, "covo.jl", example_dir)
-# gen_markdown(example_src, "linear_elasticity.jl", example_dir)
 
 # Generate "uncommented" examples (= without `Literate`)
 for (script_name, name) in (
