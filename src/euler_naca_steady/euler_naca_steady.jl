@@ -83,7 +83,7 @@ function _flux_Ω(q, ∇v)
     flux_ρu = ρuu + p * I
     flux_ρE = (ρE + p) .* vel
 
-    return return ∇λ_ρ ⋅ flux_ρ + ∇λ_ρu ⊡ flux_ρu + ∇λ_ρE ⋅ flux_ρE
+    return ∇λ_ρ ⋅ flux_ρ + ∇λ_ρu ⊡ flux_ρu + ∇λ_ρE ⋅ flux_ρE
 end
 
 """
