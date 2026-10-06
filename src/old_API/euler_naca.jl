@@ -333,13 +333,12 @@ function append_vtk(vtk, mesh, vars, t, params; res = nothing)
     # Values on center
     # Mean cell values
     name2val_mean = (; zip(get_name.(vars), mean_values.(vars, degquad))...)
-    p_mean =
-        pressure.(
-            name2val_mean[:ρ],
-            name2val_mean[:ρu],
-            name2val_mean[:ρE],
-            params.stateInit.γ,
-        )
+    p_mean = pressure.(
+        name2val_mean[:ρ],
+        name2val_mean[:ρu],
+        name2val_mean[:ρE],
+        params.stateInit.γ,
+    )
 
     vtk_degree = maximum(x -> get_order(function_space(x)), vars)
     vtk_degree = max(1, mesh_degree, vtk_degree)
