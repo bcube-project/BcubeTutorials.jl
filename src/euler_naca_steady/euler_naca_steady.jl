@@ -624,25 +624,33 @@ function apply_limitation!(q::Bcube.AbstractFEFunction, ode_params)
 
     ρ_mean, ρu_mean, ρE_mean = cell_mean(q, cache.cacheCellMean)
 
-    _limρ, ρ_proj = linear_scaling_limiter(
+    lim_ρ, ρ_lim = linear_scaling_limiter(
         ρ,
+        ρ_mean,
         params.dΩ;
         bounds = (ρmin₀, ρmax₀),
         DMPrelax = params.DMPrelax,
-        mass = cache.mass_sca,
     )
 
-    op_t = limiter_param_p ∘ (ρ_proj, ρu, ρE, ρ_mean, ρu_mean, ρE_mean)
-    t = Bcube._minmax_cells(op_t, mesh, Val(params.degquad))
-    tmin = Bcube.MeshCellData(getindex.(t, 1))
+    op_t = limiter_param_p ∘ (ρ_lim, ρu, ρE, ρ_mean, ρu_mean, ρE_mean)
+    _tmin = ones(ncells(mesh))
+    _tmax = zeros(ncells(mesh))
+    Bcube._minmax_cells!(
+        _tmin,
+        _tmax,
+        op_t,
+        get_domain(params.dΩ),
+        (Bcube.get_quadrature(params.dΩ),),
+    )
+    tmin = Bcube.MeshCellData(_tmin)
 
-    if eltype(_limρ) == eltype(params.limρ) # skip Dual number case
-        set_values!(params.limρ, get_values(_limρ))
+    if eltype(lim_ρ) == eltype(params.limρ) # skip Dual number case
+        set_values!(params.limρ, get_values(lim_ρ))
         set_values!(params.limAll, get_values(tmin))
     end
 
     limited_var(u, ū, lim_u) = ū + lim_u * (u - ū)
-    projection_l2!(ρ, limited_var(ρ_proj, ρ_mean, tmin), params.dΩ; mass = cache.mass_sca)
+    projection_l2!(ρ, limited_var(ρ_lim, ρ_mean, tmin), params.dΩ; mass = cache.mass_sca)
     projection_l2!(ρu, limited_var(ρu, ρu_mean, tmin), params.dΩ; mass = cache.mass_vec)
     projection_l2!(ρE, limited_var(ρE, ρE_mean, tmin), params.dΩ; mass = cache.mass_sca)
     return nothing
