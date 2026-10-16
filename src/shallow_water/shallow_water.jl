@@ -546,23 +546,22 @@ function apply_limitation!(q, params, cache)
     h, hu = q
     dΩ = params.dΩ
 
-    q_mean = cell_mean(q, cache.cacheCellMean)
+    h_mean, hu_mean, = cell_mean(q, cache.cacheCellMean)
 
-    _limh, _h_proj = linear_scaling_limiter(
+    lim_h, h_lim = linear_scaling_limiter(
         h,
+        h_mean,
         params.dΩ;
         bounds = (hmin₀, hmax₀),
         DMPrelax = params.DMPrelax,
-        mass = cache.mass_sca,
     )
-    set_dof_values!(h, get_dof_values(_h_proj))
+    projection_l2!(h, h_lim, params.dΩ; mass = cache.mass_sca)
 
-    h_mean, hu_mean, = q_mean
     limited_var(a, a̅, lim_a) = a̅ + lim_a * (a - a̅)
-    projection_l2!(hu, limited_var(hu, hu_mean, _limh), params.dΩ; mass = cache.mass_vec)
+    projection_l2!(hu, limited_var(hu, hu_mean, lim_h), params.dΩ; mass = cache.mass_vec)
 
-    if eltype(_limh) == eltype(params.limh) # skip Dual number case
-        set_values!(params.limh, get_values(_limh))
+    if eltype(lim_h) == eltype(params.limh) # skip Dual number case
+        set_values!(params.limh, get_values(lim_h))
     end
     return nothing
 end
