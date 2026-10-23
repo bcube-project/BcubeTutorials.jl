@@ -266,10 +266,11 @@ function scalar_circle(;
     ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
     ## Initial solution
-    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-    isLimiterActive && (u.dofValues .= _u.dofValues)
+    cacheCellMean = build_cell_mean_cache(u, dΩ)
+    u_mean = cell_mean(u, cacheCellMean)
+    lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+    isLimiterActive && projection_l2!(u, u_lim, dΩ; mass = M)
 
-    u_mean = cell_mean(u, dΩ)
     t = 0.0
     plt = plot_solution(0, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
     append_vtk(vtk, u, lim_u, u_mean, t)
@@ -282,8 +283,9 @@ function scalar_circle(;
 
         ## Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         ## Define linear forms
@@ -612,8 +614,10 @@ function scalar_cylinder(;
     M = factorize(assemble_bilinear(m, U, V))
 
     ## Initial solution
-    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-    isLimiterActive && (u.dofValues .= _u.dofValues)
+    cacheCellMean = build_cell_mean_cache(u, dΩ)
+    u_mean = cell_mean(u, cacheCellMean)
+    lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+    isLimiterActive && projection_l2!(u, u_lim, dΩ; mass = M)
 
     t = 0.0
     append_vtk(vtk, u, lim_u, t)
@@ -626,8 +630,9 @@ function scalar_cylinder(;
 
         ## Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         ## Define linear forms
@@ -858,8 +863,10 @@ function vector_cylinder(;
 
     ## Initial solution
     if isLimiterActive
-        lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-        u.dofValues .= _u.dofValues
+        cacheCellMean = build_cell_mean_cache(u, dΩ)
+        u_mean = cell_mean(u, cacheCellMean)
+        lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+        projection_l2!(u, u_lim, dΩ; mass = M)
     else
         lim_u = MeshCellData(zero(get_dof_values(u))) ## dummy, just for the output
     end
@@ -876,8 +883,9 @@ function vector_cylinder(;
 
         ## Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            isLimiterActive && projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         ## Define linear forms
@@ -1083,8 +1091,10 @@ function scalar_torus(;
     M = factorize(assemble_bilinear(m, U, V))
 
     ## Initial solution
-    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-    isLimiterActive && (u.dofValues .= _u.dofValues)
+    cacheCellMean = build_cell_mean_cache(u, dΩ)
+    u_mean = cell_mean(u, cacheCellMean)
+    lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+    isLimiterActive && projection_l2!(u, u_lim, dΩ; mass = M)
 
     t = 0.0
     append_vtk(vtk, u, lim_u, t)
@@ -1097,8 +1107,10 @@ function scalar_torus(;
 
         ## Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            cacheCellMean = build_cell_mean_cache(u, dΩ)
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            isLimiterActive && projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         ## Define linear forms

@@ -98,6 +98,12 @@ directory of the current project.
 """
 refpath(filename::String) = joinpath(@__DIR__, "references/", filename)
 
+function print_diff(i, x, y, n, rtol)
+    println(
+        "index=$i, x=$x, y=$y, norm(x-y)=$n, rtol*max(norm(x),norm(y))=$(rtol*max(norm(x),norm(y)))",
+    )
+end
+
 """
     compare(
         d1::Dict{String, <:AbstractArray},
@@ -139,7 +145,11 @@ function compare(
             println("Comparison failure info: atol=$atol, rtol=$rtol")
             # We perform the check on all entries, without stopping on the first failure
             # (except for Inf/NaN)
-            for (x, y) in zip(_x, _y)
+
+            worst_Δ = zero(eltype(promote(first(_x), first(_y))))
+            worst_values = nothing
+
+            for (i, (x, y)) in enumerate(zip(_x, _y))
                 # Code below adapted from "isapprox"
                 if !isfinite(x) || !isfinite(y)
                     println("isfinite check failed")
@@ -153,12 +163,17 @@ function compare(
                 x′, y′ = promote(x, y) # to avoid integer overflow
                 n = norm(x - y)
                 r = rtol * max(norm(x′), norm(y′))
-                if n > max(atol, r)
-                    println(
-                        "x=$x, y=$y, norm(x-y)=$n, rtol*max(norm(x),norm(y))=$(rtol*max(norm(x),norm(y)))",
-                    )
+                Δ = n - max(atol, r)
+                if Δ > zero(eltype(Δ))
+                    if Δ>worst_Δ
+                        worst_Δ = Δ
+                        worst_values = (i, x, y, n, rtol)
+                    end
+                    print_diff(i, x, y, n, rtol)
                 end
             end
+            println("Worst failure:")
+            print_diff(worst_values...)
             return false
         end
     end
