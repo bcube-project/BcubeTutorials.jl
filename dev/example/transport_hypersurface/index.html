@@ -246,10 +246,11 @@ function scalar_circle(;
     ycenters = [center[2] for center in Bcube.get_cell_centers(mesh)]
 
     # Initial solution
-    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-    isLimiterActive &amp;&amp; (u.dofValues .= _u.dofValues)
+    cacheCellMean = build_cell_mean_cache(u, dΩ)
+    u_mean = cell_mean(u, cacheCellMean)
+    lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+    isLimiterActive &amp;&amp; projection_l2!(u, u_lim, dΩ; mass = M)
 
-    u_mean = cell_mean(u, dΩ)
     t = 0.0
     plt = plot_solution(0, t, u, mesh, xcenters, ycenters, xnodes, ynodes)
     append_vtk(vtk, u, lim_u, u_mean, t)
@@ -262,8 +263,9 @@ function scalar_circle(;
 
         # Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         # Define linear forms
@@ -579,8 +581,10 @@ function scalar_cylinder(;
     M = factorize(assemble_bilinear(m, U, V))
 
     # Initial solution
-    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-    isLimiterActive &amp;&amp; (u.dofValues .= _u.dofValues)
+    cacheCellMean = build_cell_mean_cache(u, dΩ)
+    u_mean = cell_mean(u, cacheCellMean)
+    lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+    isLimiterActive &amp;&amp; projection_l2!(u, u_lim, dΩ; mass = M)
 
     t = 0.0
     append_vtk(vtk, u, lim_u, t)
@@ -593,8 +597,9 @@ function scalar_cylinder(;
 
         # Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         # Define linear forms
@@ -822,8 +827,10 @@ function vector_cylinder(;
 
     # Initial solution
     if isLimiterActive
-        lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-        u.dofValues .= _u.dofValues
+        cacheCellMean = build_cell_mean_cache(u, dΩ)
+        u_mean = cell_mean(u, cacheCellMean)
+        lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+        projection_l2!(u, u_lim, dΩ; mass = M)
     else
         lim_u = MeshCellData(zero(get_dof_values(u))) ## dummy, just for the output
     end
@@ -840,8 +847,9 @@ function vector_cylinder(;
 
         # Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            isLimiterActive &amp;&amp; projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         # Define linear forms
@@ -1041,8 +1049,10 @@ function scalar_torus(;
     M = factorize(assemble_bilinear(m, U, V))
 
     # Initial solution
-    lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-    isLimiterActive &amp;&amp; (u.dofValues .= _u.dofValues)
+    cacheCellMean = build_cell_mean_cache(u, dΩ)
+    u_mean = cell_mean(u, cacheCellMean)
+    lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+    isLimiterActive &amp;&amp; projection_l2!(u, u_lim, dΩ; mass = M)
 
     t = 0.0
     append_vtk(vtk, u, lim_u, t)
@@ -1055,8 +1065,10 @@ function scalar_torus(;
 
         # Apply limitation
         if isLimiterActive
-            lim_u, _u = linear_scaling_limiter(u, dΩ; DMPrelax, mass = M)
-            set_dof_values!(u, get_dof_values(_u))
+            cacheCellMean = build_cell_mean_cache(u, dΩ)
+            u_mean = cell_mean(u, cacheCellMean)
+            lim_u, u_lim = linear_scaling_limiter(u, u_mean, dΩ; DMPrelax)
+            isLimiterActive &amp;&amp; projection_l2!(u, u_lim, dΩ; mass = M)
         end
 
         # Define linear forms
@@ -1130,4 +1142,4 @@ vector_circle(; degree = 0, nite = 100, CFL = 1, nθ = 20)
     progressBar = !is_tested,
     meshOrder = 2,
 )
-</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Wednesday 7 October 2026 10:51">Wednesday 7 October 2026</span>. Using Julia version 1.10.12.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
+</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../heat_equation_two_layers/">« Heat equation with two layers</a><a class="docs-footer-nextpage" href="../stokes_flow/">Stokes flow example (FE with Taylor-Hood elements) »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Friday 23 October 2026 15:59">Friday 23 October 2026</span>. Using Julia version 1.10.12.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
